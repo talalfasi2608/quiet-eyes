@@ -1,0 +1,768 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useSimulation } from '../../context/SimulationContext';
+import {
+  Crosshair,
+  Loader2,
+  AlertCircle,
+  ExternalLink,
+  RefreshCw,
+  Radio,
+  Eye,
+  X,
+  CheckCircle2,
+  Clock,
+  Filter,
+  Zap,
+  Facebook,
+  Globe,
+  MessageCircle,
+  Instagram,
+  Search,
+  Hash,
+  ThumbsUp,
+  ThumbsDown,
+  Tag,
+  BarChart3,
+  Download,
+} from 'lucide-react';
+
+const API_BASE = 'http://localhost:8015';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface Lead {
+  id: string;
+  business_id: string;
+  platform: string;
+  summary: string;
+  source_url: string | null;
+  original_text: string | null;
+  search_query: string | null;
+  relevance_score: number;
+  status: 'new' | 'sniped' | 'dismissed';
+  created_at: string;
+  sniped_at: string | null;
+  intent_signals: {
+    matched_keywords?: string[];
+    query_used?: string;
+    blueprint_matches?: string[];
+  } | null;
+}
+
+type RejectionReason = 'wrong_industry' | 'too_far' | 'not_a_lead' | 'spam' | 'irrelevant' | 'other';
+
+interface FeedbackStats {
+  total_feedback: number;
+  approval_rate: number;
+  approvals: number;
+  rejections: number;
+  dismissals: number;
+  top_rejection_reason: string | null;
+}
+
+const REJECTION_LABELS: Record<RejectionReason, string> = {
+  wrong_industry: 'תעשייה לא נכונה',
+  too_far: 'רחוק מדי',
+  not_a_lead: 'לא ליד',
+  spam: 'ספאם',
+  irrelevant: 'לא רלוונטי',
+  other: 'אחר',
+};
+
+interface LeadsResponse {
+  success: boolean;
+  leads: Lead[];
+  total: number;
+  counts: {
+    new: number;
+    sniped: number;
+    dismissed: number;
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPER COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function LiveBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40">
+      <span className="relative flex h-2.5 w-2.5">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+      </span>
+      <span className="text-red-400 text-xs font-bold tracking-wider uppercase">LIVE</span>
+    </span>
+  );
+}
+
+function SniperScope({ isScanning }: { isScanning: boolean }) {
+  return (
+    <div className="relative w-20 h-20">
+      <div
+        className={`absolute inset-0 rounded-full border-2 border-red-500/30 ${isScanning ? 'animate-ping' : ''}`}
+        style={{ animationDuration: '2s' }}
+      />
+      <div
+        className={`absolute inset-2 rounded-full border-2 border-red-500/50 ${isScanning ? 'animate-pulse' : ''}`}
+      />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div
+          className={`w-11 h-11 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/30 ${
+            isScanning ? 'animate-pulse' : ''
+          }`}
+        >
+          <Crosshair className="w-6 h-6 text-white" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlatformIcon({ platform }: { platform: string }) {
+  const p = platform.toLowerCase();
+  if (p === 'facebook') return <Facebook className="w-5 h-5 text-blue-400" />;
+  if (p === 'instagram') return <Instagram className="w-5 h-5 text-pink-400" />;
+  if (p === 'google') return <Search className="w-5 h-5 text-emerald-400" />;
+  if (p === 'reddit') return <Hash className="w-5 h-5 text-orange-400" />;
+  if (p === 'whatsapp') return <MessageCircle className="w-5 h-5 text-green-400" />;
+  if (p === 'forum') return <MessageCircle className="w-5 h-5 text-cyan-400" />;
+  return <Globe className="w-5 h-5 text-gray-400" />;
+}
+
+function PlatformBadge({ platform }: { platform: string }) {
+  const p = platform.toLowerCase();
+  const config: Record<string, { bg: string; text: string; border: string; label: string }> = {
+    facebook: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', label: 'פייסבוק' },
+    instagram: { bg: 'bg-pink-500/15', text: 'text-pink-400', border: 'border-pink-500/30', label: 'אינסטגרם' },
+    google: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', label: 'גוגל' },
+    reddit: { bg: 'bg-orange-500/15', text: 'text-orange-400', border: 'border-orange-500/30', label: 'רדיט' },
+    whatsapp: { bg: 'bg-green-500/15', text: 'text-green-400', border: 'border-green-500/30', label: 'וואטסאפ' },
+    forum: { bg: 'bg-cyan-500/15', text: 'text-cyan-400', border: 'border-cyan-500/30', label: 'פורום' },
+  };
+  const c = config[p] || { bg: 'bg-gray-500/15', text: 'text-gray-400', border: 'border-gray-500/30', label: platform };
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${c.bg} ${c.text} ${c.border}`}>
+      <PlatformIcon platform={platform} />
+      {c.label}
+    </span>
+  );
+}
+
+function RelevanceBar({ score }: { score: number }) {
+  const pct = Math.round(score * 100);
+  const color = pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-amber-500' : 'bg-red-500';
+  return (
+    <div className="flex items-center gap-2" dir="ltr">
+      <div className="flex-1 h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs text-gray-500 w-8 text-left">{pct}%</span>
+    </div>
+  );
+}
+
+function timeAgo(dateStr: string): string {
+  const now = new Date();
+  const then = new Date(dateStr);
+  const diffMs = now.getTime() - then.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'עכשיו';
+  if (mins < 60) return `לפני ${mins} דק׳`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `לפני ${hours} שע׳`;
+  const days = Math.floor(hours / 24);
+  return `לפני ${days} ימים`;
+}
+
+const filterLabels: Record<string, string> = {
+  all: 'כל הלידים',
+  new: 'לידים חדשים',
+  sniped: 'לידים שנתפסו',
+  dismissed: 'לידים שנדחו',
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REJECTION REASON PICKER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function RejectionPicker({
+  onSelect,
+  onCancel,
+}: {
+  onSelect: (reason: RejectionReason) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="absolute inset-0 z-10 bg-gray-900/95 rounded-xl flex flex-col items-center justify-center p-4 animate-in fade-in">
+      <p className="text-sm text-gray-300 mb-3 font-medium">למה דחית?</p>
+      <div className="grid grid-cols-2 gap-2 w-full">
+        {(Object.entries(REJECTION_LABELS) as [RejectionReason, string][]).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => onSelect(key)}
+            className="px-3 py-2 text-xs rounded-lg border border-gray-600/50 text-gray-300 hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-300 transition-all"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={onCancel}
+        className="mt-3 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+      >
+        ביטול
+      </button>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// KEYWORD BADGES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function IntentBadges({ signals }: { signals: Lead['intent_signals'] }) {
+  if (!signals) return null;
+  const keywords = signals.matched_keywords || [];
+  const blueprintMatches = signals.blueprint_matches || [];
+  const allTags = [...keywords, ...blueprintMatches].slice(0, 4);
+
+  if (allTags.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1.5 mb-2">
+      {allTags.map((tag, i) => (
+        <span
+          key={i}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30"
+        >
+          <Tag className="w-2.5 h-2.5" />
+          {tag}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FEEDBACK STATS BAR
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function FeedbackStatsBar({ stats }: { stats: FeedbackStats | null }) {
+  if (!stats || stats.total_feedback === 0) return null;
+
+  const approvalPct = Math.round(stats.approval_rate * 100);
+
+  return (
+    <div className="glass-card p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <BarChart3 className="w-5 h-5 text-indigo-400" />
+        <h3 className="text-sm font-semibold text-white">דירוגי לידים</h3>
+        <span className="text-xs text-gray-500">({stats.total_feedback} דירוגים)</span>
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-400">אחוז אישור</span>
+            <span className={`text-sm font-bold ${approvalPct >= 70 ? 'text-emerald-400' : approvalPct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+              {approvalPct}%
+            </span>
+          </div>
+          <div className="h-2 bg-gray-700/50 rounded-full overflow-hidden flex" dir="ltr">
+            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${approvalPct}%` }} />
+            <div className="h-full bg-red-500 transition-all" style={{ width: `${100 - approvalPct}%` }} />
+          </div>
+        </div>
+        <div className="flex gap-3 text-xs">
+          <span className="text-emerald-400">{stats.approvals} <ThumbsUp className="w-3 h-3 inline" /></span>
+          <span className="text-red-400">{stats.rejections} <ThumbsDown className="w-3 h-3 inline" /></span>
+        </div>
+        {stats.top_rejection_reason && (
+          <div className="text-xs text-gray-500">
+            סיבה עיקרית: <span className="text-gray-400">{REJECTION_LABELS[stats.top_rejection_reason as RejectionReason] || stats.top_rejection_reason}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FLASH CARD COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function LeadFlashCard({
+  lead,
+  onApprove,
+  onReject,
+  onDismiss,
+}: {
+  lead: Lead;
+  onApprove: (id: string) => void;
+  onReject: (id: string, reason: RejectionReason) => void;
+  onDismiss: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [showRejectPicker, setShowRejectPicker] = useState(false);
+
+  const isSniped = lead.status === 'sniped';
+  const isDismissed = lead.status === 'dismissed';
+
+  const borderColor = isSniped
+    ? 'border-emerald-500/50'
+    : isDismissed
+    ? 'border-gray-600/30'
+    : 'border-red-500/40';
+
+  return (
+    <div
+      dir="rtl"
+      className={`glass-card p-0 overflow-hidden border-r-4 ${borderColor} transition-all duration-300 relative ${
+        isDismissed ? 'opacity-50' : 'hover:shadow-lg hover:shadow-red-500/10'
+      }`}
+    >
+      {/* Rejection Reason Overlay */}
+      {showRejectPicker && (
+        <RejectionPicker
+          onSelect={(reason) => {
+            onReject(lead.id, reason);
+            setShowRejectPicker(false);
+          }}
+          onCancel={() => setShowRejectPicker(false)}
+        />
+      )}
+
+      {/* Card Header */}
+      <div className="p-4 pb-3">
+        <div className="flex items-start justify-between mb-3">
+          <PlatformBadge platform={lead.platform} />
+          <div className="flex items-center gap-2">
+            {lead.status === 'new' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs animate-pulse">
+                <Zap className="w-3 h-3" />
+                חדש
+              </span>
+            )}
+            {isSniped && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">
+                <CheckCircle2 className="w-3 h-3" />
+                אושר
+              </span>
+            )}
+            <span className="text-xs text-gray-500 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {timeAgo(lead.created_at)}
+            </span>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <p className="text-white text-sm font-medium leading-relaxed mb-2">
+          {lead.summary}
+        </p>
+
+        {/* Intent Signal Badges */}
+        <IntentBadges signals={lead.intent_signals} />
+
+        {/* Relevance */}
+        <div className="mb-3">
+          <RelevanceBar score={lead.relevance_score} />
+        </div>
+
+        {/* Expandable original text */}
+        {lead.original_text && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1 mb-2"
+          >
+            <Eye className="w-3 h-3" />
+            {expanded ? 'הסתר טקסט מקורי' : 'הצג טקסט מקורי'}
+          </button>
+        )}
+        {expanded && lead.original_text && (
+          <div className="p-3 bg-gray-800/50 rounded-lg text-xs text-gray-400 leading-relaxed mb-3 max-h-32 overflow-y-auto">
+            {lead.original_text}
+          </div>
+        )}
+      </div>
+
+      {/* Card Actions — RLHF Feedback */}
+      {!isDismissed && (
+        <div className="px-4 py-3 border-t border-gray-700/30 flex items-center justify-between bg-gray-800/20">
+          {!isSniped ? (
+            <>
+              <button
+                onClick={() => setShowRejectPicker(true)}
+                className="flex items-center gap-1.5 text-xs text-red-400/70 hover:text-red-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-500/10"
+              >
+                <ThumbsDown className="w-3.5 h-3.5" />
+                לא רלוונטי
+              </button>
+              <button
+                onClick={() => {
+                  onApprove(lead.id);
+                  if (lead.source_url) {
+                    window.open(lead.source_url, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all active:scale-95"
+              >
+                <ThumbsUp className="w-4 h-4" />
+                ליד טוב
+                {lead.source_url && <ExternalLink className="w-3.5 h-3.5 opacity-70" />}
+              </button>
+            </>
+          ) : (
+            <div className="w-full flex items-center justify-center gap-2 text-emerald-400 text-sm">
+              <ThumbsUp className="w-4 h-4" />
+              ליד אושר
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SKELETON
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function CardSkeleton() {
+  return (
+    <div className="glass-card p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="w-24 h-6 rounded-full bg-gray-700/50 animate-pulse" />
+        <div className="w-16 h-4 rounded bg-gray-700/50 animate-pulse" />
+      </div>
+      <div className="w-full h-4 rounded bg-gray-700/50 animate-pulse" />
+      <div className="w-3/4 h-4 rounded bg-gray-700/50 animate-pulse" />
+      <div className="w-full h-1.5 rounded bg-gray-700/50 animate-pulse" />
+      <div className="flex justify-between pt-2 border-t border-gray-700/30">
+        <div className="w-16 h-6 rounded bg-gray-700/50 animate-pulse" />
+        <div className="w-28 h-8 rounded-xl bg-gray-700/50 animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export default function LeadSniperFeed() {
+  const { currentProfile } = useSimulation();
+
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [counts, setCounts] = useState({ new: 0, sniped: 0, dismissed: 0 });
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'new' | 'sniped' | 'dismissed'>('all');
+  const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
+
+  // ── Fetch leads ────────────────────────────────────────────────────────
+  const fetchLeads = useCallback(async () => {
+    if (!currentProfile?.id) return;
+
+    try {
+      setLoading(true);
+      const statusParam = activeFilter !== 'all' ? `&status=${activeFilter}` : '';
+      const response = await fetch(
+        `${API_BASE}/leads/${currentProfile.id}?limit=50${statusParam}`
+      );
+
+      if (!response.ok) throw new Error('שגיאה בטעינת לידים');
+
+      const data: LeadsResponse = await response.json();
+      setLeads(data.leads);
+      setCounts(data.counts);
+      setTotal(data.total);
+      setError(null);
+    } catch (err) {
+      console.error('Leads fetch error:', err);
+      setError('לא ניתן לטעון את הלידים');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentProfile?.id, activeFilter]);
+
+  // ── Trigger sniping mission ────────────────────────────────────────────
+  const triggerMission = async () => {
+    if (!currentProfile?.id || scanning) return;
+
+    setScanning(true);
+    try {
+      await fetch(`${API_BASE}/leads/snipe/${currentProfile.id}`, {
+        method: 'POST',
+      });
+
+      setTimeout(async () => {
+        await fetchLeads();
+        setScanning(false);
+      }, 15000);
+    } catch (err) {
+      console.error('Sniping mission error:', err);
+      setScanning(false);
+    }
+  };
+
+  // ── Fetch feedback stats ──────────────────────────────────────────────
+  const fetchFeedbackStats = useCallback(async () => {
+    if (!currentProfile?.id) return;
+    try {
+      const res = await fetch(`${API_BASE}/leads/${currentProfile.id}/feedback-stats`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) setFeedbackStats(data);
+      }
+    } catch {
+      // Non-critical, silently ignore
+    }
+  }, [currentProfile?.id]);
+
+  // ── Submit RLHF Feedback ────────────────────────────────────────────
+  const submitFeedback = async (
+    leadId: string,
+    action: 'approve' | 'reject' | 'dismiss',
+    rejectionReason?: RejectionReason
+  ) => {
+    try {
+      await fetch(`${API_BASE}/leads/${leadId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: currentProfile?.user_id || 'anonymous',
+          action,
+          rejection_reason: rejectionReason || null,
+        }),
+      });
+
+      // Optimistically update local state
+      const newStatus = action === 'approve' ? 'sniped' : 'dismissed';
+      setLeads((prev) =>
+        prev.map((l) =>
+          l.id === leadId
+            ? { ...l, status: newStatus as Lead['status'], sniped_at: action === 'approve' ? new Date().toISOString() : l.sniped_at }
+            : l
+        )
+      );
+      setCounts((prev) => ({
+        ...prev,
+        new: Math.max(0, prev.new - 1),
+        [newStatus]: prev[newStatus as keyof typeof prev] + 1,
+      }));
+
+      // Refresh stats after feedback
+      fetchFeedbackStats();
+    } catch (err) {
+      console.error('Feedback error:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeads();
+    fetchFeedbackStats();
+  }, [fetchLeads, fetchFeedbackStats]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  return (
+    <div className="space-y-6 fade-in" dir="rtl">
+      {/* ── Header ────────────────────────────────────────────────────── */}
+      <header className="glass-card p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-5">
+            <SniperScope isScanning={scanning} />
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-2xl font-bold text-white">צלף לידים</h1>
+                <LiveBadge />
+                {scanning && (
+                  <span className="text-sm font-normal text-orange-400 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    סורק...
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-400">
+                גילוי בזמן אמת של אנשים שמחפשים את השירותים שלך
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {total > 0 && (
+              <button
+                onClick={() => {
+                  if (!currentProfile?.id) return;
+                  const a = document.createElement('a');
+                  a.href = `${API_BASE}/leads/${currentProfile.id}/export`;
+                  a.download = '';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl font-medium bg-gray-800/50 text-gray-300 border border-gray-700/50 hover:bg-gray-700/50 hover:text-white transition-all"
+              >
+                <Download className="w-5 h-5" />
+                <span>ייצוא CSV</span>
+              </button>
+            )}
+            <button
+              onClick={triggerMission}
+              disabled={scanning}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
+                scanning
+                  ? 'bg-orange-600/30 text-orange-300 cursor-wait'
+                  : 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:shadow-lg hover:shadow-red-500/30 active:scale-95'
+              }`}
+            >
+              {scanning ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>משימה פעילה...</span>
+                </>
+              ) : (
+                <>
+                  <Crosshair className="w-5 h-5" />
+                  <span>התחל משימה</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* ── Stats Bar ────────────────────────────────────────────── */}
+        <div className="mt-6 pt-6 border-t border-gray-700/50 grid grid-cols-4 gap-4">
+          {[
+            { key: 'all' as const, label: 'סה״כ לידים', count: total, icon: Radio, activeColor: 'indigo' },
+            { key: 'new' as const, label: 'לידים חדשים', count: counts.new, icon: Zap, activeColor: 'red' },
+            { key: 'sniped' as const, label: 'נתפסו', count: counts.sniped, icon: CheckCircle2, activeColor: 'emerald' },
+            { key: 'dismissed' as const, label: 'נדחו', count: counts.dismissed, icon: X, activeColor: 'gray' },
+          ].map(({ key, label, count, icon: Icon, activeColor }) => (
+            <button
+              key={key}
+              onClick={() => setActiveFilter(key)}
+              className={`p-4 rounded-xl border transition-all ${
+                activeFilter === key
+                  ? `bg-${activeColor}-500/20 border-${activeColor}-500/50`
+                  : 'bg-gray-800/30 border-gray-700/50 hover:border-gray-600'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <Icon
+                  className={`w-5 h-5 ${
+                    activeFilter === key ? `text-${activeColor}-400` : 'text-gray-500'
+                  }`}
+                />
+                <span
+                  className={`text-2xl font-bold ${
+                    activeFilter === key ? `text-${activeColor}-400` : 'text-white'
+                  }`}
+                >
+                  {count}
+                </span>
+              </div>
+              <span className="text-sm text-gray-400">{label}</span>
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {/* ── Feedback Stats ─────────────────────────────────────────── */}
+      <FeedbackStatsBar stats={feedbackStats} />
+
+      {/* ── Loading State ─────────────────────────────────────────── */}
+      {loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      )}
+
+      {/* ── Error State ───────────────────────────────────────────── */}
+      {error && !loading && (
+        <div className="glass-card p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-white mb-2">שגיאה בטעינת לידים</h3>
+          <p className="text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={fetchLeads}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
+          >
+            נסה שוב
+          </button>
+        </div>
+      )}
+
+      {/* ── Empty State ───────────────────────────────────────────── */}
+      {!loading && !error && leads.length === 0 && (
+        <div className="glass-card p-12 text-center">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
+            <Crosshair className="w-10 h-10 text-red-400" />
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2">
+            {activeFilter === 'all' ? 'עדיין לא נמצאו לידים' : `אין ${filterLabels[activeFilter]}`}
+          </h3>
+          <p className="text-gray-400 mb-6 max-w-md mx-auto">
+            {activeFilter === 'all'
+              ? 'הרדאר סורק כעת את השוק. הפעל משימת ציד כדי למצוא אנשים שמחפשים את השירותים שלך עכשיו.'
+              : 'נסה לשנות את הסינון או להפעיל משימה חדשה.'}
+          </p>
+          {activeFilter === 'all' && (
+            <button
+              onClick={triggerMission}
+              disabled={scanning}
+              className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-500/30 transition-all"
+            >
+              <Crosshair className="w-5 h-5 inline ml-2" />
+              הפעל משימה ראשונה
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── Leads Grid ────────────────────────────────────────────── */}
+      {!loading && !error && leads.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Filter className="w-5 h-5 text-gray-400" />
+              {filterLabels[activeFilter]}
+              <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs">
+                {leads.length}
+              </span>
+            </h2>
+            <button
+              onClick={fetchLeads}
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              רענן
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {leads.map((lead) => (
+              <LeadFlashCard
+                key={lead.id}
+                lead={lead}
+                onApprove={(id) => submitFeedback(id, 'approve')}
+                onReject={(id, reason) => submitFeedback(id, 'reject', reason)}
+                onDismiss={(id) => submitFeedback(id, 'dismiss')}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
