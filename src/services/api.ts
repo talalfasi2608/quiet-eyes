@@ -5,6 +5,41 @@
 
 const API_BASE_URL = 'http://localhost:8015';
 
+/**
+ * Authenticated fetch wrapper.
+ * Automatically injects Bearer token from Supabase session if available.
+ */
+export async function apiFetch(
+  path: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> || {}),
+  };
+
+  // Try to get the session token from localStorage (Supabase stores it there)
+  try {
+    const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    if (storageKey) {
+      const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      const token = stored?.access_token;
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+  } catch {
+    // No token available — continue without auth
+  }
+
+  const url = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
+
 export interface AnalyzeResponse {
   profile: {
     id: string;

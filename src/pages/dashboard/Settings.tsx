@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSimulation } from '../../context/SimulationContext';
-import { Building, MapPin, Phone, Globe, Clock, Bell, Shield, Save, Check, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Building, MapPin, Phone, Globe, Clock, Bell, Shield, Save, Check, Loader2, AlertCircle, RefreshCw, Compass, CreditCard } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8015';
 
@@ -68,6 +68,7 @@ export default function Settings() {
     website: string;
     hours: string;
     archetype: ArchetypeId;
+    scope: string;
   }>({
     businessName: currentProfile?.nameHebrew || currentProfile?.business_name || '',
     address: currentProfile?.address || '',
@@ -75,6 +76,7 @@ export default function Settings() {
     website: '',
     hours: '',
     archetype: currentProfile?.archetype || 'Merchant',
+    scope: currentProfile?.scope || 'local',
   });
 
   const [notifications, setNotifications] = useState({
@@ -163,6 +165,7 @@ export default function Settings() {
           website: formData.website || undefined,
           hours: formData.hours || undefined,
           archetype: formData.archetype || undefined,
+          scope: formData.scope || undefined,
         }),
       });
 
@@ -331,6 +334,39 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Scope Selection */}
+        <div className="glass-card lg:col-span-2">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center">
+              <Compass className="w-5 h-5 text-teal-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-white">היקף פעילות</h2>
+          </div>
+
+          <p className="text-gray-400 text-sm mb-4">
+            היקף הפעילות משפיע על סוג המודיעין והמלצות ה-AI
+          </p>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {([
+              { id: 'local', name: 'מקומי', icon: '\uD83D\uDCCD', desc: 'שכונה / עיר אחת' },
+              { id: 'regional', name: 'אזורי', icon: '\uD83D\uDDFA\uFE0F', desc: 'מספר ערים / מחוז' },
+              { id: 'national', name: 'ארצי', icon: '\uD83C\uDDEE\uD83C\uDDF1', desc: 'פריסה כלל-ארצית' },
+              { id: 'global', name: 'בינלאומי', icon: '\uD83C\uDF0D', desc: 'יצוא / פעילות גלובלית' },
+            ] as const).map((option) => (
+              <button
+                key={option.id}
+                onClick={() => setFormData({ ...formData, scope: option.id })}
+                className={"p-4 rounded-xl transition-all text-center " + (formData.scope === option.id ? "bg-teal-500/20 border border-teal-500/50" : "bg-gray-800/50 border border-gray-700/50 hover:border-gray-600")}
+              >
+                <span className="text-2xl block mb-2">{option.icon}</span>
+                <span className="text-white font-medium block">{option.name}</span>
+                <span className="text-gray-500 text-xs block mt-1">{option.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Notifications */}
         <div className="glass-card lg:col-span-2">
           <div className="flex items-center gap-3 mb-6">
@@ -457,6 +493,22 @@ export default function Settings() {
             })}
           </div>
         )}
+      </div>
+
+      {/* Plan & Billing */}
+      <div className="glass-card p-6">
+        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <CreditCard className="w-5 h-5 text-indigo-400" />
+          תוכנית ותשלום
+        </h2>
+        <p className="text-gray-400 text-sm mb-4">נהלו את המנוי, שדרגו תוכנית וצפו בשימוש קרדיטים</p>
+        <a
+          href="/dashboard/billing"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium hover:from-indigo-500 hover:to-purple-500 transition-all"
+        >
+          <CreditCard className="w-4 h-4" />
+          ניהול מנוי
+        </a>
       </div>
 
       {/* Danger Zone */}

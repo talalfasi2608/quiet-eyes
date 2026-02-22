@@ -1,8 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SimulationProvider, useSimulation } from './context/SimulationContext';
+import { WorkspaceProvider } from './context/WorkspaceContext';
+import { SubscriptionProvider } from './context/SubscriptionContext';
 import DashboardLayout from './components/layout/DashboardLayout';
 import AuthPage from './pages/AuthPage';
+import LandingPage from './pages/public/LandingPage';
 import { Loader2 } from 'lucide-react';
 
 // Pages
@@ -16,6 +19,12 @@ import Settings from './pages/dashboard/Settings';
 import KnowledgeBase from './pages/dashboard/KnowledgeBase';
 import MarketIntelligence from './pages/dashboard/MarketIntelligence';
 import LeadSniperFeed from './pages/dashboard/LeadSniperFeed';
+import Vault from './pages/dashboard/Vault';
+import Staff from './pages/dashboard/Staff';
+import PlanManagement from './pages/dashboard/PlanManagement';
+import SuperAdmin from './pages/dashboard/SuperAdmin';
+import Reports from './pages/dashboard/Reports';
+import RoleGate from './components/auth/RoleGate';
 
 // Loading screen component
 function LoadingScreen({ message = 'טוען...' }: { message?: string }) {
@@ -63,6 +72,11 @@ function ProtectedRoutes() {
         <Route path="reflection" element={<Reflection />} />
         <Route path="settings" element={<Settings />} />
         <Route path="knowledge" element={<KnowledgeBase />} />
+        <Route path="vault" element={<Vault />} />
+        <Route path="staff" element={<RoleGate minRole="admin"><Staff /></RoleGate>} />
+        <Route path="billing" element={<PlanManagement />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="super-admin" element={<SuperAdmin />} />
       </Route>
 
       {/* Redirect everything else to dashboard */}
@@ -82,18 +96,30 @@ function AppContent() {
     return <LoadingScreen message="מתחבר..." />;
   }
 
-  // If not logged in, show auth page
+  // If not logged in, show landing page with routing
   if (!user) {
-    return <AuthPage />;
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    );
   }
 
-  // User is logged in - wrap with SimulationProvider and show protected routes
+  // User is logged in - wrap with providers and show protected routes
   return (
-    <SimulationProvider>
-      <BrowserRouter>
-        <ProtectedRoutes />
-      </BrowserRouter>
-    </SimulationProvider>
+    <WorkspaceProvider>
+      <SubscriptionProvider>
+        <SimulationProvider>
+          <BrowserRouter>
+            <ProtectedRoutes />
+          </BrowserRouter>
+        </SimulationProvider>
+      </SubscriptionProvider>
+    </WorkspaceProvider>
   );
 }
 

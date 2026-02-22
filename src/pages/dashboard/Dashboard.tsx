@@ -42,6 +42,8 @@ import {
   BellDot,
 } from 'lucide-react';
 import CompetitorDrawer from '../../components/ui/CompetitorDrawer';
+import DailyBriefing from '../../components/cockpit/DailyBriefing';
+import ROITracker from '../../components/cockpit/ROITracker';
 
 const API_BASE = 'http://localhost:8015';
 
@@ -765,6 +767,11 @@ export default function Dashboard() {
       <Toaster position="top-left" toastOptions={{ className: 'text-sm' }} />
 
       {/* ═══════════════════════════════════════════════════════════════════════════
+          DAILY BRIEFING (AI Morning Brief)
+          ═══════════════════════════════════════════════════════════════════════════ */}
+      <DailyBriefing businessId={currentProfile.id} />
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
           HEADER SECTION
           ═══════════════════════════════════════════════════════════════════════════ */}
       <header className="glass-card p-6">
@@ -933,6 +940,9 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          {/* ROI Tracker */}
+          <ROITracker businessId={currentProfile.id} />
 
           {/* Quick Stats */}
           <div className="glass-card p-4">

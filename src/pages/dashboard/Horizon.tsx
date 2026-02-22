@@ -1,8 +1,66 @@
+import { useState, useEffect } from 'react';
 import { useSimulation } from '../../context/SimulationContext';
-import { Calendar, TrendingUp, Zap, Loader2, CalendarX, Sparkles } from 'lucide-react';
+import { Calendar, TrendingUp, Zap, Loader2, CalendarX, Sparkles, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+
+const API_BASE = 'http://localhost:8015';
+
+interface PredictionEvent {
+  name_hebrew: string;
+  name_english: string;
+  date: string;
+  days_until: number;
+  duration_days: number;
+  business_impact: string;
+  relevance: string;
+  categories: string[];
+  matching_categories: string[];
+  description: string;
+  recommendations: string[];
+}
+
+interface PredictionsData {
+  events: PredictionEvent[];
+  business_context: {
+    id: string;
+    name: string;
+    name_hebrew: string;
+    industry: string;
+    detected_categories: string[];
+  };
+  insights: string[];
+}
 
 export default function Horizon() {
   const { currentProfile } = useSimulation();
+  const [predictions, setPredictions] = useState<PredictionsData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!currentProfile?.id) return;
+
+    const fetchPredictions = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          `${API_BASE}/predictions/upcoming/${currentProfile.id}?days_ahead=90`
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        setPredictions(data);
+      } catch (err: any) {
+        console.error('[Horizon] Failed to fetch predictions:', err);
+        setError(err.message || 'Failed to load predictions');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPredictions();
+  }, [currentProfile?.id]);
 
   // Loading state
   if (!currentProfile) {
@@ -32,6 +90,31 @@ export default function Horizon() {
     }
   };
 
+  const getRelevanceColor = (relevance: string) => {
+    switch (relevance) {
+      case 'high': return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+      case 'medium': return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
+
+  const getRelevanceLabel = (relevance: string) => {
+    switch (relevance) {
+      case 'high': return 'רלוונטיות גבוהה';
+      case 'medium': return 'רלוונטיות בינונית';
+      default: return 'רלוונטיות נמוכה';
+    }
+  };
+
+  const getDaysUntilColor = (days: number) => {
+    if (days <= 7) return 'text-red-400';
+    if (days <= 21) return 'text-amber-400';
+    return 'text-gray-400';
+  };
+
+  const events = predictions?.events || [];
+  const insights = predictions?.insights || [];
+
   return (
     <div className="space-y-6 fade-in">
       <header>
@@ -40,7 +123,7 @@ export default function Horizon() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar Widget - Empty State */}
+        {/* Calendar Widget - Events from API */}
         <div className="lg:col-span-2">
           <div className="glass-card">
             <div className="flex items-center gap-3 mb-6">
@@ -53,16 +136,90 @@ export default function Horizon() {
               </div>
             </div>
 
-            {/* Empty state for events - will be populated when API is connected */}
-            <div className="text-center py-12">
-              <CalendarX className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">אין אירועים מתוכננים כרגע</p>
-              <p className="text-gray-500 text-sm mt-2">אירועים יופיעו כאן כשנזהה הזדמנויות עסקיות</p>
-            </div>
+            {loading ? (
+              <div className="text-center py-12">
+                <Loader2 className="w-10 h-10 text-indigo-400 animate-spin mx-auto mb-4" />
+                <p className="text-gray-400">מנתח אירועים והזדמנויות...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-4" />
+                <p className="text-gray-400">לא ניתן לטעון תחזיות</p>
+                <p className="text-gray-500 text-sm mt-2">{error}</p>
+              </div>
+            ) : events.length === 0 ? (
+              <div className="text-center py-12">
+                <CalendarX className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">אין אירועים מתוכננים כרגע</p>
+                <p className="text-gray-500 text-sm mt-2">אירועים יופיעו כאן כשנזהה הזדמנויות עסקיות</p>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+                {events.map((event, index) => (
+                  <div
+                    key={index}
+                    className="p-4 rounded-xl bg-gray-800/50 hover:bg-gray-800/70 transition-colors border border-gray-700/50"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-2 ${
+                          event.business_impact === 'high' ? 'bg-emerald-400' :
+                          event.business_impact === 'medium' ? 'bg-amber-400' : 'bg-gray-400'
+                        }`} />
+                        <div>
+                          <h3 className="text-white font-semibold">{event.name_hebrew}</h3>
+                          <p className="text-gray-500 text-xs">{event.name_english}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`px-2 py-1 rounded-full text-xs border ${getRelevanceColor(event.relevance)}`}>
+                          {getRelevanceLabel(event.relevance)}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs border ${getImpactColor(event.business_impact)}`}>
+                          {getImpactLabel(event.business_impact)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 mb-3 text-sm">
+                      <span className="flex items-center gap-1 text-gray-400">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {event.date}
+                      </span>
+                      <span className={`flex items-center gap-1 font-medium ${getDaysUntilColor(event.days_until)}`}>
+                        <Clock className="w-3.5 h-3.5" />
+                        {event.days_until === 0
+                          ? 'היום!'
+                          : event.days_until === 1
+                          ? 'מחר'
+                          : `בעוד ${event.days_until} ימים`}
+                      </span>
+                      {event.duration_days > 1 && (
+                        <span className="text-gray-500 text-xs">
+                          ({event.duration_days} ימים)
+                        </span>
+                      )}
+                    </div>
+
+                    {event.recommendations && event.recommendations.length > 0 && (
+                      <div className="mt-3 space-y-2 border-t border-gray-700/50 pt-3">
+                        <p className="text-gray-400 text-xs font-medium mb-2">המלצות להכנה:</p>
+                        {event.recommendations.map((rec, rIdx) => (
+                          <div key={rIdx} className="flex items-start gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                            <p className="text-gray-300 text-sm">{rec}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Weather Impact - Simplified empty state */}
+        {/* AI Insights Sidebar */}
         <div className="lg:col-span-1">
           <div className="glass-card">
             <div className="flex items-center gap-3 mb-6">
@@ -75,11 +232,77 @@ export default function Horizon() {
               </div>
             </div>
 
-            <div className="text-center py-8">
-              <Sparkles className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400 text-sm">אין תובנות חדשות כרגע</p>
-              <p className="text-gray-500 text-xs mt-1">סרוק מתחרים לקבלת תובנות</p>
-            </div>
+            {loading ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
+                <p className="text-gray-400 text-sm">מייצר תובנות...</p>
+              </div>
+            ) : insights.length === 0 && events.length === 0 ? (
+              <div className="text-center py-8">
+                <Sparkles className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-400 text-sm">אין תובנות חדשות כרגע</p>
+                <p className="text-gray-500 text-xs mt-1">תובנות יופיעו לאחר ניתוח אירועים קרובים</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* AI General Insights */}
+                {insights.length > 0 && (
+                  <div className="space-y-3">
+                    {insights.map((insight, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-lg bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border border-cyan-500/20"
+                      >
+                        <div className="flex items-start gap-2">
+                          <Zap className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                          <p className="text-gray-300 text-sm">{insight}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Quick Stats */}
+                {events.length > 0 && (
+                  <div className="space-y-3 border-t border-gray-700/50 pt-4">
+                    <h3 className="text-gray-400 text-xs font-medium">סיכום אירועים</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800/50">
+                        <span className="text-gray-400 text-sm">סה"כ אירועים</span>
+                        <span className="text-white font-semibold">{events.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800/50">
+                        <span className="text-gray-400 text-sm">רלוונטיות גבוהה</span>
+                        <span className="text-emerald-400 font-semibold">
+                          {events.filter(e => e.relevance === 'high').length}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800/50">
+                        <span className="text-gray-400 text-sm">תוך שבועיים</span>
+                        <span className="text-amber-400 font-semibold">
+                          {events.filter(e => e.days_until <= 14).length}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Closest event highlight */}
+                {events.length > 0 && events[0].days_until <= 30 && (
+                  <div className="p-3 rounded-lg bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20">
+                    <p className="text-gray-400 text-xs mb-1">האירוע הקרוב ביותר</p>
+                    <p className="text-white font-semibold text-sm">{events[0].name_hebrew}</p>
+                    <p className={`text-sm font-medium mt-1 ${getDaysUntilColor(events[0].days_until)}`}>
+                      {events[0].days_until === 0
+                        ? 'היום!'
+                        : events[0].days_until === 1
+                        ? 'מחר'
+                        : `בעוד ${events[0].days_until} ימים`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

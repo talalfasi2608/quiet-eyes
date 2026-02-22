@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSimulation } from '../../context/SimulationContext';
+import { useAuth } from '../../context/AuthContext';
 import {
   Crosshair,
   Loader2,
@@ -24,6 +25,7 @@ import {
   Tag,
   BarChart3,
   Download,
+  Send,
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8015';
@@ -31,6 +33,8 @@ const API_BASE = 'http://localhost:8015';
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
+
+type IntentCategory = 'all' | 'looking_for_service' | 'comparing_prices' | 'complaint' | 'recommendation_request';
 
 interface Lead {
   id: string;
@@ -48,6 +52,7 @@ interface Lead {
     matched_keywords?: string[];
     query_used?: string;
     blueprint_matches?: string[];
+    intent_category?: string;
   } | null;
 }
 
@@ -185,6 +190,14 @@ const filterLabels: Record<string, string> = {
   dismissed: 'לידים שנדחו',
 };
 
+const INTENT_CATEGORIES: { key: IntentCategory; label: string; icon: typeof Search; color: string }[] = [
+  { key: 'all', label: 'הכל', icon: Filter, color: 'text-gray-400 bg-gray-500/15 border-gray-500/30' },
+  { key: 'looking_for_service', label: 'מחפש שירות', icon: Search, color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
+  { key: 'comparing_prices', label: 'משווה מחירים', icon: BarChart3, color: 'text-blue-400 bg-blue-500/15 border-blue-500/30' },
+  { key: 'complaint', label: 'תלונה', icon: AlertCircle, color: 'text-red-400 bg-red-500/15 border-red-500/30' },
+  { key: 'recommendation_request', label: 'בקשת המלצה', icon: MessageCircle, color: 'text-amber-400 bg-amber-500/15 border-amber-500/30' },
+];
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // REJECTION REASON PICKER
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -299,11 +312,13 @@ function LeadFlashCard({
   onApprove,
   onReject,
   onDismiss,
+  onPushCRM,
 }: {
   lead: Lead;
   onApprove: (id: string) => void;
   onReject: (id: string, reason: RejectionReason) => void;
   onDismiss: (id: string) => void;
+  onPushCRM: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showRejectPicker, setShowRejectPicker] = useState(false);
@@ -416,9 +431,21 @@ function LeadFlashCard({
               </button>
             </>
           ) : (
-            <div className="w-full flex items-center justify-center gap-2 text-emerald-400 text-sm">
-              <ThumbsUp className="w-4 h-4" />
-              ליד אושר
+            <div className="w-full flex items-center justify-between">
+              <span className="flex items-center gap-2 text-emerald-400 text-sm">
+                <ThumbsUp className="w-4 h-4" />
+                ליד אושר
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPushCRM(lead.id);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-medium hover:bg-blue-500/30 border border-blue-500/30 transition-all"
+              >
+                <Send className="w-3.5 h-3.5" />
+                Push to CRM
+              </button>
             </div>
           )}
         </div>
@@ -455,6 +482,7 @@ function CardSkeleton() {
 
 export default function LeadSniperFeed() {
   const { currentProfile } = useSimulation();
+  const { session } = useAuth();
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [counts, setCounts] = useState({ new: 0, sniped: 0, dismissed: 0 });
@@ -463,6 +491,7 @@ export default function LeadSniperFeed() {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'new' | 'sniped' | 'dismissed'>('all');
+  const [intentFilter, setIntentFilter] = useState<IntentCategory>('all');
   const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
 
   // ── Fetch leads ────────────────────────────────────────────────────────
@@ -561,6 +590,27 @@ export default function LeadSniperFeed() {
       fetchFeedbackStats();
     } catch (err) {
       console.error('Feedback error:', err);
+    }
+  };
+
+  const handlePushCRM = async (leadId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/crm/push-lead`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ lead_id: leadId }),
+      });
+      if (res.ok) {
+        alert('הליד נשלח ל-CRM בהצלחה!');
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.detail || 'שגיאה בשליחה ל-CRM. ודאו שחיברתם CRM בהגדרות.');
+      }
+    } catch {
+      alert('שגיאת רשת');
     }
   };
 
@@ -679,6 +729,31 @@ export default function LeadSniperFeed() {
       {/* ── Feedback Stats ─────────────────────────────────────────── */}
       <FeedbackStatsBar stats={feedbackStats} />
 
+      {/* ── Intent Category Filter ────────────────────────────────── */}
+      {!loading && leads.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {INTENT_CATEGORIES.map(({ key, label, icon: Icon, color }) => (
+            <button
+              key={key}
+              onClick={() => setIntentFilter(key)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                intentFilter === key
+                  ? color + ' ring-1 ring-offset-1 ring-offset-gray-900'
+                  : 'text-gray-500 bg-gray-800/30 border-gray-700/50 hover:text-gray-300 hover:border-gray-600'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+              {key !== 'all' && (
+                <span className="opacity-60">
+                  ({leads.filter(l => l.intent_signals?.intent_category === key).length})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Loading State ─────────────────────────────────────────── */}
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -731,38 +806,57 @@ export default function LeadSniperFeed() {
       )}
 
       {/* ── Leads Grid ────────────────────────────────────────────── */}
-      {!loading && !error && leads.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-400" />
-              {filterLabels[activeFilter]}
-              <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs">
-                {leads.length}
-              </span>
-            </h2>
-            <button
-              onClick={fetchLeads}
-              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              רענן
-            </button>
-          </div>
+      {!loading && !error && leads.length > 0 && (() => {
+        const filteredLeads = intentFilter === 'all'
+          ? leads
+          : leads.filter(l => l.intent_signals?.intent_category === intentFilter);
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {leads.map((lead) => (
-              <LeadFlashCard
-                key={lead.id}
-                lead={lead}
-                onApprove={(id) => submitFeedback(id, 'approve')}
-                onReject={(id, reason) => submitFeedback(id, 'reject', reason)}
-                onDismiss={(id) => submitFeedback(id, 'dismiss')}
-              />
-            ))}
+        return (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Filter className="w-5 h-5 text-gray-400" />
+                {filterLabels[activeFilter]}
+                <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs">
+                  {filteredLeads.length}
+                </span>
+              </h2>
+              <button
+                onClick={fetchLeads}
+                className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                רענן
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredLeads.map((lead) => (
+                <LeadFlashCard
+                  key={lead.id}
+                  lead={lead}
+                  onApprove={(id) => submitFeedback(id, 'approve')}
+                  onReject={(id, reason) => submitFeedback(id, 'reject', reason)}
+                  onDismiss={(id) => submitFeedback(id, 'dismiss')}
+                  onPushCRM={handlePushCRM}
+                />
+              ))}
+            </div>
+
+            {filteredLeads.length === 0 && intentFilter !== 'all' && (
+              <div className="glass-card p-8 text-center">
+                <p className="text-gray-400">אין לידים בקטגוריה זו</p>
+                <button
+                  onClick={() => setIntentFilter('all')}
+                  className="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
+                >
+                  הצג את כל הלידים
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
