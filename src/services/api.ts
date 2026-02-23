@@ -236,6 +236,13 @@ export interface ChatResponse {
   response: string;
   business_name?: string;
   competitors_count?: number;
+  suggested_questions?: string[];
+  intelligence_summary?: {
+    insights_30d: number;
+    competitor_moves_7d: number;
+    leads_tracked: number;
+    memory_messages: number;
+  };
 }
 
 /**

@@ -40,6 +40,9 @@ import {
   ChevronRight,
   Bell,
   BellDot,
+  Flame,
+  Crosshair,
+  Megaphone,
 } from 'lucide-react';
 import CompetitorDrawer from '../../components/ui/CompetitorDrawer';
 import DailyBriefing from '../../components/cockpit/DailyBriefing';
@@ -134,6 +137,142 @@ function IntelligenceTimeline({ businessId }: { businessId: string }) {
                 )}
               </div>
               <span className="text-[10px] text-gray-600 flex-shrink-0">{timeStr}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HOT AUDIENCES CARD
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface AudienceOpportunity {
+  id: string;
+  title: string;
+  audience_description: string;
+  suggested_ad_message: string;
+  platform: string;
+  targeting_keywords: string[];
+  intent_level: string;
+  urgency: string;
+  estimated_size: string;
+  demographics: string;
+  confidence_score: number;
+  created_at: string;
+}
+
+const PLATFORM_CONFIG: Record<string, { icon: typeof Facebook; color: string; bg: string; label: string }> = {
+  facebook: { icon: Facebook, color: 'text-blue-400', bg: 'bg-blue-500/15', label: 'פייסבוק' },
+  instagram: { icon: Instagram, color: 'text-pink-400', bg: 'bg-pink-500/15', label: 'אינסטגרם' },
+  google: { icon: Globe, color: 'text-emerald-400', bg: 'bg-emerald-500/15', label: 'גוגל' },
+};
+
+const URGENCY_CONFIG: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  hot: { color: 'text-red-400', bg: 'bg-red-500/15', border: 'border-red-500/30', label: 'חם מאוד' },
+  critical: { color: 'text-red-400', bg: 'bg-red-500/15', border: 'border-red-500/30', label: 'חם מאוד' },
+  warm: { color: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/30', label: 'חם' },
+  high: { color: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/30', label: 'חם' },
+  mild: { color: 'text-blue-400', bg: 'bg-blue-500/15', border: 'border-blue-500/30', label: 'פושר' },
+  medium: { color: 'text-blue-400', bg: 'bg-blue-500/15', border: 'border-blue-500/30', label: 'פושר' },
+};
+
+function HotAudiencesCard({ businessId }: { businessId: string }) {
+  const [opportunities, setOpportunities] = useState<AudienceOpportunity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!businessId) return;
+    fetch(`${API_BASE}/audience/current-opportunities/${businessId}?limit=5`)
+      .then(r => r.json())
+      .then(data => setOpportunities(data.opportunities || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [businessId]);
+
+  if (loading) return null;
+  if (opportunities.length === 0) return null;
+
+  return (
+    <div className="glass-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+          <Crosshair className="w-4 h-4 text-red-400" />
+          קהלים חמים עכשיו
+          <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs">
+            {opportunities.length}
+          </span>
+        </h3>
+        <span className="text-[10px] text-gray-500">אנשים שמחפשים עכשיו</span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        {opportunities.map((opp) => {
+          const platform = PLATFORM_CONFIG[opp.platform] || PLATFORM_CONFIG.google;
+          const urgency = URGENCY_CONFIG[opp.urgency] || URGENCY_CONFIG.mild;
+          const PlatformIcon = platform.icon;
+          const isExpanded = expanded === opp.id;
+
+          return (
+            <div
+              key={opp.id}
+              onClick={() => setExpanded(isExpanded ? null : opp.id)}
+              className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                opp.urgency === 'hot' || opp.urgency === 'critical'
+                  ? 'bg-red-500/5 border-red-500/30 hover:bg-red-500/10'
+                  : 'bg-gray-800/40 border-gray-700/40 hover:bg-gray-800/60'
+              }`}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-2">
+                <div className={`w-7 h-7 rounded-lg ${platform.bg} flex items-center justify-center`}>
+                  <PlatformIcon className={`w-3.5 h-3.5 ${platform.color}`} />
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${urgency.bg} ${urgency.color} ${urgency.border}`}>
+                  {urgency.label}
+                </span>
+              </div>
+
+              {/* Description */}
+              <p className={`text-xs text-gray-200 mb-2 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                {opp.audience_description}
+              </p>
+
+              {/* Keywords */}
+              <div className="flex flex-wrap gap-1 mb-2">
+                {opp.targeting_keywords.slice(0, 3).map((kw, i) => (
+                  <span key={i} className="px-1.5 py-0.5 rounded text-[10px] bg-gray-700/60 text-gray-400">
+                    {kw}
+                  </span>
+                ))}
+              </div>
+
+              {/* Expanded: Ad suggestion */}
+              {isExpanded && opp.suggested_ad_message && (
+                <div className="mt-2 pt-2 border-t border-gray-700/40">
+                  <div className="flex items-start gap-1.5">
+                    <Megaphone className="w-3 h-3 text-purple-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-[11px] text-purple-300 leading-relaxed">{opp.suggested_ad_message}</p>
+                  </div>
+                  {opp.demographics && (
+                    <p className="text-[10px] text-gray-500 mt-1.5 flex items-center gap-1">
+                      <Users className="w-3 h-3" />
+                      {opp.demographics}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Bottom bar */}
+              <div className="flex items-center justify-between mt-2 pt-1.5">
+                <span className="text-[10px] text-gray-500">{platform.label}</span>
+                {(opp.urgency === 'hot' || opp.urgency === 'critical') && (
+                  <Flame className="w-3 h-3 text-red-400" />
+                )}
+              </div>
             </div>
           );
         })}
@@ -853,6 +992,11 @@ export default function Dashboard() {
           INTELLIGENCE TIMELINE
           ═══════════════════════════════════════════════════════════════════════════ */}
       <IntelligenceTimeline businessId={currentProfile.id} />
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          HOT AUDIENCES
+          ═══════════════════════════════════════════════════════════════════════════ */}
+      <HotAudiencesCard businessId={currentProfile.id} />
 
       {/* ═══════════════════════════════════════════════════════════════════════════
           THREE COLUMN LAYOUT

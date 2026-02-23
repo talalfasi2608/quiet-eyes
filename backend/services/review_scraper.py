@@ -35,10 +35,15 @@ def _search_reviews_tavily(business_name: str, location: str) -> list[dict]:
         logger.warning("TAVILY_API_KEY not set, skipping review search")
         return []
 
+    # Multi-source queries: Google, Wolt, TripAdvisor, Instagram, Facebook, Rest
     queries = [
-        f"{business_name} {location} ביקורות Google",
         f"{business_name} {location} reviews",
-        f"{business_name} חוות דעת לקוחות",
+        f"{business_name} {location} ביקורות",
+        f"{business_name} site:wolt.com",
+        f"{business_name} site:tripadvisor.com reviews",
+        f"{business_name} site:instagram.com",
+        f"{business_name} {location} חוות דעת לקוחות",
+        f"{business_name} rest.co.il OR 10bis.co.il OR wolt.com ביקורות",
     ]
 
     all_results = []
@@ -62,10 +67,25 @@ def _search_reviews_tavily(business_name: str, location: str) -> list[dict]:
                     if url in seen_urls:
                         continue
                     seen_urls.add(url)
+                    # Detect source platform from URL
+                    source = "google"
+                    if "wolt.com" in url:
+                        source = "wolt"
+                    elif "tripadvisor" in url:
+                        source = "tripadvisor"
+                    elif "instagram.com" in url:
+                        source = "instagram"
+                    elif "facebook.com" in url:
+                        source = "facebook"
+                    elif "rest.co.il" in url:
+                        source = "rest"
+                    elif "10bis" in url:
+                        source = "10bis"
                     all_results.append({
                         "title": r.get("title", ""),
                         "url": url,
                         "content": r.get("content", ""),
+                        "source": source,
                     })
             else:
                 logger.debug(
@@ -117,17 +137,30 @@ def analyze_reviews(business_id: str) -> dict:
         return _empty_response(business_name)
 
     # Analyze with OpenAI
-    return _analyze_with_ai(business_name, location, raw_results)
+    return _analyze_with_ai(business_name, location, raw_results, business_id)
+
+
+def _get_knowledge_context(business_id: str = None) -> str:
+    """Fetch knowledge base context for the business to enhance AI analysis."""
+    if not business_id:
+        return ""
+    try:
+        from services.ai_engine import _build_knowledge_context
+        return _build_knowledge_context(business_id)
+    except Exception:
+        return ""
 
 
 def _analyze_with_ai(
-    business_name: str, location: str, raw_results: list[dict]
+    business_name: str, location: str, raw_results: list[dict],
+    business_id: str = None,
 ) -> dict:
     """Use OpenAI to extract reviews and analyze sentiment/themes."""
     if not OPENAI_API_KEY:
         return _empty_response(business_name)
 
     client = OpenAI(api_key=OPENAI_API_KEY)
+    knowledge_ctx = _get_knowledge_context(business_id)
 
     # Combine raw content for analysis
     combined_text = "\n\n---\n\n".join(
@@ -184,6 +217,9 @@ def _analyze_with_ai(
                         "- overall_score is 0-100\n"
                         "- sentiment_breakdown percentages must sum to 100\n"
                         "- Write themes, suggestions, summaries in Hebrew\n"
+                        "- IMPORTANT: Analyze ALL sources (Google, Wolt, TripAdvisor, Instagram, Facebook, Rest.co.il)\n"
+                        "- In each review, add a 'source' field indicating the platform (google/wolt/tripadvisor/instagram/etc)\n"
+                        + (knowledge_ctx if knowledge_ctx else "")
                     ),
                 },
                 {

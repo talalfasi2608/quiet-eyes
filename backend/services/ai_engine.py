@@ -134,7 +134,7 @@ The insights should be:
 2. Written in Hebrew
 3. Relevant to the {archetype} archetype
 4. Include realistic scenarios
-
+{knowledge_context}
 Respond with ONLY valid JSON array:
 [
     {{
@@ -147,11 +147,87 @@ Respond with ONLY valid JSON array:
 ]"""
 
 
+def _build_knowledge_context(business_id: str = None) -> str:
+    """
+    Fetch knowledge base data for a business and format it as context
+    for AI system prompts. Returns empty string if no knowledge found.
+    """
+    if not business_id:
+        return ""
+
+    try:
+        from config import supabase
+        if not supabase:
+            return ""
+
+        # Get user_id from business -> workspace -> owner chain
+        biz = (
+            supabase.table("businesses")
+            .select("workspace_id")
+            .eq("id", business_id)
+            .maybe_single()
+            .execute()
+        )
+        if not biz.data:
+            return ""
+
+        workspace_id = biz.data.get("workspace_id")
+        if not workspace_id:
+            return ""
+
+        ws = (
+            supabase.table("workspaces")
+            .select("owner_id")
+            .eq("id", workspace_id)
+            .maybe_single()
+            .execute()
+        )
+        if not ws.data:
+            return ""
+
+        user_id = ws.data.get("owner_id")
+        if not user_id:
+            return ""
+
+        # Fetch knowledge base
+        kb = (
+            supabase.table("knowledge_base")
+            .select("knowledge")
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        if not kb.data or not kb.data.get("knowledge"):
+            return ""
+
+        k = kb.data["knowledge"]
+        parts = []
+        if k.get("uniqueStyle"):
+            parts.append(f"- Unique Style: {k['uniqueStyle']}")
+        if k.get("secretSauce"):
+            parts.append(f"- Secret Weapon: {k['secretSauce']}")
+        if k.get("targetNiche"):
+            parts.append(f"- Target Niche: {k['targetNiche']}")
+        if k.get("competitiveEdge"):
+            parts.append(f"- Competitive Edge: {k['competitiveEdge']}")
+
+        if not parts:
+            return ""
+
+        return (
+            "\n\nBUSINESS KNOWLEDGE (use this to personalize your advice):\n"
+            + "\n".join(parts) + "\n"
+        )
+    except Exception:
+        return ""
+
+
 async def generate_insights(
     client: OpenAI,
     archetype: str,
     business_type: str,
-    count: int = 3
+    count: int = 3,
+    business_id: str = None,
 ) -> list[ActionCard]:
     """
     Generate actionable insight cards for a business.
@@ -161,6 +237,7 @@ async def generate_insights(
         archetype: Business archetype (Visual/Expert/Field/Merchant)
         business_type: Specific business type in Hebrew
         count: Number of cards to generate
+        business_id: Optional business ID for knowledge context injection
 
     Returns:
         List of ActionCard objects
@@ -168,6 +245,8 @@ async def generate_insights(
     Raises:
         OpenAIError: If API call fails
     """
+    knowledge_context = _build_knowledge_context(business_id)
+
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -180,7 +259,8 @@ async def generate_insights(
                     "role": "user",
                     "content": INSIGHTS_PROMPT.format(
                         archetype=archetype,
-                        business_type=business_type
+                        business_type=business_type,
+                        knowledge_context=knowledge_context,
                     )
                 }
             ],

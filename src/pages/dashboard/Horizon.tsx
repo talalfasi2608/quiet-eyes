@@ -1,8 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useSimulation } from '../../context/SimulationContext';
-import { Calendar, TrendingUp, Zap, Loader2, CalendarX, Sparkles, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { Calendar, TrendingUp, Zap, Loader2, CalendarX, Sparkles, CheckCircle2, Clock, AlertTriangle, Flame, ArrowUpRight } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8015';
+
+interface TrendItem {
+  id: string;
+  keyword: string;
+  title: string;
+  analysis: string;
+  action: string;
+  level: 'breakout' | 'emerging' | 'stable';
+  change_pct: number;
+  sources: string[];
+  evidence: string[];
+  relevance_score: number;
+  urgency: string;
+  created_at: string;
+}
 
 interface PredictionEvent {
   name_hebrew: string;
@@ -35,6 +50,8 @@ export default function Horizon() {
   const [predictions, setPredictions] = useState<PredictionsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trends, setTrends] = useState<TrendItem[]>([]);
+  const [trendsLoading, setTrendsLoading] = useState(false);
 
   useEffect(() => {
     if (!currentProfile?.id) return;
@@ -60,6 +77,30 @@ export default function Horizon() {
     };
 
     fetchPredictions();
+  }, [currentProfile?.id]);
+
+  // Fetch live trends from Trend Radar API
+  useEffect(() => {
+    if (!currentProfile?.id) return;
+
+    const fetchTrends = async () => {
+      setTrendsLoading(true);
+      try {
+        const response = await fetch(
+          `${API_BASE}/trends/current/${currentProfile.id}?limit=10`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setTrends(data.trends || []);
+        }
+      } catch (err) {
+        console.error('[Horizon] Failed to fetch trends:', err);
+      } finally {
+        setTrendsLoading(false);
+      }
+    };
+
+    fetchTrends();
   }, [currentProfile?.id]);
 
   // Loading state
@@ -307,59 +348,129 @@ export default function Horizon() {
         </div>
       </div>
 
-      {/* Trends Section - Uses trendingTopics from context */}
+      {/* Trends Section - Live data from Trend Radar API */}
       <div className="glass-card">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-purple-400" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">מגמות בתעשייה</h2>
-            <p className="text-gray-400 text-sm">טרנדים שזוהו בניתוח AI</p>
+            <h2 className="text-lg font-semibold text-white">רדאר מגמות</h2>
+            <p className="text-gray-400 text-sm">טרנדים שזוהו ממספר מקורות בזמן אמת</p>
           </div>
+          {trends.length > 0 && (
+            <div className="mr-auto flex items-center gap-2">
+              <span className="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-300 border border-red-500/30">
+                {trends.filter(t => t.level === 'breakout').length} פורצים
+              </span>
+              <span className="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                {trends.filter(t => t.level === 'emerging').length} עולים
+              </span>
+            </div>
+          )}
         </div>
 
-        {!trendingTopics || trendingTopics.length === 0 ? (
+        {trendsLoading ? (
+          <div className="text-center py-12">
+            <Loader2 className="w-10 h-10 text-purple-400 animate-spin mx-auto mb-4" />
+            <p className="text-gray-400">סורק מגמות...</p>
+          </div>
+        ) : trends.length === 0 ? (
           <div className="text-center py-12">
             <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
             <p className="text-gray-400">לא זוהו מגמות עדיין</p>
-            <p className="text-gray-500 text-sm mt-2">מגמות יופיעו לאחר ניתוח העסק והמתחרים</p>
+            <p className="text-gray-500 text-sm mt-2">מגמות יופיעו לאחר סריקת רדאר הטרנדים</p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {trendingTopics.map((topic, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {trends.map((trend) => (
                 <div
-                  key={index}
-                  className="p-4 rounded-xl bg-gray-800/50 hover:bg-gray-800/70 transition-colors"
+                  key={trend.id}
+                  className={`p-4 rounded-xl transition-colors border ${
+                    trend.level === 'breakout'
+                      ? 'bg-red-500/10 hover:bg-red-500/15 border-red-500/30'
+                      : trend.level === 'emerging'
+                      ? 'bg-amber-500/10 hover:bg-amber-500/15 border-amber-500/30'
+                      : 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-700/50'
+                  }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-white font-semibold">{topic}</h3>
-                    <span className={"px-2 py-1 rounded-full text-xs border " + getImpactColor(index === 0 ? 'high' : index === 1 ? 'medium' : 'low')}>
-                      {getImpactLabel(index === 0 ? 'high' : index === 1 ? 'medium' : 'low')}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {trend.level === 'breakout' ? (
+                        <Flame className="w-4 h-4 text-red-400" />
+                      ) : (
+                        <ArrowUpRight className="w-4 h-4 text-amber-400" />
+                      )}
+                      <h3 className="text-white font-semibold text-sm">{trend.keyword}</h3>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      trend.level === 'breakout'
+                        ? 'bg-red-500/20 text-red-300'
+                        : 'bg-amber-500/20 text-amber-300'
+                    }`}>
+                      {trend.change_pct > 0 ? '+' : ''}{trend.change_pct.toFixed(0)}%
                     </span>
                   </div>
-                  <p className="text-gray-400 text-sm">מגמה שזוהתה בתעשייה שלך</p>
+
+                  <p className="text-gray-300 text-xs mb-2">{trend.analysis}</p>
+
+                  {trend.action && (
+                    <div className="flex items-start gap-1.5 mb-2">
+                      <Zap className="w-3 h-3 text-purple-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-purple-300 text-xs">{trend.action}</p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {trend.sources.map((src) => (
+                      <span key={src} className="px-1.5 py-0.5 rounded text-[10px] bg-gray-700/60 text-gray-400">
+                        {src}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                  <Zap className="w-6 h-6 text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="text-white font-semibold mb-1">המלצה חכמה</h3>
-                  <p className="text-gray-300 text-sm">
-                    {trendingTopics.length > 0
-                      ? `מגמת "${trendingTopics[0]}" מזוהה כרלוונטית לעסק שלך. שקול לשלב אותה באסטרטגיה השיווקית.`
-                      : 'סרוק את השוק שלך לקבלת המלצות מותאמות אישית.'
-                    }
-                  </p>
+            {/* Top breakout trend highlight */}
+            {trends.some(t => t.level === 'breakout') && (
+              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-red-500/10 to-purple-500/10 border border-red-500/20">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                    <Flame className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold mb-1">טרנד פורץ!</h3>
+                    <p className="text-gray-300 text-sm">
+                      {(() => {
+                        const top = trends.find(t => t.level === 'breakout');
+                        return top
+                          ? `"${top.keyword}" עלה ב-${top.change_pct.toFixed(0)}% — ${top.analysis || 'הגב מהר לפני המתחרים!'}`
+                          : '';
+                      })()}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Smart recommendation for emerging trends */}
+            {!trends.some(t => t.level === 'breakout') && trends.length > 0 && (
+              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold mb-1">המלצה חכמה</h3>
+                    <p className="text-gray-300 text-sm">
+                      {`מגמת "${trends[0].keyword}" עולה ב-${trends[0].change_pct.toFixed(0)}%. שקול לשלב אותה באסטרטגיה השיווקית שלך.`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

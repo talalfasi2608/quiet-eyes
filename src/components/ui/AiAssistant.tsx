@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSimulation } from '../../context/SimulationContext';
 import { sendChatMessage } from '../../services/api';
 import type { ChatMessage } from '../../services/api';
-import { MessageCircle, X, Send, Bot, User, Loader2, Sparkles, History } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Loader2, Sparkles, History, Zap } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8015';
 
@@ -24,6 +24,7 @@ export default function AiAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -74,7 +75,7 @@ export default function AiAssistant() {
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, suggestedQuestions]);
 
   // Focus input when chat opens
   useEffect(() => {
@@ -109,6 +110,7 @@ export default function AiAssistant() {
 
     const userMessage = input.trim();
     setInput('');
+    setSuggestedQuestions([]);
 
     const newMessages: ChatMessage[] = [...messages, { role: 'user', content: userMessage }];
     setMessages(newMessages);
@@ -117,6 +119,9 @@ export default function AiAssistant() {
     try {
       const response = await sendChatMessage(user.id, userMessage, templateId);
       setMessages(prev => [...prev, { role: 'assistant', content: response.response }]);
+      if (response.suggested_questions?.length) {
+        setSuggestedQuestions(response.suggested_questions);
+      }
     } catch (error) {
       console.error('Chat error:', error);
       setMessages(prev => [
@@ -134,11 +139,15 @@ export default function AiAssistant() {
     // Set template text as message and auto-send with template ID
     const userMessage = template.template_text;
     setMessages(prev => [...prev, { role: 'user', content: `${template.icon || '⚡'} ${template.name}` }]);
+    setSuggestedQuestions([]);
     setIsLoading(true);
 
     sendChatMessage(user.id, userMessage, template.id)
       .then(response => {
         setMessages(prev => [...prev, { role: 'assistant', content: response.response }]);
+        if (response.suggested_questions?.length) {
+          setSuggestedQuestions(response.suggested_questions);
+        }
       })
       .catch(() => {
         setMessages(prev => [
@@ -147,6 +156,14 @@ export default function AiAssistant() {
         ]);
       })
       .finally(() => setIsLoading(false));
+  };
+
+  const handleSuggestedClick = (question: string) => {
+    if (isLoading) return;
+    setInput(question);
+    setSuggestedQuestions([]);
+    // Auto-focus input so user can hit Enter or edit
+    setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -246,6 +263,27 @@ export default function AiAssistant() {
                 </div>
               </div>
             ))}
+
+            {/* Suggested Questions */}
+            {suggestedQuestions.length > 0 && !isLoading && (
+              <div className="pt-1 pb-2">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Zap className="w-3 h-3 text-amber-400" />
+                  <span className="text-[10px] text-gray-500">שאלות מוצעות</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {suggestedQuestions.map((q, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSuggestedClick(q)}
+                      className="text-right px-3 py-1.5 rounded-lg bg-gray-800/60 text-gray-300 text-xs hover:bg-indigo-600/20 hover:text-indigo-300 border border-gray-700/40 hover:border-indigo-500/40 transition-all"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Loading indicator */}
             {isLoading && (

@@ -113,37 +113,82 @@ def _gather_report_data(business_id: str) -> Optional[dict]:
         return None
 
     try:
-        # Business info
-        biz = (
-            supabase.table("businesses")
-            .select("business_name, industry, location, pulse_score")
-            .eq("id", business_id)
-            .single()
-            .execute()
-        )
-        if not biz.data:
-            return None
+        # Business info — use maybe_single to handle RLS gracefully
+        biz_data = None
+        try:
+            biz = (
+                supabase.table("businesses")
+                .select("business_name, industry, location, pulse_score")
+                .eq("id", business_id)
+                .maybe_single()
+                .execute()
+            )
+            biz_data = biz.data
+        except Exception as e:
+            logger.debug(f"businesses query failed (RLS?): {e}")
+
+        # Fallback: derive business info from workspace chain if RLS blocks
+        if not biz_data:
+            logger.info(f"businesses table blocked for {business_id}, using fallback")
+            try:
+                # Try workspace name as fallback
+                ws = (
+                    supabase.table("workspaces")
+                    .select("name")
+                    .limit(1)
+                    .execute()
+                )
+                ws_name = (ws.data[0]["name"] if ws.data else "Business") if ws else "Business"
+                biz_data = {
+                    "business_name": ws_name,
+                    "industry": "",
+                    "location": "",
+                    "pulse_score": 0,
+                }
+            except Exception:
+                biz_data = {
+                    "business_name": "Business",
+                    "industry": "",
+                    "location": "",
+                    "pulse_score": 0,
+                }
 
         week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
 
-        # Competitors
-        competitors = (
-            supabase.table("competitors")
-            .select("name, rating, threat_level")
-            .eq("business_id", business_id)
-            .limit(5)
-            .execute()
-        )
+        # Competitors — use correct column names (google_rating, perceived_threat_level)
+        competitors_data = []
+        try:
+            competitors = (
+                supabase.table("competitors")
+                .select("name, google_rating, perceived_threat_level")
+                .eq("business_id", business_id)
+                .limit(5)
+                .execute()
+            )
+            # Normalize column names for the PDF template
+            for c in (competitors.data or []):
+                competitors_data.append({
+                    "name": c.get("name", ""),
+                    "rating": c.get("google_rating", "-"),
+                    "threat_level": c.get("perceived_threat_level", "N/A"),
+                })
+        except Exception as e:
+            logger.debug(f"competitors query error: {e}")
 
         # Leads this week
-        leads = (
-            supabase.table("leads_discovered")
-            .select("status")
-            .eq("business_id", business_id)
-            .gte("created_at", week_ago)
-            .execute()
-        )
-        lead_data = leads.data or []
+        lead_data = []
+        try:
+            leads = (
+                supabase.table("leads_discovered")
+                .select("status")
+                .eq("business_id", business_id)
+                .gte("created_at", week_ago)
+                .execute()
+            )
+            lead_data = leads.data or []
+        except Exception as e:
+            logger.debug(f"leads query error: {e}")
+
         lead_stats = {
             "new": sum(1 for l in lead_data if l.get("status") == "new"),
             "approved": sum(1 for l in lead_data if l.get("status") == "sniped"),
@@ -151,25 +196,30 @@ def _gather_report_data(business_id: str) -> Optional[dict]:
             "total": len(lead_data),
         }
 
-        # Intel events this week
-        events = (
-            supabase.table("intelligence_events")
-            .select("title, event_type, severity")
-            .eq("business_id", business_id)
-            .gte("created_at", week_ago)
-            .order("created_at", desc=True)
-            .limit(10)
-            .execute()
-        )
+        # Intel events this week (may not exist — handle gracefully)
+        events_data = []
+        try:
+            events = (
+                supabase.table("intelligence_events")
+                .select("title, event_type, severity")
+                .eq("business_id", business_id)
+                .gte("created_at", week_ago)
+                .order("created_at", desc=True)
+                .limit(10)
+                .execute()
+            )
+            events_data = events.data or []
+        except Exception as e:
+            logger.debug(f"intelligence_events query error: {e}")
 
         return {
-            "business_name": biz.data.get("business_name", ""),
-            "industry": biz.data.get("industry", ""),
-            "location": biz.data.get("location", ""),
-            "health_score": biz.data.get("pulse_score", 0),
-            "competitors": competitors.data or [],
+            "business_name": biz_data.get("business_name", ""),
+            "industry": biz_data.get("industry", ""),
+            "location": biz_data.get("location", ""),
+            "health_score": biz_data.get("pulse_score", 0) or 0,
+            "competitors": competitors_data,
             "lead_stats": lead_stats,
-            "events": events.data or [],
+            "events": events_data,
             "date_range": f"{(datetime.now(timezone.utc) - timedelta(days=7)).strftime('%d/%m')} - {datetime.now(timezone.utc).strftime('%d/%m/%Y')}",
         }
     except Exception as e:

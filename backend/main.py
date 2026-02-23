@@ -404,9 +404,15 @@ app.add_middleware(
 from routers.admin import router as admin_router
 from routers.crm import router as crm_router
 from routers.auditor import router as auditor_router
+from routers.business import router as business_router
+from routers.knowledge import router as knowledge_router
+from routers.jobs import router as jobs_router
 app.include_router(admin_router)
 app.include_router(crm_router)
 app.include_router(auditor_router)
+app.include_router(business_router)
+app.include_router(knowledge_router)
+app.include_router(jobs_router)
 
 
 # =============================================================================
