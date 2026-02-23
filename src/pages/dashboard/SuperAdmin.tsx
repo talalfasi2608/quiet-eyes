@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useWorkspace } from '../../context/WorkspaceContext';
 import {
   ShieldAlert,
   Users,
@@ -11,6 +12,11 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8015';
@@ -32,6 +38,18 @@ interface Workspace {
   created_at: string;
 }
 
+interface WorkspaceRow {
+  id: number;
+  name: string;
+  owner_email: string;
+  tier: string;
+  api_usage_24h: number;
+  last_active: string;
+  total_leads: number;
+  total_competitors: number;
+  businesses_count: number;
+}
+
 interface WorkspaceDetail {
   workspace: any;
   members: any[];
@@ -46,24 +64,33 @@ const TIER_COLORS: Record<string, string> = {
   elite: 'bg-amber-600',
 };
 
+type SortDir = 'asc' | 'desc';
+
 export default function SuperAdmin() {
   const { session } = useAuth();
+  const { impersonate, stopImpersonating, isImpersonating, workspaceName: impersonatedName } = useWorkspace();
   const [stats, setStats] = useState<GlobalStats | null>(null);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [workspaceRows, setWorkspaceRows] = useState<WorkspaceRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedWs, setExpandedWs] = useState<number | null>(null);
   const [wsDetail, setWsDetail] = useState<Record<number, WorkspaceDetail>>({});
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
   const authHeaders = () => ({
     'Content-Type': 'application/json',
     ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
   });
 
+  const userId = (session as any)?.user?.id || '';
+
+  // Fetch global stats
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await fetch(`${API_BASE}/admin/super-dashboard`, {
+        const res = await fetch(`${API_BASE}/admin/super-dashboard?user_id=${userId}`, {
           headers: authHeaders(),
         });
         if (res.status === 403) {
@@ -73,7 +100,6 @@ export default function SuperAdmin() {
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         setStats(data.global_stats);
-        setWorkspaces(data.workspaces || []);
       } catch {
         setError('שגיאה בטעינת נתונים');
       } finally {
@@ -83,6 +109,47 @@ export default function SuperAdmin() {
     fetchDashboard();
   }, []);
 
+  // Fetch sortable workspaces table
+  const fetchWorkspacesTable = async (sort: string, dir: SortDir) => {
+    setTableLoading(true);
+    try {
+      const res = await fetch(
+        `${API_BASE}/admin/super-dashboard/workspaces-table?user_id=${userId}&sort_by=${sort}&sort_dir=${dir}`,
+        { headers: authHeaders() }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setWorkspaceRows(data.rows || []);
+      }
+    } catch {
+      // silent — table will remain empty
+    } finally {
+      setTableLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!error) {
+      fetchWorkspacesTable(sortBy, sortDir);
+    }
+  }, [sortBy, sortDir, error]);
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortBy !== column) return <ArrowUpDown className="w-3 h-3 opacity-40" />;
+    return sortDir === 'asc'
+      ? <ArrowUp className="w-3 h-3 text-indigo-400" />
+      : <ArrowDown className="w-3 h-3 text-indigo-400" />;
+  };
+
   const toggleWorkspace = async (wsId: number) => {
     if (expandedWs === wsId) {
       setExpandedWs(null);
@@ -91,15 +158,47 @@ export default function SuperAdmin() {
     setExpandedWs(wsId);
     if (!wsDetail[wsId]) {
       try {
-        const res = await fetch(`${API_BASE}/admin/super-dashboard/workspace/${wsId}`, {
-          headers: authHeaders(),
-        });
+        const res = await fetch(
+          `${API_BASE}/admin/super-dashboard/workspace/${wsId}?user_id=${userId}`,
+          { headers: authHeaders() }
+        );
         if (res.ok) {
           const data = await res.json();
           setWsDetail(prev => ({ ...prev, [wsId]: data }));
         }
       } catch { /* silent */ }
     }
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffHours = Math.floor(diffMs / 3600000);
+    if (diffHours < 1) return 'עכשיו';
+    if (diffHours < 24) return `לפני ${diffHours} שע׳`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `לפני ${diffDays} ימים`;
+    return d.toLocaleDateString('he-IL');
+  };
+
+  const handleImpersonate = async (wsId: number) => {
+    try {
+      const res = await fetch(
+        `${API_BASE}/admin/impersonate/${wsId}?user_id=${userId}`,
+        { method: 'POST', headers: authHeaders() }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const imp = data.impersonation;
+        impersonate({
+          workspace_id: imp.workspace_id,
+          workspace_name: imp.workspace_name,
+          role: imp.role,
+        });
+      }
+    } catch { /* silent */ }
   };
 
   if (loading) {
@@ -124,6 +223,25 @@ export default function SuperAdmin() {
 
   return (
     <div className="space-y-8" dir="rtl">
+      {/* Impersonation Banner */}
+      {isImpersonating && (
+        <div className="bg-amber-500/20 border border-amber-500/40 rounded-xl px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Eye className="w-5 h-5 text-amber-400" />
+            <span className="text-amber-200 text-sm font-medium">
+              צופה כ-Workspace: <span className="text-white font-bold">{impersonatedName}</span>
+            </span>
+          </div>
+          <button
+            onClick={stopImpersonating}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/30 hover:bg-amber-500/50 text-amber-200 text-xs font-medium transition-colors"
+          >
+            <EyeOff className="w-3.5 h-3.5" />
+            הפסק התחזות
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center">
@@ -160,80 +278,148 @@ export default function SuperAdmin() {
         </div>
       )}
 
-      {/* Workspaces Table */}
+      {/* Sortable Workspaces Table */}
       <div className="glass-card p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Building2 className="w-5 h-5 text-indigo-400" />
-          Workspaces ({workspaces.length})
+          Workspaces ({workspaceRows.length})
         </h2>
 
-        {workspaces.length === 0 ? (
+        {tableLoading && workspaceRows.length === 0 ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+          </div>
+        ) : workspaceRows.length === 0 ? (
           <p className="text-center text-gray-500 py-8">אין workspaces במערכת</p>
         ) : (
-          <div className="space-y-2">
-            {workspaces.map((ws) => (
-              <div key={ws.id} className="rounded-xl bg-gray-800/50 border border-gray-700/30 overflow-hidden">
-                <button
-                  onClick={() => toggleWorkspace(ws.id)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-gray-800/70 transition-all text-right"
-                >
-                  <div>
-                    <p className="text-white font-medium">{ws.name || `Workspace #${ws.id}`}</p>
-                    <p className="text-xs text-gray-500">
-                      נוצר {new Date(ws.created_at).toLocaleDateString('he-IL')}
-                    </p>
-                  </div>
-                  {expandedWs === ws.id ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  )}
-                </button>
-
-                {expandedWs === ws.id && wsDetail[ws.id] && (
-                  <div className="px-4 pb-4 border-t border-gray-700/30 space-y-3">
-                    {/* Members */}
-                    <div className="mt-3">
-                      <p className="text-xs text-gray-400 mb-2">חברי צוות ({wsDetail[ws.id].members.length})</p>
-                      {wsDetail[ws.id].members.map((m: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between py-1 text-sm">
-                          <span className="text-gray-300">{m.invited_email || m.user_id?.slice(0, 8) || '—'}</span>
-                          <span className={`px-2 py-0.5 rounded text-xs ${
-                            m.role === 'owner' ? 'bg-amber-500/20 text-amber-400' :
-                            m.role === 'admin' ? 'bg-indigo-500/20 text-indigo-400' :
-                            'bg-gray-500/20 text-gray-400'
-                          }`}>
-                            {m.role}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Subscription */}
-                    {wsDetail[ws.id].subscription && (
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">מנוי</p>
-                        <span className={`px-3 py-1 rounded-lg text-xs font-medium text-white ${TIER_COLORS[wsDetail[ws.id].subscription.tier] || 'bg-gray-600'}`}>
-                          {wsDetail[ws.id].subscription.tier} — {wsDetail[ws.id].subscription.credits_remaining} קרדיטים
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700/50">
+                  {[
+                    { key: 'name', label: 'Name' },
+                    { key: 'owner_email', label: 'Owner' },
+                    { key: 'tier', label: 'Tier' },
+                    { key: 'api_usage_24h', label: 'API (24h)' },
+                    { key: 'last_active', label: 'Last Active' },
+                    { key: 'total_leads', label: 'Leads' },
+                    { key: 'total_competitors', label: 'Competitors' },
+                    { key: 'businesses_count', label: 'Businesses' },
+                  ].map(col => (
+                    <th
+                      key={col.key}
+                      className="py-3 px-3 text-right text-xs font-medium text-gray-400 cursor-pointer hover:text-white transition-colors select-none"
+                      onClick={() => handleSort(col.key)}
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {col.label}
+                        <SortIcon column={col.key} />
+                      </span>
+                    </th>
+                  ))}
+                  <th className="py-3 px-3 text-right text-xs font-medium text-gray-400">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {workspaceRows.map(row => (
+                  <>
+                    <tr
+                      key={row.id}
+                      className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors"
+                    >
+                      <td className="py-3 px-3 text-white font-medium">{row.name}</td>
+                      <td className="py-3 px-3 text-gray-300 text-xs">{row.owner_email || '—'}</td>
+                      <td className="py-3 px-3">
+                        <span className={`px-2.5 py-0.5 rounded-lg text-xs font-medium text-white ${TIER_COLORS[row.tier] || 'bg-gray-600'}`}>
+                          {row.tier}
                         </span>
-                      </div>
-                    )}
+                      </td>
+                      <td className="py-3 px-3 text-gray-300">{row.api_usage_24h.toLocaleString()}</td>
+                      <td className="py-3 px-3 text-gray-400 text-xs">{formatDate(row.last_active)}</td>
+                      <td className="py-3 px-3 text-gray-300">{row.total_leads}</td>
+                      <td className="py-3 px-3 text-gray-300">{row.total_competitors}</td>
+                      <td className="py-3 px-3 text-gray-300">{row.businesses_count}</td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleWorkspace(row.id)}
+                            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
+                          >
+                            Details
+                            {expandedWs === row.id
+                              ? <ChevronUp className="w-3.5 h-3.5" />
+                              : <ChevronDown className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => handleImpersonate(row.id)}
+                            className="text-xs text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1"
+                            title="התחזה ל-Workspace"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
 
-                    {/* Businesses */}
-                    {wsDetail[ws.id].businesses.length > 0 && (
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">עסקים ({wsDetail[ws.id].businesses.length})</p>
-                        {wsDetail[ws.id].businesses.map((b: any) => (
-                          <p key={b.id} className="text-sm text-gray-300">
-                            {b.business_name} — {b.industry}
-                          </p>
-                        ))}
-                      </div>
+                    {/* Expanded detail row */}
+                    {expandedWs === row.id && wsDetail[row.id] && (
+                      <tr key={`detail-${row.id}`}>
+                        <td colSpan={9} className="bg-gray-800/20 px-6 py-4 border-b border-gray-700/30">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Members */}
+                            <div>
+                              <p className="text-xs text-gray-400 mb-2 font-medium">
+                                חברי צוות ({wsDetail[row.id].members.length})
+                              </p>
+                              {wsDetail[row.id].members.map((m: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between py-1 text-sm">
+                                  <span className="text-gray-300">{m.invited_email || m.user_id?.slice(0, 8) || '—'}</span>
+                                  <span className={`px-2 py-0.5 rounded text-xs ${
+                                    m.role === 'owner' ? 'bg-amber-500/20 text-amber-400' :
+                                    m.role === 'admin' ? 'bg-indigo-500/20 text-indigo-400' :
+                                    'bg-gray-500/20 text-gray-400'
+                                  }`}>
+                                    {m.role}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Subscription */}
+                            <div>
+                              <p className="text-xs text-gray-400 mb-2 font-medium">מנוי</p>
+                              {wsDetail[row.id].subscription ? (
+                                <span className={`px-3 py-1 rounded-lg text-xs font-medium text-white ${TIER_COLORS[wsDetail[row.id].subscription.tier] || 'bg-gray-600'}`}>
+                                  {wsDetail[row.id].subscription.tier} — {wsDetail[row.id].subscription.credits_remaining} קרדיטים
+                                </span>
+                              ) : (
+                                <span className="text-gray-500 text-xs">אין מנוי</span>
+                              )}
+                            </div>
+
+                            {/* Businesses */}
+                            <div>
+                              <p className="text-xs text-gray-400 mb-2 font-medium">
+                                עסקים ({wsDetail[row.id].businesses.length})
+                              </p>
+                              {wsDetail[row.id].businesses.length > 0 ? (
+                                wsDetail[row.id].businesses.map((b: any) => (
+                                  <p key={b.id} className="text-sm text-gray-300">
+                                    {b.business_name} — {b.industry}
+                                  </p>
+                                ))
+                              ) : (
+                                <span className="text-gray-500 text-xs">אין עסקים</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
                     )}
-                  </div>
-                )}
-              </div>
-            ))}
+                  </>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

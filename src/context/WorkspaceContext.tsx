@@ -10,9 +10,18 @@ interface WorkspaceState {
   isLoading: boolean;
 }
 
+interface ImpersonationData {
+  workspace_id: string;
+  workspace_name: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+}
+
 interface WorkspaceContextType extends WorkspaceState {
   isOwnerOrAdmin: boolean;
   refreshWorkspace: () => Promise<void>;
+  impersonate: (data: ImpersonationData) => void;
+  stopImpersonating: () => void;
+  isImpersonating: boolean;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType>({
@@ -22,6 +31,9 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
   isLoading: true,
   isOwnerOrAdmin: false,
   refreshWorkspace: async () => {},
+  impersonate: () => {},
+  stopImpersonating: () => {},
+  isImpersonating: false,
 });
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
@@ -32,6 +44,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     workspaceName: null,
     isLoading: true,
   });
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [realState, setRealState] = useState<WorkspaceState | null>(null);
 
   const fetchWorkspace = async () => {
     if (!user?.id || !session?.access_token) {
@@ -46,14 +60,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
       if (res.ok) {
         const data = await res.json();
-        setState({
+        const newState = {
           workspaceId: data.workspace_id,
           role: data.role,
           workspaceName: data.workspace_name,
           isLoading: false,
-        });
+        };
+        setState(newState);
       } else {
-        // No workspace yet (user may need to onboard)
         setState({ workspaceId: null, role: null, workspaceName: null, isLoading: false });
       }
     } catch {
@@ -65,6 +79,30 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     fetchWorkspace();
   }, [user?.id]);
 
+  const impersonate = (data: ImpersonationData) => {
+    // Save real state before overriding
+    if (!isImpersonating) {
+      setRealState({ ...state });
+    }
+    setState({
+      workspaceId: data.workspace_id,
+      role: data.role,
+      workspaceName: data.workspace_name,
+      isLoading: false,
+    });
+    setIsImpersonating(true);
+  };
+
+  const stopImpersonating = () => {
+    if (realState) {
+      setState(realState);
+      setRealState(null);
+    } else {
+      fetchWorkspace();
+    }
+    setIsImpersonating(false);
+  };
+
   const isOwnerOrAdmin = state.role === 'owner' || state.role === 'admin';
 
   return (
@@ -73,6 +111,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         ...state,
         isOwnerOrAdmin,
         refreshWorkspace: fetchWorkspace,
+        impersonate,
+        stopImpersonating,
+        isImpersonating,
       }}
     >
       {children}

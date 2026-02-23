@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (secrets)
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Test artifacts
+backend/tests/test_weekly_brief.pdf

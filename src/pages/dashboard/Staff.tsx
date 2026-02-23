@@ -65,7 +65,7 @@ export default function Staff() {
       });
       if (res.ok) {
         const data = await res.json();
-        setMembers(data);
+        setMembers(Array.isArray(data) ? data : data.members || []);
       }
     } catch {
       // silently fail
