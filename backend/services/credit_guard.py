@@ -39,6 +39,7 @@ class CreditCost:
     MARKET_DISCOVERY = 1
     AI_ANALYSIS = 1
     PDF_REPORT = 1
+    INTEL_SCAN = 2
     CRM_PUSH = 0       # Free — already paid for the lead
     WHATSAPP_ALERT = 0  # Free — notification only
 

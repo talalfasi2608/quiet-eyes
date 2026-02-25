@@ -108,6 +108,11 @@ def _categorize_event_type(event_type: str) -> str:
         "lead_found": "opportunities",
         "price_alert": "price_alerts",
         "competitor_change": "ad_insights",
+        "facebook_intent": "opportunities",
+        "new_competitor_alert": "ad_insights",
+        "real_estate_alert": "ad_insights",
+        "industry_news": "opportunities",
+        "trend": "opportunities",
     }
     return mapping.get(event_type, "opportunities")
 

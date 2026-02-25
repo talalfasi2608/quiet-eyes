@@ -32,6 +32,13 @@ class JobType:
     PRICE_CHECK = "price_check"
     MARKET_DISCOVERY = "market_discovery"
     WEEKLY_REPORT = "weekly_report"
+    MASTER_INTEL_SCAN = "master_intel_scan"
+    # Aliases (legacy job types created by older onboarding code)
+    INTEL_LEADS = "intel_leads"
+    INTEL_COMPETITORS = "intel_competitors"
+    INTEL_TRENDS = "intel_trends"
+    AUDIENCE_SCAN = "audience_scan"
+    DAILY_SUMMARY = "daily_summary"
 
 
 DEFAULT_JOBS = [
@@ -50,6 +57,10 @@ DEFAULT_JOBS = [
     {
         "job_type": JobType.WEEKLY_REPORT,
         "cron_expression": "0 8 * * 0",     # Sunday 8am UTC
+    },
+    {
+        "job_type": JobType.MASTER_INTEL_SCAN,
+        "cron_expression": "0 */6 * * *",   # every 6 hours
     },
 ]
 

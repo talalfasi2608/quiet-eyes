@@ -10,7 +10,7 @@ pydantic==2.10.4
 pydantic-settings==2.7.1
 
 # AI Integration
-openai==1.59.5
+anthropic>=0.40.0
 
 # Database (Supabase)
 supabase==2.11.0
@@ -27,6 +27,9 @@ twilio>=9.0.0
 # PDF Generation
 reportlab>=4.0.0
 python-bidi>=0.6.0
+
+# Apify (Facebook group scraping)
+apify-client>=1.6.0
 
 # Development
 pytest==8.3.4
