@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE } from '../../config/api';
+import { apiFetch } from '../../services/api';
 import {
   Lightbulb,
   MessageCircle,
@@ -93,7 +95,7 @@ function getSourceColor(source: string) {
   if (source.toLowerCase().includes('easy')) return 'text-green-400';
   if (source.toLowerCase().includes('instagram')) return 'text-pink-400';
   if (source.toLowerCase().includes('madlan')) return 'text-blue-400';
-  return 'text-purple-400';
+  return 'text-cyan-400';
 }
 
 // Single Opportunity Card Component
@@ -215,13 +217,13 @@ function OpportunityCardItem({
           className="
             flex-1 flex items-center justify-center gap-2
             py-2.5 px-4
-            bg-gradient-to-r from-purple-500/20 to-indigo-500/20
-            hover:from-purple-500/30 hover:to-indigo-500/30
-            border border-purple-500/30
+            bg-gradient-to-r from-cyan-500/20 to-blue-500/20
+            hover:from-cyan-500/30 hover:to-blue-500/30
+            border border-cyan-500/30
             rounded-xl
-            text-purple-300 text-sm font-medium
+            text-cyan-300 text-sm font-medium
             transition-all duration-200
-            hover:shadow-lg hover:shadow-purple-500/10
+            hover:shadow-lg hover:shadow-cyan-500/10
           "
         >
           <MessageCircle className="w-4 h-4" />
@@ -300,8 +302,8 @@ export default function StrategyFeed() {
     setError(null);
 
     try {
-      const url = `http://localhost:8015/business/feed/${user.id}${refresh ? '?refresh=true' : ''}`;
-      const response = await fetch(url);
+      const url = `/business/feed/${user.id}${refresh ? '?refresh=true' : ''}`;
+      const response = await apiFetch(url);
 
       if (!response.ok) {
         throw new Error('Failed to fetch strategy feed');
@@ -310,15 +312,14 @@ export default function StrategyFeed() {
       const data: FeedResponse = await response.json();
 
       // Separate active and completed cards
-      const active = data.cards.filter(c => !c.is_actioned && !c.is_dismissed);
-      const completed = data.cards.filter(c => c.is_actioned);
+      const active = (data.cards || []).filter(c => !c.is_actioned && !c.is_dismissed);
+      const completed = (data.cards || []).filter(c => c.is_actioned);
 
       setCards(active);
       setCompletedCards(completed);
       setCached(data.cached);
 
     } catch (err) {
-      console.error('Strategy feed error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load feed');
     } finally {
       setLoading(false);
@@ -344,7 +345,7 @@ export default function StrategyFeed() {
     setProcessingCardId(cardId);
 
     try {
-      const response = await fetch(`http://localhost:8015/business/feed/card/${cardId}?actioned=true`, {
+      const response = await apiFetch(`/business/feed/card/${cardId}?actioned=true`, {
         method: 'PATCH',
       });
 
@@ -360,7 +361,7 @@ export default function StrategyFeed() {
       }
 
     } catch (err) {
-      console.error('Error marking card as done:', err);
+      // Card action failed
     } finally {
       setProcessingCardId(null);
     }
@@ -377,7 +378,7 @@ export default function StrategyFeed() {
       <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8">
         <div className="flex flex-col items-center justify-center py-12">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 animate-pulse" />
+            <div className="w-16 h-16 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 animate-pulse" />
             <Sparkles className="w-8 h-8 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
           </div>
           <p className="mt-4 text-gray-400 animate-pulse" dir="rtl">מנתח מודיעין עסקי...</p>
@@ -411,8 +412,8 @@ export default function StrategyFeed() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30">
-            <Zap className="w-6 h-6 text-purple-400" />
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
+            <Zap className="w-6 h-6 text-cyan-400" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">פיד אסטרטגי</h2>
@@ -503,7 +504,7 @@ export default function StrategyFeed() {
           </p>
           <button
             onClick={() => fetchFeed(true)}
-            className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 rounded-lg text-purple-300 text-sm transition-colors"
+            className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-lg text-cyan-300 text-sm transition-colors"
           >
             צור תובנות
           </button>

@@ -1,0 +1,39 @@
+<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-i">
+      <feGaussianBlur stdDeviation="3.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <linearGradient id="scan-i" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f0f4f8" />
+      <stop offset="100%" stop-color="#00d4ff" />
+    </linearGradient>
+  </defs>
+
+  <!-- Q circle -->
+  <circle cx="62" cy="58" r="48" fill="none" stroke="#f0f4f8" stroke-width="4" />
+
+  <!-- Q tail / scanning line -->
+  <line x1="96" y1="92" x2="126" y2="122" stroke="url(#scan-i)" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Scanning dot -->
+  <circle cx="126" cy="122" r="3" fill="#00d4ff" opacity="0.8" />
+
+  <!-- Eye — upper lid -->
+  <path d="M 27,58 C 37,34 87,34 97,58" fill="none" stroke="#f0f4f8" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- Eye — lower lid -->
+  <path d="M 27,58 C 37,82 87,82 97,58" fill="none" stroke="#f0f4f8" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- Iris ring -->
+  <circle cx="62" cy="58" r="14" fill="none" stroke="#00d4ff" stroke-width="1.5" opacity="0.4" />
+
+  <!-- Pupil -->
+  <circle cx="62" cy="58" r="8" fill="#00d4ff" filter="url(#glow-i)" />
+
+  <!-- Highlight -->
+  <circle cx="59" cy="55" r="2.5" fill="#ffffff" opacity="0.7" />
+</svg>

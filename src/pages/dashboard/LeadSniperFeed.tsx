@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSimulation } from '../../context/SimulationContext';
-import { useAuth } from '../../context/AuthContext';
 import {
   Crosshair,
   Loader2,
@@ -27,8 +26,10 @@ import {
   Download,
   Send,
 } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import toast from 'react-hot-toast';
+import { apiFetch } from '../../services/api';
+import { API_BASE } from '../../config/api';
+import LeadDetailModal from '../../components/ui/LeadDetailModal';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -47,12 +48,14 @@ interface Lead {
   relevance_score: number;
   status: 'new' | 'sniped' | 'dismissed';
   created_at: string;
+  published_date: string | null;
   sniped_at: string | null;
   intent_signals: {
     matched_keywords?: string[];
     query_used?: string;
     blueprint_matches?: string[];
     intent_category?: string;
+    lead_type?: string;
   } | null;
 }
 
@@ -135,6 +138,16 @@ function PlatformIcon({ platform }: { platform: string }) {
   if (p === 'whatsapp') return <MessageCircle className="w-5 h-5 text-green-400" />;
   if (p === 'forum') return <MessageCircle className="w-5 h-5 text-cyan-400" />;
   return <Globe className="w-5 h-5 text-gray-400" />;
+}
+
+function isValidUrl(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 function PlatformBadge({ platform }: { platform: string }) {
@@ -265,9 +278,9 @@ function IntentBadges({ signals }: { signals: Lead['intent_signals'] }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function FeedbackStatsBar({ stats }: { stats: FeedbackStats | null }) {
-  if (!stats || stats.total_feedback === 0) return null;
+  if (!stats || !stats.total_feedback) return null;
 
-  const approvalPct = Math.round(stats.approval_rate * 100);
+  const approvalPct = Math.round((stats.approval_rate || 0) * 100);
 
   return (
     <div className="glass-card p-4">
@@ -313,12 +326,14 @@ function LeadFlashCard({
   onReject,
   onDismiss,
   onPushCRM,
+  onView,
 }: {
   lead: Lead;
   onApprove: (id: string) => void;
   onReject: (id: string, reason: RejectionReason) => void;
   onDismiss: (id: string) => void;
-  onPushCRM: (id: string) => void;
+  onPushCRM?: (id: string) => void;
+  onView: (lead: Lead) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showRejectPicker, setShowRejectPicker] = useState(false);
@@ -367,9 +382,9 @@ function LeadFlashCard({
                 אושר
               </span>
             )}
-            <span className="text-xs text-gray-500 flex items-center gap-1">
+            <span className="text-xs text-gray-500 flex items-center gap-1" title={lead.published_date ? `פורסם: ${lead.published_date}` : `נמצא: ${lead.created_at}`}>
               <Clock className="w-3 h-3" />
-              {timeAgo(lead.created_at)}
+              {lead.published_date ? `פורסם ${timeAgo(lead.published_date)}` : timeAgo(lead.created_at)}
             </span>
           </div>
         </div>
@@ -416,19 +431,22 @@ function LeadFlashCard({
                 <ThumbsDown className="w-3.5 h-3.5" />
                 לא רלוונטי
               </button>
-              <button
-                onClick={() => {
-                  onApprove(lead.id);
-                  if (lead.source_url) {
-                    window.open(lead.source_url, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all active:scale-95"
-              >
-                <ThumbsUp className="w-4 h-4" />
-                ליד טוב
-                {lead.source_url && <ExternalLink className="w-3.5 h-3.5 opacity-70" />}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onView(lead)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-700/40 text-cyan-400 text-sm font-medium border border-gray-600/50 hover:bg-gray-700/60 hover:border-cyan-500/30 transition-all"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  צפה
+                </button>
+                <button
+                  onClick={() => onApprove(lead.id)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all active:scale-95"
+                >
+                  <ThumbsUp className="w-4 h-4" />
+                  ליד טוב
+                </button>
+              </div>
             </>
           ) : (
             <div className="w-full flex items-center justify-between">
@@ -436,16 +454,27 @@ function LeadFlashCard({
                 <ThumbsUp className="w-4 h-4" />
                 ליד אושר
               </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPushCRM(lead.id);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-medium hover:bg-blue-500/30 border border-blue-500/30 transition-all"
-              >
-                <Send className="w-3.5 h-3.5" />
-                Push to CRM
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onView(lead)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-700/40 text-cyan-400 text-xs font-medium border border-gray-600/50 hover:bg-gray-700/60 hover:border-cyan-500/30 transition-all"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  צפה
+                </button>
+                {onPushCRM && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPushCRM(lead.id);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-medium hover:bg-blue-500/30 border border-blue-500/30 transition-all"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    שלח ל-CRM
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -482,7 +511,6 @@ function CardSkeleton() {
 
 export default function LeadSniperFeed() {
   const { currentProfile } = useSimulation();
-  const { session } = useAuth();
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [counts, setCounts] = useState({ new: 0, sniped: 0, dismissed: 0 });
@@ -493,6 +521,11 @@ export default function LeadSniperFeed() {
   const [activeFilter, setActiveFilter] = useState<'all' | 'new' | 'sniped' | 'dismissed'>('all');
   const [intentFilter, setIntentFilter] = useState<IntentCategory>('all');
   const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
+  const [crmConfigured, setCrmConfigured] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [prevLeadCount, setPrevLeadCount] = useState(0);
+  const [highlightNew, setHighlightNew] = useState(false);
+  const [modalLead, setModalLead] = useState<Lead | null>(null);
 
   // ── Fetch leads ────────────────────────────────────────────────────────
   const fetchLeads = useCallback(async () => {
@@ -501,8 +534,8 @@ export default function LeadSniperFeed() {
     try {
       setLoading(true);
       const statusParam = activeFilter !== 'all' ? `&status=${activeFilter}` : '';
-      const response = await fetch(
-        `${API_BASE}/leads/${currentProfile.id}?limit=50${statusParam}`
+      const response = await apiFetch(
+        `/leads/${currentProfile.id}?limit=50${statusParam}`
       );
 
       if (!response.ok) throw new Error('שגיאה בטעינת לידים');
@@ -513,7 +546,6 @@ export default function LeadSniperFeed() {
       setTotal(data.total);
       setError(null);
     } catch (err) {
-      console.error('Leads fetch error:', err);
       setError('לא ניתן לטעון את הלידים');
     } finally {
       setLoading(false);
@@ -526,16 +558,19 @@ export default function LeadSniperFeed() {
 
     setScanning(true);
     try {
-      await fetch(`${API_BASE}/leads/snipe/${currentProfile.id}`, {
+      const res = await apiFetch(`/leads/snipe/${currentProfile.id}`, {
         method: 'POST',
       });
-
-      setTimeout(async () => {
-        await fetchLeads();
-        setScanning(false);
-      }, 15000);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.leads_saved > 0) {
+          toast.success(`נמצאו ${data.leads_saved} לידים חדשים!`, { icon: '🎯' });
+        }
+      }
+      await fetchLeads();
     } catch (err) {
-      console.error('Sniping mission error:', err);
+      toast.error('שגיאה בהפעלת המשימה');
+    } finally {
       setScanning(false);
     }
   };
@@ -544,7 +579,7 @@ export default function LeadSniperFeed() {
   const fetchFeedbackStats = useCallback(async () => {
     if (!currentProfile?.id) return;
     try {
-      const res = await fetch(`${API_BASE}/leads/${currentProfile.id}/feedback-stats`);
+      const res = await apiFetch(`/leads/${currentProfile.id}/feedback-stats`);
       if (res.ok) {
         const data = await res.json();
         if (data.success) setFeedbackStats(data);
@@ -561,11 +596,10 @@ export default function LeadSniperFeed() {
     rejectionReason?: RejectionReason
   ) => {
     try {
-      await fetch(`${API_BASE}/leads/${leadId}/feedback`, {
+      await apiFetch(`/leads/${leadId}/feedback`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: currentProfile?.user_id || 'anonymous',
+          user_id: currentProfile?.id || 'anonymous',
           action,
           rejection_reason: rejectionReason || null,
         }),
@@ -589,35 +623,84 @@ export default function LeadSniperFeed() {
       // Refresh stats after feedback
       fetchFeedbackStats();
     } catch (err) {
-      console.error('Feedback error:', err);
+      // silently ignore
     }
+  };
+
+  // ── "צפה" handler — ALWAYS opens modal ──────────────────────────────
+  const handleViewLead = (lead: Lead) => {
+    setModalLead(lead);
+  };
+
+  /** Returns a safe external URL for the modal's "פתח מקור" link, or null. */
+  const getExternalUrl = (lead: Lead): string | null => {
+    const url = lead.source_url;
+    if (!url || !isValidUrl(url)) return null;
+    // Google Maps and Instagram are technically valid but problematic
+    if (url.includes('instagram.com')) return null;
+    if (url.includes('google.com/maps') || url.includes('maps.google')) return null;
+    return url;
   };
 
   const handlePushCRM = async (leadId: string) => {
     try {
-      const res = await fetch(`${API_BASE}/crm/push-lead`, {
+      const res = await apiFetch(`/crm/push-lead`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
         body: JSON.stringify({ lead_id: leadId }),
       });
       if (res.ok) {
-        alert('הליד נשלח ל-CRM בהצלחה!');
+        toast.success('הליד נשלח ל-CRM בהצלחה!');
       } else {
         const err = await res.json().catch(() => null);
-        alert(err?.detail || 'שגיאה בשליחה ל-CRM. ודאו שחיברתם CRM בהגדרות.');
+        toast.error(err?.detail || 'שגיאה בשליחה ל-CRM. ודאו שחיברתם CRM בהגדרות.');
       }
     } catch {
-      alert('שגיאת רשת');
+      toast.error('שגיאת רשת');
     }
   };
+
+  // ── Check CRM status ─────────────────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch(`/crm/status`);
+        if (res.ok) {
+          const data = await res.json();
+          setCrmConfigured(!!data.configured);
+        }
+      } catch {
+        // CRM status check failed — hide CRM buttons
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     fetchLeads();
     fetchFeedbackStats();
   }, [fetchLeads, fetchFeedbackStats]);
+
+  // Auto-refresh when no leads yet (smart empty state)
+  useEffect(() => {
+    if (leads.length === 0 && !loading && !error && currentProfile?.id) {
+      setIsSearching(true);
+      const interval = setInterval(() => {
+        fetchLeads();
+      }, 15000);
+      return () => clearInterval(interval);
+    } else {
+      setIsSearching(false);
+    }
+  }, [leads.length, loading, error, currentProfile?.id]);
+
+  // Detect new lead arrival and trigger highlight
+  useEffect(() => {
+    if (leads.length > prevLeadCount && prevLeadCount === 0 && leads.length > 0) {
+      setHighlightNew(true);
+      toast.success('מצאנו את הליד הראשון שלך!', { icon: '🎯', duration: 5000 });
+      setTimeout(() => setHighlightNew(false), 3000);
+    }
+    setPrevLeadCount(leads.length);
+  }, [leads.length]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
@@ -627,12 +710,12 @@ export default function LeadSniperFeed() {
     <div className="space-y-6 fade-in" dir="rtl">
       {/* ── Header ────────────────────────────────────────────────────── */}
       <header className="glass-card p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-5">
             <SniperScope isScanning={scanning} />
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl font-bold text-white">צלף לידים</h1>
+                <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>צלף לידים</h1>
                 <LiveBadge />
                 {scanning && (
                   <span className="text-sm font-normal text-orange-400 flex items-center gap-2">
@@ -716,6 +799,7 @@ export default function LeadSniperFeed() {
                   className={`text-2xl font-bold ${
                     activeFilter === key ? `text-${activeColor}-400` : 'text-white'
                   }`}
+                  style={{ fontFamily: "var(--font-mono)" }}
                 >
                   {count}
                 </span>
@@ -778,29 +862,55 @@ export default function LeadSniperFeed() {
         </div>
       )}
 
-      {/* ── Empty State ───────────────────────────────────────────── */}
+      {/* ── Empty State / Smart Searching ─────────────────────────── */}
       {!loading && !error && leads.length === 0 && (
         <div className="glass-card p-12 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
-            <Crosshair className="w-10 h-10 text-red-400" />
-          </div>
-          <h3 className="text-xl font-bold text-white mb-2">
-            {activeFilter === 'all' ? 'עדיין לא נמצאו לידים' : `אין ${filterLabels[activeFilter]}`}
-          </h3>
-          <p className="text-gray-400 mb-6 max-w-md mx-auto">
-            {activeFilter === 'all'
-              ? 'הרדאר סורק כעת את השוק. הפעל משימת ציד כדי למצוא אנשים שמחפשים את השירותים שלך עכשיו.'
-              : 'נסה לשנות את הסינון או להפעיל משימה חדשה.'}
-          </p>
-          {activeFilter === 'all' && (
-            <button
-              onClick={triggerMission}
-              disabled={scanning}
-              className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-500/30 transition-all"
-            >
-              <Crosshair className="w-5 h-5 inline ml-2" />
-              הפעל משימה ראשונה
-            </button>
+          {isSearching && activeFilter === 'all' ? (
+            <>
+              <div className="relative w-24 h-24 mx-auto mb-6">
+                <div className="absolute inset-0 rounded-full border-2 border-red-500/30 animate-ping" style={{ animationDuration: '2s' }} />
+                <div className="absolute inset-3 rounded-full border-2 border-orange-500/40 animate-ping" style={{ animationDuration: '3s' }} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/30 animate-pulse">
+                    <Eye className="w-7 h-7 text-white" />
+                  </div>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">
+                מחפש לידים רלוונטיים לעסק שלך...
+              </h3>
+              <p className="text-gray-400 mb-4 max-w-md mx-auto">
+                הבינה המלאכותית סורקת פורומים, רשתות חברתיות ואתרי המלצות כדי למצוא לקוחות פוטנציאליים.
+              </p>
+              <div className="flex items-center justify-center gap-2 text-sm text-orange-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                מתרענן אוטומטית כל 15 שניות
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
+                <Crosshair className="w-10 h-10 text-red-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">
+                {activeFilter === 'all' ? 'עדיין לא נמצאו לידים' : `אין ${filterLabels[activeFilter]}`}
+              </h3>
+              <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                {activeFilter === 'all'
+                  ? 'הרדאר סורק כעת את השוק. הפעל משימת ציד כדי למצוא אנשים שמחפשים את השירותים שלך עכשיו.'
+                  : 'נסה לשנות את הסינון או להפעיל משימה חדשה.'}
+              </p>
+              {activeFilter === 'all' && (
+                <button
+                  onClick={triggerMission}
+                  disabled={scanning}
+                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-500/30 transition-all"
+                >
+                  <Crosshair className="w-5 h-5 inline ml-2" />
+                  הפעל משימה ראשונה
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
@@ -830,7 +940,7 @@ export default function LeadSniperFeed() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${highlightNew ? 'animate-pulse ring-2 ring-emerald-500/30 rounded-2xl p-1' : ''}`}>
               {filteredLeads.map((lead) => (
                 <LeadFlashCard
                   key={lead.id}
@@ -838,7 +948,8 @@ export default function LeadSniperFeed() {
                   onApprove={(id) => submitFeedback(id, 'approve')}
                   onReject={(id, reason) => submitFeedback(id, 'reject', reason)}
                   onDismiss={(id) => submitFeedback(id, 'dismiss')}
-                  onPushCRM={handlePushCRM}
+                  onPushCRM={crmConfigured ? handlePushCRM : undefined}
+                  onView={handleViewLead}
                 />
               ))}
             </div>
@@ -857,6 +968,17 @@ export default function LeadSniperFeed() {
           </div>
         );
       })()}
+
+      {/* ── Lead Detail Modal ──────────────────────────────────────── */}
+      {modalLead && (
+        <LeadDetailModal
+          lead={modalLead}
+          onClose={() => setModalLead(null)}
+          onMarkHandled={(id) => submitFeedback(id, 'approve')}
+          onDismiss={(id) => submitFeedback(id, 'dismiss')}
+          externalUrl={getExternalUrl(modalLead)}
+        />
+      )}
     </div>
   );
 }

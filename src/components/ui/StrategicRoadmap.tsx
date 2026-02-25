@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE } from '../../config/api';
+import { apiFetch } from '../../services/api';
 import {
   Megaphone,
   Tag,
@@ -58,7 +60,7 @@ const categoryConfig: Record<string, { icon: typeof Megaphone; color: string; bg
   Pricing: { icon: Tag, color: 'text-emerald-400', bgColor: 'from-emerald-500/20 to-teal-500/20' },
   Operations: { icon: Settings, color: 'text-blue-400', bgColor: 'from-blue-500/20 to-cyan-500/20' },
   Service: { icon: Sparkles, color: 'text-amber-400', bgColor: 'from-amber-500/20 to-yellow-500/20' },
-  Digital: { icon: Globe, color: 'text-purple-400', bgColor: 'from-purple-500/20 to-indigo-500/20' },
+  Digital: { icon: Globe, color: 'text-cyan-400', bgColor: 'from-cyan-500/20 to-blue-500/20' },
 };
 
 // Priority colors
@@ -261,7 +263,7 @@ export default function StrategicRoadmap() {
     setError(null);
 
     try {
-      const response = await fetch(`http://localhost:8015/business/actions/${user.id}`);
+      const response = await apiFetch(`/business/actions/${user.id}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch actions');
@@ -273,7 +275,6 @@ export default function StrategicRoadmap() {
       setBusinessName(data.business_name || '');
       setCompetitorsCount(data.competitors_count || 0);
     } catch (err) {
-      console.error('Failed to fetch strategic actions:', err);
       setError('לא הצלחנו לטעון את תוכנית הפעולה');
     } finally {
       setLoading(false);
@@ -303,7 +304,7 @@ export default function StrategicRoadmap() {
       <div className="glass-card">
         <div className="flex flex-col items-center justify-center py-12 space-y-4">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
             </div>
           </div>
@@ -337,7 +338,7 @@ export default function StrategicRoadmap() {
     return (
       <div className="glass-card">
         <div className="flex flex-col items-center justify-center py-12 space-y-4">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
             <Target className="w-10 h-10 text-indigo-400" />
           </div>
           <h3 className="text-xl font-semibold text-white">אין תוכנית פעולה עדיין</h3>
@@ -356,7 +357,7 @@ export default function StrategicRoadmap() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center">
                 <Zap className="w-5 h-5 text-white" />
               </div>
               מפת הדרכים האסטרטגית
@@ -382,7 +383,7 @@ export default function StrategicRoadmap() {
           </div>
           <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
           </div>

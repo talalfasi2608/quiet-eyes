@@ -25,7 +25,7 @@ export function loadGoogleMaps(): Promise<void> {
     document.querySelectorAll('script[src*="maps.googleapis.com/maps/api/js"]').forEach(el => el.remove());
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=he&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&language=he&loading=async`;
     script.async = true;
     script.onload = () => {
       (window as any)[GOOGLE_MAPS_LOADED] = true;

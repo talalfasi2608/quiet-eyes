@@ -44,6 +44,28 @@ def _get_authenticated_client(request):
     return get_supabase_client(request)
 
 
+def _geocode_address(address: str) -> tuple:
+    """Geocode an address using Google Maps Geocoding API. Returns (lat, lng) or (None, None)."""
+    import os
+    import httpx
+    api_key = os.getenv("GOOGLE_PLACES_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key or not address:
+        return None, None
+    try:
+        with httpx.Client(timeout=10) as client:
+            resp = client.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"address": address, "key": api_key, "language": "he"},
+            )
+            data = resp.json()
+            if data.get("results"):
+                loc = data["results"][0].get("geometry", {}).get("location", {})
+                return loc.get("lat"), loc.get("lng")
+    except Exception as e:
+        logger.error(f"Geocoding error for '{address}': {e}")
+    return None, None
+
+
 class AnalyzeSiteRequest(BaseModel):
     url: str
     business_id: str
@@ -142,6 +164,8 @@ class OnboardWizardRequest(BaseModel):
     # Step 1 extras
     exact_address: Optional[str] = None
     phone: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     # Step 2
     business_age: Optional[str] = None
     employee_count: Optional[str] = None
@@ -181,6 +205,12 @@ async def onboard_wizard(payload: OnboardWizardRequest, request: Request, auth_u
             .execute()
         )
 
+        # Resolve coordinates: use frontend values or geocode the address
+        lat = payload.latitude
+        lng = payload.longitude
+        if not lat or not lng:
+            lat, lng = _geocode_address(payload.address)
+
         record = {
             "user_id": payload.user_id,
             "business_name": payload.business_name,
@@ -190,6 +220,8 @@ async def onboard_wizard(payload: OnboardWizardRequest, request: Request, auth_u
             "user_description": f"{payload.business_name} - {payload.industry}",
             "archetype": "Expert",
             "scope": "local",
+            "latitude": lat or 0,
+            "longitude": lng or 0,
         }
 
         # Add all optional fields if provided

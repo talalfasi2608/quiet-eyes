@@ -20,8 +20,8 @@ import {
   BarChart3,
   Users
 } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import { API_BASE } from '../../config/api';
+import { apiFetch } from '../../services/api';
 
 interface CompetitorData {
   id: string;
@@ -134,7 +134,7 @@ function PriceBadge({ positioning }: { positioning: string }) {
   const config = {
     budget: { icon: DollarSign, color: 'text-blue-400 bg-blue-500/20', label: 'תקציבי', dollars: 1 },
     mid: { icon: DollarSign, color: 'text-amber-400 bg-amber-500/20', label: 'בינוני', dollars: 2 },
-    premium: { icon: Crown, color: 'text-purple-400 bg-purple-500/20', label: 'פרימיום', dollars: 3 },
+    premium: { icon: Crown, color: 'text-cyan-400 bg-cyan-500/20', label: 'פרימיום', dollars: 3 },
     unknown: { icon: DollarSign, color: 'text-gray-500 bg-gray-700/50', label: 'לא ידוע', dollars: 0 }
   };
 
@@ -210,7 +210,7 @@ export default function CompetitorMatrix({
 
     try {
       // Fetch competitors
-      const response = await fetch(`${API_BASE}/competitors/${businessId}`);
+      const response = await apiFetch(`/competitors/${businessId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch competitors');
       }
@@ -275,7 +275,6 @@ export default function CompetitorMatrix({
 
       setMatrixData(entries);
     } catch (err) {
-      console.error('Error fetching matrix data:', err);
       setError('Failed to load competitor matrix');
     } finally {
       setLoading(false);
@@ -359,7 +358,7 @@ export default function CompetitorMatrix({
   const handleResearch = async (competitorId: string) => {
     setResearching(competitorId);
     try {
-      await fetch(`${API_BASE}/research/competitor/${competitorId}`, {
+      await apiFetch(`/research/competitor/${competitorId}`, {
         method: 'POST'
       });
       // Refresh data after a delay
@@ -368,7 +367,6 @@ export default function CompetitorMatrix({
         setResearching(null);
       }, 5000);
     } catch (err) {
-      console.error('Research failed:', err);
       setResearching(null);
     }
   };
@@ -422,7 +420,7 @@ export default function CompetitorMatrix({
       <div className="p-6 border-b border-gray-700/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center">
               <BarChart3 className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -487,7 +485,7 @@ export default function CompetitorMatrix({
                 <td className="py-4 px-6">
                   <div className="flex items-center gap-3">
                     {entry.isUser ? (
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center">
                         <Crown className="w-5 h-5 text-white" />
                       </div>
                     ) : (
@@ -558,7 +556,7 @@ export default function CompetitorMatrix({
                         <button
                           onClick={() => handleResearch(entry.id)}
                           disabled={researching === entry.id}
-                          className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 transition-colors disabled:opacity-50"
+                          className="p-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 transition-colors disabled:opacity-50"
                           title="חקור באינטרנט"
                         >
                           {researching === entry.id ? (

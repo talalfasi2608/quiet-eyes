@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE } from '../../config/api';
+import { apiFetch } from '../../services/api';
 import {
   Activity,
   TrendingUp,
@@ -125,7 +127,7 @@ function MiniChart({ data, metric }: { data: HistorySnapshot[]; metric: keyof Hi
       {bars.map((height, i) => (
         <div
           key={i}
-          className="flex-1 bg-gradient-to-t from-indigo-500/50 to-purple-500/50 rounded-t transition-all hover:from-indigo-500/70 hover:to-purple-500/70"
+          className="flex-1 bg-gradient-to-t from-cyan-500/50 to-blue-500/50 rounded-t transition-all hover:from-cyan-500/70 hover:to-blue-500/70"
           style={{ height: `${Math.max(height, 5)}%` }}
           title={`${values[i]}`}
         />
@@ -159,7 +161,7 @@ function CompetitorHistoryCard({
       rounded-xl
       overflow-hidden
       transition-all duration-300
-      ${isExpanded ? 'ring-1 ring-indigo-500/30' : ''}
+      ${isExpanded ? 'ring-1 ring-cyan-500/30' : ''}
     `}>
       {/* Header */}
       <button
@@ -197,11 +199,11 @@ function CompetitorHistoryCard({
           <div className="hidden md:flex items-center gap-4 text-sm">
             <div className="text-center">
               <div className="text-gray-500 text-xs mb-1">Rating</div>
-              <TrendIndicator value={competitor.trends.rating_change} />
+              <TrendIndicator value={competitor.trends?.rating_change ?? 0} />
             </div>
             <div className="text-center">
               <div className="text-gray-500 text-xs mb-1">Reviews</div>
-              <TrendIndicator value={competitor.trends.reviews_change} />
+              <TrendIndicator value={competitor.trends?.reviews_change ?? 0} />
             </div>
           </div>
 
@@ -217,7 +219,7 @@ function CompetitorHistoryCard({
       {isExpanded && competitor.history.length > 0 && (
         <div className="px-4 pb-4 border-t border-gray-700/50 animate-in slide-in-from-top-2">
           {/* Trend cards */}
-          <div className="grid grid-cols-3 gap-3 mt-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 mb-4">
             <div className="bg-gray-800/50 rounded-lg p-3">
               <div className="flex items-center gap-2 text-gray-400 text-xs mb-2">
                 <Star className="w-3.5 h-3.5" />
@@ -244,6 +246,7 @@ function CompetitorHistoryCard({
           </div>
 
           {/* History table */}
+          <div className="overflow-x-auto">
           <div className="bg-gray-800/30 rounded-lg overflow-hidden">
             <div className="grid grid-cols-5 gap-2 p-2 text-xs text-gray-500 border-b border-gray-700/50">
               <div>Date</div>
@@ -288,6 +291,7 @@ function CompetitorHistoryCard({
             </div>
           </div>
 
+          </div>
           <div className="mt-3 text-xs text-gray-500 text-center">
             {competitor.snapshots_count} total snapshots recorded
           </div>
@@ -353,8 +357,8 @@ export default function IntelligenceHistory() {
     setError(null);
 
     try {
-      const response = await fetch(
-        `http://localhost:8015/intelligence/history/business/${user.id}?days=${periodDays}`
+      const response = await apiFetch(
+        `/intelligence/history/business/${user.id}?days=${periodDays}`
       );
 
       if (!response.ok) {
@@ -370,7 +374,6 @@ export default function IntelligenceHistory() {
       }
 
     } catch (err) {
-      console.error('History error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load history');
     } finally {
       setLoading(false);
@@ -382,7 +385,7 @@ export default function IntelligenceHistory() {
 
     setRefreshing(true);
     try {
-      await fetch(`http://localhost:8015/intelligence/track/${user.id}`, {
+      await apiFetch(`/intelligence/track/${user.id}`, {
         method: 'POST'
       });
 
@@ -393,7 +396,6 @@ export default function IntelligenceHistory() {
       }, 5000);
 
     } catch (err) {
-      console.error('Tracking error:', err);
       setRefreshing(false);
     }
   };
@@ -408,7 +410,7 @@ export default function IntelligenceHistory() {
       <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8">
         <div className="flex flex-col items-center justify-center py-12">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 animate-pulse" />
+            <div className="w-16 h-16 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 animate-pulse" />
             <Activity className="w-8 h-8 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
           </div>
           <p className="mt-4 text-gray-400 animate-pulse">Loading intelligence history...</p>
@@ -444,8 +446,8 @@ export default function IntelligenceHistory() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30">
-            <BarChart3 className="w-6 h-6 text-indigo-400" />
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
+            <BarChart3 className="w-6 h-6 text-cyan-400" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">Intelligence History</h2>
@@ -465,7 +467,7 @@ export default function IntelligenceHistory() {
                 className={`
                   px-3 py-1.5 rounded-md text-xs font-medium transition-colors
                   ${periodDays === days
-                    ? 'bg-indigo-500/20 text-indigo-400'
+                    ? 'bg-cyan-500/20 text-cyan-400'
                     : 'text-gray-400 hover:text-white'}
                 `}
               >
@@ -481,11 +483,11 @@ export default function IntelligenceHistory() {
             className="
               flex items-center gap-2
               px-4 py-2
-              bg-gradient-to-r from-indigo-500/20 to-purple-500/20
-              hover:from-indigo-500/30 hover:to-purple-500/30
-              border border-indigo-500/30
+              bg-gradient-to-r from-cyan-500/20 to-blue-500/20
+              hover:from-cyan-500/30 hover:to-blue-500/30
+              border border-cyan-500/30
               rounded-lg
-              text-indigo-300 text-sm font-medium
+              text-cyan-300 text-sm font-medium
               transition-all
               disabled:opacity-50
             "
@@ -516,9 +518,9 @@ export default function IntelligenceHistory() {
       )}
 
       {/* Competitors list */}
-      {data.competitors.length > 0 ? (
+      {(data.competitors || []).length > 0 ? (
         <div className="space-y-3">
-          {data.competitors.map((competitor) => (
+          {(data.competitors || []).map((competitor) => (
             <CompetitorHistoryCard
               key={competitor.id}
               competitor={competitor}
@@ -541,7 +543,7 @@ export default function IntelligenceHistory() {
           <button
             onClick={triggerTracking}
             disabled={refreshing}
-            className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 rounded-lg text-indigo-300 text-sm"
+            className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-lg text-cyan-300 text-sm"
           >
             Start Tracking
           </button>

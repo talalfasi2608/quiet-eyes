@@ -106,6 +106,7 @@ async def snipe_leads(business_id: str, request: Request, auth_user_id: str = De
             "leads_found": report.leads_found,
             "leads_saved": report.leads_saved,
             "total_scanned": report.total_results_scanned,
+            "source_counts": report.source_counts,
             "leads": report.leads,
             "errors": report.errors,
         }

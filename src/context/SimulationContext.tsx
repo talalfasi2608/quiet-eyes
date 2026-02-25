@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { getBusinessByUserId } from '../services/api';
@@ -89,8 +89,13 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       setHasCompletedOnboarding(false);
       setIsLoadingProfile(false);
       setProfileError(null);
+      // Clear localStorage on logout
+      localStorage.removeItem('qe_onboarding_done');
+      localStorage.removeItem('qe_business_id');
     }
   }, [user?.id]);
+
+  const retryCountRef = useRef(0);
 
   const fetchUserBusiness = async (userId: string) => {
     setIsLoadingProfile(true);
@@ -103,19 +108,37 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       if (business) {
         setProfileFromBusiness(business);
         setHasCompletedOnboarding(true);
-        console.log('✅ Loaded business profile:', business.name_hebrew);
+        // Persist to localStorage as safety net
+        localStorage.setItem('qe_onboarding_done', 'true');
+        if (business.id) localStorage.setItem('qe_business_id', business.id);
+        retryCountRef.current = 0;
       } else {
-        // 404 — user hasn't onboarded yet. Keep state clean.
-        setCurrentProfile(null);
-        setHasCompletedOnboarding(false);
-        console.log('📋 User needs to complete onboarding');
+        // 404 — check localStorage safety net
+        if (localStorage.getItem('qe_onboarding_done') === 'true') {
+          setHasCompletedOnboarding(true);
+          // Schedule a retry (max 3) to eventually load the profile
+          if (retryCountRef.current < 3) {
+            retryCountRef.current += 1;
+            setTimeout(() => fetchUserBusiness(userId), 2000);
+          }
+        } else {
+          setCurrentProfile(null);
+          setHasCompletedOnboarding(false);
+        }
       }
     } catch (error) {
-      // API error — do NOT load mock data. Show error state.
-      console.error('Failed to fetch user business:', error);
-      setCurrentProfile(null);
-      setHasCompletedOnboarding(false);
-      setProfileError('לא נמצא עסק. אנא השלם את ההרשמה.');
+      // API error — check localStorage safety net
+      if (localStorage.getItem('qe_onboarding_done') === 'true') {
+        setHasCompletedOnboarding(true);
+        if (retryCountRef.current < 3) {
+          retryCountRef.current += 1;
+          setTimeout(() => fetchUserBusiness(userId), 2000);
+        }
+      } else {
+        setCurrentProfile(null);
+        setHasCompletedOnboarding(false);
+        setProfileError('לא נמצא עסק. אנא השלם את ההרשמה.');
+      }
     } finally {
       setIsLoadingProfile(false);
     }

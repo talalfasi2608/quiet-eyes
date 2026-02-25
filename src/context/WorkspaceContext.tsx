@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-
-const API_BASE = 'http://localhost:8015';
+import { apiFetch } from '../services/api';
 
 interface WorkspaceState {
   workspaceId: string | null;
@@ -54,9 +53,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/workspace/me`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const res = await apiFetch('/workspace/me');
 
       if (res.ok) {
         const data = await res.json();

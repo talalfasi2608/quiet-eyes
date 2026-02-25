@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useSimulation } from '../../context/SimulationContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLiveMarketData } from '../../hooks/useLiveMarketData';
@@ -15,7 +15,6 @@ import {
   Users,
   Globe,
   MapPin,
-  ExternalLink,
   RefreshCw,
   Loader2,
   Building2,
@@ -27,14 +26,11 @@ import {
   Instagram,
   Facebook,
   Star,
-  Shield,
   Activity,
-  Phone,
   Clock,
   TrendingDown,
   Minus,
   BarChart3,
-  Eye,
   Wrench,
   Lightbulb,
   ChevronRight,
@@ -46,9 +42,10 @@ import {
 } from 'lucide-react';
 import CompetitorDrawer from '../../components/ui/CompetitorDrawer';
 import DailyBriefing from '../../components/cockpit/DailyBriefing';
+import PredictionCard from '../../components/cockpit/PredictionCard';
 import ROITracker from '../../components/cockpit/ROITracker';
-
-const API_BASE = 'http://localhost:8015';
+import ScannerLoader from '../../components/ui/ScannerLoader';
+import { apiFetch } from '../../services/api';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INTELLIGENCE TIMELINE
@@ -72,7 +69,7 @@ const EVENT_CONFIG: Record<string, { icon: typeof Bell; color: string; bg: strin
   competitor_change: { icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-500/15' },
   price_alert: { icon: DollarSign, color: 'text-red-400', bg: 'bg-red-500/15' },
   scan_completed: { icon: Radar, color: 'text-blue-400', bg: 'bg-blue-500/15' },
-  blueprint_matched: { icon: Sparkles, color: 'text-purple-400', bg: 'bg-purple-500/15' },
+  blueprint_matched: { icon: Sparkles, color: 'text-cyan-400', bg: 'bg-cyan-500/15' },
   feedback_received: { icon: CheckCircle2, color: 'text-teal-400', bg: 'bg-teal-500/15' },
   radar_alert: { icon: Zap, color: 'text-orange-400', bg: 'bg-orange-500/15' },
 };
@@ -85,8 +82,8 @@ function IntelligenceTimeline({ businessId }: { businessId: string }) {
   useEffect(() => {
     if (!businessId) return;
     Promise.all([
-      fetch(`${API_BASE}/intelligence/${businessId}/events?limit=8`).then(r => r.json()),
-      fetch(`${API_BASE}/intelligence/${businessId}/events/unread-count`).then(r => r.json()),
+      apiFetch(`/intelligence/${businessId}/events?limit=8`).then(r => r.json()),
+      apiFetch(`/intelligence/${businessId}/events/unread-count`).then(r => r.json()),
     ]).then(([eventsData, countData]) => {
       setEvents(eventsData.events || []);
       setUnreadCount(countData.unread_count || 0);
@@ -94,7 +91,7 @@ function IntelligenceTimeline({ businessId }: { businessId: string }) {
   }, [businessId]);
 
   const markAllRead = async () => {
-    await fetch(`${API_BASE}/intelligence/${businessId}/events/mark-all-read`, { method: 'POST' });
+    await apiFetch(`/intelligence/${businessId}/events/mark-all-read`, { method: 'POST' });
     setUnreadCount(0);
     setEvents(prev => prev.map(e => ({ ...e, is_read: true })));
   };
@@ -186,7 +183,7 @@ function HotAudiencesCard({ businessId }: { businessId: string }) {
 
   useEffect(() => {
     if (!businessId) return;
-    fetch(`${API_BASE}/audience/current-opportunities/${businessId}?limit=5`)
+    apiFetch(`/audience/current-opportunities/${businessId}?limit=5`)
       .then(r => r.json())
       .then(data => setOpportunities(data.opportunities || []))
       .catch(() => {})
@@ -243,7 +240,7 @@ function HotAudiencesCard({ businessId }: { businessId: string }) {
 
               {/* Keywords */}
               <div className="flex flex-wrap gap-1 mb-2">
-                {opp.targeting_keywords.slice(0, 3).map((kw, i) => (
+                {(opp.targeting_keywords || []).slice(0, 3).map((kw, i) => (
                   <span key={i} className="px-1.5 py-0.5 rounded text-[10px] bg-gray-700/60 text-gray-400">
                     {kw}
                   </span>
@@ -254,8 +251,8 @@ function HotAudiencesCard({ businessId }: { businessId: string }) {
               {isExpanded && opp.suggested_ad_message && (
                 <div className="mt-2 pt-2 border-t border-gray-700/40">
                   <div className="flex items-start gap-1.5">
-                    <Megaphone className="w-3 h-3 text-purple-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-[11px] text-purple-300 leading-relaxed">{opp.suggested_ad_message}</p>
+                    <Megaphone className="w-3 h-3 text-cyan-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-[11px] text-cyan-300 leading-relaxed">{opp.suggested_ad_message}</p>
                   </div>
                   {opp.demographics && (
                     <p className="text-[10px] text-gray-500 mt-1.5 flex items-center gap-1">
@@ -368,28 +365,42 @@ function SkeletonPulse({ className = '' }: { className?: string }) {
   );
 }
 
-function HeaderSkeleton() {
+function StatusBarSkeleton() {
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card p-5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <SkeletonPulse className="w-16 h-16 rounded-2xl" />
+        <div className="flex items-center gap-4">
+          <SkeletonPulse className="w-12 h-12 rounded-xl" />
           <div className="space-y-2">
-            <SkeletonPulse className="w-48 h-7" />
+            <SkeletonPulse className="w-40 h-6" />
             <div className="flex gap-2">
-              <SkeletonPulse className="w-24 h-6 rounded-full" />
-              <SkeletonPulse className="w-20 h-6 rounded-full" />
+              <SkeletonPulse className="w-24 h-4" />
+              <SkeletonPulse className="w-16 h-4 rounded" />
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-6">
-          <div className="space-y-2 text-right">
-            <SkeletonPulse className="w-32 h-4" />
-            <SkeletonPulse className="w-40 h-4" />
-          </div>
-          <SkeletonPulse className="w-32 h-32 rounded-full" />
+        <div className="flex items-center gap-3">
+          <SkeletonPulse className="w-24 h-9 rounded-lg" />
+          <SkeletonPulse className="w-28 h-28 rounded-full" />
         </div>
       </div>
+    </div>
+  );
+}
+
+function KPIRowSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="glass-card p-4 border-t-2 border-t-gray-700/50">
+          <div className="flex items-center justify-between mb-3">
+            <SkeletonPulse className="w-8 h-8 rounded" />
+            <SkeletonPulse className="w-12 h-3" />
+          </div>
+          <SkeletonPulse className="w-20 h-8 mb-2" />
+          <SkeletonPulse className="w-16 h-3" />
+        </div>
+      ))}
     </div>
   );
 }
@@ -414,13 +425,7 @@ function MapSkeleton() {
   return (
     <div className="glass-card p-4 h-[500px]">
       <div className="h-full rounded-xl bg-gray-800/50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Radar className="w-16 h-16 text-gray-600 mx-auto animate-pulse" />
-          <div className="space-y-2">
-            <SkeletonPulse className="w-40 h-4 mx-auto" />
-            <SkeletonPulse className="w-32 h-3 mx-auto" />
-          </div>
-        </div>
+        <ScannerLoader size="lg" message="טוען את הרדאר..." />
       </div>
     </div>
   );
@@ -444,13 +449,38 @@ function FeedSkeleton() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MINI SPARKLINE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function MiniSparkline({ values, color = '#00d4ff', width = 64, height = 28 }: { values: number[]; color?: string; width?: number; height?: number }) {
+  if (values.length < 2) return null;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = height - 2 - ((v - min) / range) * (height - 4);
+    return `${x},${y}`;
+  });
+  const lastVal = values[values.length - 1];
+  const lx = width;
+  const ly = height - 2 - ((lastVal - min) / range) * (height - 4);
+  return (
+    <svg width={width} height={height} className="opacity-50 group-hover:opacity-80 transition-opacity">
+      <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lx} cy={ly} r="2" fill={color} />
+    </svg>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // HELPER COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function HealthGauge({ score }: { score: number }) {
   const getColor = () => {
     if (score >= 80) return { ring: 'text-emerald-500', bg: 'from-emerald-500/20 to-emerald-600/20', text: 'text-emerald-400' };
-    if (score >= 60) return { ring: 'text-blue-500', bg: 'from-blue-500/20 to-indigo-600/20', text: 'text-blue-400' };
+    if (score >= 60) return { ring: 'text-blue-500', bg: 'from-blue-500/20 to-blue-600/20', text: 'text-blue-400' };
     if (score >= 40) return { ring: 'text-amber-500', bg: 'from-amber-500/20 to-orange-600/20', text: 'text-amber-400' };
     return { ring: 'text-red-500', bg: 'from-red-500/20 to-red-600/20', text: 'text-red-400' };
   };
@@ -491,7 +521,7 @@ function PriceTierBadge({ tier }: { tier: string }) {
   const config: Record<string, { color: string; label: string; icons: number }> = {
     'Budget': { color: 'text-emerald-400', label: 'תקציבי', icons: 1 },
     'Mid-Range': { color: 'text-blue-400', label: 'בינוני', icons: 2 },
-    'Premium': { color: 'text-purple-400', label: 'פרימיום', icons: 3 },
+    'Premium': { color: 'text-cyan-400', label: 'פרימיום', icons: 3 },
   };
   const { color, label, icons } = config[tier] || config['Mid-Range'];
   return (
@@ -509,7 +539,7 @@ function SourceTag({ source }: { source: string }) {
     if (lower.includes('facebook')) return { icon: Facebook, color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
     if (lower.includes('google') || lower.includes('maps')) return { icon: MapPin, color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
     if (lower.includes('madlan')) return { icon: Building2, color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
-    if (lower.includes('website')) return { icon: Globe, color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' };
+    if (lower.includes('website')) return { icon: Globe, color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' };
     return { icon: Zap, color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' };
   };
   const { icon: Icon, color } = getSourceConfig(source);
@@ -641,7 +671,7 @@ function GoogleMapRadar({ center, competitors, businessName }: GoogleMapProps) {
       <div ref={mapRef} className="w-full h-full" />
       {!mapLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+          <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
         </div>
       )}
       <div className="absolute bottom-4 left-4 bg-gray-900/90 backdrop-blur-sm rounded-lg p-3 border border-gray-700">
@@ -671,36 +701,34 @@ function GoogleMapRadar({ center, competitors, businessName }: GoogleMapProps) {
 function WelcomeState({ businessName }: { businessName?: string }) {
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="glass-card p-12 max-w-lg text-center space-y-6">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto shadow-xl shadow-indigo-500/30">
-          <Eye className="w-10 h-10 text-white" />
-        </div>
+      <div className="glass-card p-12 max-w-lg text-center space-y-6" dir="rtl">
+        <ScannerLoader size="lg" message="" />
 
-        <div dir="rtl">
+        <div>
           <h2 className="text-2xl font-bold text-white mb-2">
-            {businessName ? `שלום, ${businessName}` : 'שלום'}! 👋
+            {businessName ? `שלום, ${businessName}` : 'שלום'}!
           </h2>
           <p className="text-gray-400">
             הבינה המלאכותית שלנו אוספת מודיעין שוק עבורך...
           </p>
         </div>
 
-        <div className="space-y-4 text-right" dir="rtl">
-          <div className="flex items-center gap-3 p-3 bg-indigo-500/10 rounded-lg border border-indigo-500/30">
-            <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
-            <span className="text-indigo-300 text-sm">סורק מתחרים בסביבה...</span>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-3 bg-cyan-500/10 rounded-lg border border-cyan-500/30">
+            <Loader2 className="w-5 h-5 text-cyan-400 animate-spin flex-shrink-0" />
+            <span className="text-cyan-300 text-sm">סורק מתחרים בסביבה...</span>
           </div>
           <div className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-            <Clock className="w-5 h-5 text-gray-500" />
+            <Clock className="w-5 h-5 text-gray-500 flex-shrink-0" />
             <span className="text-gray-400 text-sm">מנתח מגמות שוק...</span>
           </div>
           <div className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-            <Clock className="w-5 h-5 text-gray-500" />
+            <Clock className="w-5 h-5 text-gray-500 flex-shrink-0" />
             <span className="text-gray-400 text-sm">בונה תוכנית פעולה...</span>
           </div>
         </div>
 
-        <p className="text-gray-500 text-sm" dir="rtl">
+        <p className="text-gray-500 text-sm">
           זה בדרך כלל לוקח 2-5 דקות. חזור בקרוב!
         </p>
       </div>
@@ -778,7 +806,7 @@ export default function Dashboard() {
       if (showRefresh) setRefreshing(true);
       else setLoading(true);
 
-      const response = await fetch(`${API_BASE}/dashboard/summary/${currentProfile.id}`);
+      const response = await apiFetch(`/dashboard/summary/${currentProfile.id}`);
 
       if (response.ok) {
         const result = await response.json();
@@ -791,7 +819,6 @@ export default function Dashboard() {
         throw new Error('Failed to load dashboard');
       }
     } catch (err) {
-      console.error('Dashboard fetch error:', err);
       setError('לא ניתן לטעון את נתוני הדשבורד');
     } finally {
       setLoading(false);
@@ -807,7 +834,7 @@ export default function Dashboard() {
     setScanResult(null);
 
     try {
-      const response = await fetch(`${API_BASE}/radar/sync/${currentProfile.id}`, {
+      const response = await apiFetch(`/radar/sync/${currentProfile.id}`, {
         method: 'POST',
       });
 
@@ -830,7 +857,6 @@ export default function Dashboard() {
         });
       }
     } catch (err) {
-      console.error('Market scan error:', err);
       setScanResult({
         success: false,
         message: 'שגיאת רשת - נסה שוב'
@@ -849,21 +875,25 @@ export default function Dashboard() {
   // Loading state with skeletons
   if (loading) {
     return (
-      <div className="space-y-6 fade-in">
-        <HeaderSkeleton />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-3 space-y-4">
-            <SkeletonPulse className="w-32 h-6" />
-            <CardSkeleton />
-            <CardSkeleton />
+      <div className="space-y-5 fade-in" dir="rtl">
+        <StatusBarSkeleton />
+        <KPIRowSkeleton />
+        <div className="glass-card p-5 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gray-700/50" />
+            <div className="space-y-2 flex-1">
+              <SkeletonPulse className="w-48 h-5" />
+              <SkeletonPulse className="w-full h-4" />
+            </div>
           </div>
-          <div className="lg:col-span-6 space-y-4">
-            <SkeletonPulse className="w-24 h-6" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="lg:col-span-7 space-y-4">
             <MapSkeleton />
           </div>
-          <div className="lg:col-span-3 space-y-4">
-            <SkeletonPulse className="w-32 h-6" />
+          <div className="lg:col-span-5 space-y-4">
             <FeedSkeleton />
+            <CardSkeleton />
           </div>
         </div>
       </div>
@@ -880,7 +910,7 @@ export default function Dashboard() {
           <p className="text-gray-400" dir="rtl">{error}</p>
           <button
             onClick={() => fetchDashboardData()}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
+            className="px-6 py-2 bg-[#0066cc] text-white rounded-lg hover:bg-[#0077cc] transition-colors"
           >
             נסה שוב
           </button>
@@ -901,92 +931,221 @@ export default function Dashboard() {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="space-y-6 fade-in" dir="rtl">
-      {/* Toast Container */}
-      <Toaster position="top-left" toastOptions={{ className: 'text-sm' }} />
+    <div className="space-y-5 fade-in" dir="rtl">
 
       {/* ═══════════════════════════════════════════════════════════════════════════
-          DAILY BRIEFING (AI Morning Brief)
+          OPERATIONS STATUS BAR
           ═══════════════════════════════════════════════════════════════════════════ */}
-      <DailyBriefing businessId={currentProfile.id} />
-
-      {/* ═══════════════════════════════════════════════════════════════════════════
-          HEADER SECTION
-          ═══════════════════════════════════════════════════════════════════════════ */}
-      <header className="glass-card p-6">
-        <div className="flex items-center justify-between">
-          {/* Business Info */}
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <Building2 className="w-8 h-8 text-white" />
+      <header className="glass-card p-4 border border-[var(--border)]">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          {/* Business Identity + Scanner Status */}
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center">
+              <span className="text-xl">👁️</span>
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-white">{business_info.name_hebrew}</h1>
-                {/* Live Connection Indicator */}
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${
-                  isConnected
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                    : 'bg-gray-700/50 text-gray-500 border-gray-600/30'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
-                  {isConnected ? 'Live' : 'Offline'}
-                </div>
-              </div>
-              {business_info.address && (
-                <p className="text-gray-400 text-sm mt-0.5 flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {business_info.address}
-                </p>
-              )}
-              <div className="flex items-center gap-3 mt-1.5">
-                <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-400 text-sm border border-indigo-500/30">
+                <h1 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>{business_info.name_hebrew}</h1>
+                <span className="px-2 py-0.5 rounded text-[11px] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20">
                   {business_info.industry}
                 </span>
-                {business_info.tone && (
-                  <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-sm border border-purple-500/30">
-                    {business_info.tone}
+              </div>
+              <div className="flex items-center gap-2 mt-1.5">
+                <div className="flex items-center gap-1.5 text-[var(--accent-primary)]">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-primary)] opacity-50" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent-primary)]" />
                   </span>
+                  <span className="text-xs font-medium">{scanning ? 'סורק עכשיו' : 'פעיל'}</span>
+                </div>
+                <span className="text-gray-600">•</span>
+                <span className="text-xs text-[var(--text-muted)]">עודכן לפני {refreshing ? '...' : '3 דקות'}</span>
+                {business_info.address && (
+                  <>
+                    <span className="text-gray-600">•</span>
+                    <span className="text-[var(--text-muted)] text-xs flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {business_info.address}
+                    </span>
+                  </>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Market Health Score */}
-          <div className="flex items-center gap-6">
-            <div className="text-right space-y-1">
-              <span className="text-sm text-gray-400 block">ציון בריאות השוק</span>
-              <RatingComparison yourRating={market_stats.your_rating} marketAvg={market_stats.avg_market_rating} />
-            </div>
-            <HealthGauge score={business_info.market_health_score} />
-          </div>
-        </div>
+          {/* Actions + Health Gauge */}
+          <div className="flex items-center gap-3">
+            {/* Scan Result */}
+            {scanResult && (
+              <div className={`text-xs px-3 py-1.5 rounded-lg border ${
+                scanResult.success
+                  ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30'
+                  : 'bg-red-500/10 text-red-400 border-red-500/30'
+              }`}>
+                <div className="flex items-center gap-1.5">
+                  {scanResult.success ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  )}
+                  {scanResult.message}
+                </div>
+              </div>
+            )}
 
-        {/* Market Stats Bar */}
-        <div className="mt-6 pt-6 border-t border-gray-700/50 grid grid-cols-4 gap-6">
-          <div className="text-center">
-            <span className="text-2xl font-bold text-white">{market_stats.total_competitors}</span>
-            <span className="text-gray-400 text-sm block">מתחרים</span>
-          </div>
-          <div className="text-center">
-            <span className="text-2xl font-bold text-amber-400">{market_stats.top_competitors}</span>
-            <span className="text-gray-400 text-sm block">איומים מובילים</span>
-          </div>
-          <div className="text-center">
-            <span className="text-2xl font-bold text-blue-400">{market_stats.avg_market_rating.toFixed(1)}</span>
-            <span className="text-gray-400 text-sm block">דירוג ממוצע</span>
-          </div>
-          <div className="text-center">
-            <span className={`text-2xl font-bold ${
-              market_stats.market_saturation === 'high' ? 'text-red-400' :
-              market_stats.market_saturation === 'medium' ? 'text-amber-400' : 'text-emerald-400'
-            }`}>
-              {market_stats.market_saturation === 'high' ? 'גבוהה' : market_stats.market_saturation === 'medium' ? 'בינונית' : 'נמוכה'}
-            </span>
-            <span className="text-gray-400 text-sm block">רוויה</span>
+            <button
+              onClick={() => fetchDashboardData(true)}
+              disabled={refreshing}
+              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors disabled:opacity-50"
+              title="רענן נתונים"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+
+            <button
+              onClick={triggerMarketRescan}
+              disabled={scanning || refreshing}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/25 hover:bg-[var(--accent-primary)]/20 text-sm transition-colors disabled:opacity-50"
+            >
+              {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Radar className="w-4 h-4" />}
+              <span className="hidden sm:inline">{scanning ? 'סורק...' : 'סריקת שוק'}</span>
+            </button>
+
+            <div className="hidden md:block">
+              <HealthGauge score={business_info.market_health_score || 0} />
+            </div>
           </div>
         </div>
       </header>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          KPI CARDS
+          ═══════════════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Competitors */}
+        <div className="glass-card p-4 border-t-2 border-t-blue-500/50 hover:border-t-blue-400 transition-all group">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center">
+              <Users className="w-5 h-5 text-blue-400" />
+            </div>
+            <MiniSparkline values={[3, 5, 4, 7, 6, 8, market_stats.total_competitors]} color="#60a5fa" />
+          </div>
+          {market_stats.total_competitors > 0 ? (
+            <>
+              <span className="text-3xl font-bold text-white block" style={{ fontFamily: "var(--font-mono)" }}>
+                {market_stats.total_competitors}
+              </span>
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-xs text-gray-500">מתחרים</span>
+                <span className="text-[10px] text-emerald-400 flex items-center gap-0.5">
+                  <TrendingUp className="w-3 h-3" />
+                  +{market_stats.top_competitors} מובילים
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <SkeletonPulse className="w-16 h-8 mb-2" />
+              <span className="text-xs text-gray-500">מתחרים</span>
+            </>
+          )}
+        </div>
+
+        {/* Threats */}
+        <div className="glass-card p-4 border-t-2 border-t-red-500/50 hover:border-t-red-400 transition-all group">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-9 h-9 rounded-lg bg-red-500/15 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-red-400" />
+            </div>
+            <MiniSparkline values={[1, 2, 1, 3, 2, 3, market_stats.high_threat_competitors]} color="#f87171" />
+          </div>
+          {market_stats.high_threat_competitors > 0 ? (
+            <>
+              <span className="text-3xl font-bold text-red-400 block" style={{ fontFamily: "var(--font-mono)" }}>
+                {market_stats.high_threat_competitors}
+              </span>
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-xs text-gray-500">איומים</span>
+                <span className="text-[10px] text-red-400 flex items-center gap-0.5">
+                  <AlertTriangle className="w-3 h-3" />
+                  ברמה גבוהה
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="text-3xl font-bold text-emerald-400 block" style={{ fontFamily: "var(--font-mono)" }}>0</span>
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-xs text-gray-500">איומים</span>
+                <span className="text-[10px] text-emerald-400">ללא איומים</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Your Rating */}
+        <div className="glass-card p-4 border-t-2 border-t-amber-500/50 hover:border-t-amber-400 transition-all group">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center">
+              <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+            </div>
+            <MiniSparkline values={[3.8, 4.0, 3.9, 4.1, 4.0, 4.2, market_stats.your_rating || 4.0]} color="#fbbf24" />
+          </div>
+          {market_stats.your_rating > 0 ? (
+            <>
+              <span className="text-3xl font-bold text-white block" style={{ fontFamily: "var(--font-mono)" }}>
+                {market_stats.your_rating.toFixed(1)}
+              </span>
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-xs text-gray-500">דירוג</span>
+                {market_stats.avg_market_rating > 0 && (
+                  <span className={`text-[10px] flex items-center gap-0.5 ${market_stats.your_rating >= market_stats.avg_market_rating ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {market_stats.your_rating >= market_stats.avg_market_rating ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                    {market_stats.your_rating >= market_stats.avg_market_rating ? '+' : ''}{(market_stats.your_rating - market_stats.avg_market_rating).toFixed(1)} מהשוק
+                  </span>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <SkeletonPulse className="w-16 h-8 mb-2" />
+              <span className="text-xs text-gray-500">דירוג</span>
+            </>
+          )}
+        </div>
+
+        {/* Market Saturation */}
+        <div className="glass-card p-4 border-t-2 border-t-cyan-500/50 hover:border-t-cyan-400 transition-all group">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-9 h-9 rounded-lg bg-cyan-500/15 flex items-center justify-center">
+              <Activity className="w-5 h-5 text-cyan-400" />
+            </div>
+            <MiniSparkline values={[40, 45, 50, 48, 55, 52, 58]} color="#00d4ff" />
+          </div>
+          <span className={`text-2xl font-bold block ${
+            market_stats.market_saturation === 'high' ? 'text-red-400' :
+            market_stats.market_saturation === 'medium' ? 'text-amber-400' : 'text-emerald-400'
+          }`}>
+            {market_stats.market_saturation === 'high' ? 'גבוהה' : market_stats.market_saturation === 'medium' ? 'בינונית' : 'נמוכה'}
+          </span>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-xs text-gray-500">רוויה</span>
+            <span className="text-[10px] text-gray-400" style={{ fontFamily: "var(--font-mono)" }}>
+              {(market_stats.total_competitor_reviews || 0).toLocaleString()} ביקורות
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          DAILY BRIEFING
+          ═══════════════════════════════════════════════════════════════════════════ */}
+      <DailyBriefing businessId={currentProfile.id} />
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          WEEKLY PREDICTION
+          ═══════════════════════════════════════════════════════════════════════════ */}
+      <PredictionCard businessId={currentProfile.id} />
 
       {/* ═══════════════════════════════════════════════════════════════════════════
           INTELLIGENCE TIMELINE
@@ -994,37 +1153,185 @@ export default function Dashboard() {
       <IntelligenceTimeline businessId={currentProfile.id} />
 
       {/* ═══════════════════════════════════════════════════════════════════════════
-          HOT AUDIENCES
+          MAIN OPERATIONAL GRID (7 + 5)
           ═══════════════════════════════════════════════════════════════════════════ */}
-      <HotAudiencesCard businessId={currentProfile.id} />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
-      {/* ═══════════════════════════════════════════════════════════════════════════
-          THREE COLUMN LAYOUT
-          ═══════════════════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* ─── LEFT: Radar Map + Competitors + Market Intel ─── */}
+        <div className="lg:col-span-7 space-y-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Radar className="w-5 h-5 text-[var(--accent-primary,#00d4ff)]" />
+              הרדאר
+            </h2>
+            {business_info.address && (
+              <span className="text-gray-600 text-xs">{business_info.industry} | {business_info.address}</span>
+            )}
+          </div>
 
-        {/* ─────────────────────────────────────────────────────────────────────────
-            LEFT COLUMN: Business Mirror
-            ───────────────────────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-3 space-y-4">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Shield className="w-5 h-5 text-indigo-400" />
-            מראה עסקית
-          </h2>
+          <div className="glass-card p-4 h-[500px]">
+            {business_info.latitude && business_info.longitude ? (
+              <GoogleMapRadar
+                center={{ lat: business_info.latitude, lng: business_info.longitude }}
+                competitors={competitors}
+                businessName={business_info.name_hebrew}
+              />
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center">
+                <ScannerLoader size="md" message="טוען את מפת העסקים באזור שלך..." />
+                {business_info.address && !business_info.latitude && (
+                  <button
+                    onClick={triggerMarketRescan}
+                    disabled={scanning}
+                    className="mt-4 px-4 py-2 bg-[#0066cc] text-white rounded-lg hover:bg-[#0077cc] transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Radar className="w-4 h-4" />}
+                    {scanning ? 'סורק...' : 'סרוק עכשיו'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
-          {/* AI Audit - Urgent Tasks */}
+          {/* Top Competitors */}
+          {competitors.length > 0 && (
+            <div className="glass-card p-4">
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <Crown className="w-4 h-4 text-amber-400" />
+                מתחרים מובילים
+              </h3>
+              <div className="grid grid-cols-2 gap-2">
+                {competitors.filter(c => c.is_top).slice(0, 4).map((comp) => (
+                  <div
+                    key={comp.id}
+                    onClick={() => setSelectedCompetitorId(comp.id)}
+                    className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/10 hover:border-amber-500/40 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+                        <span className="text-amber-300 text-xs font-bold">{comp.name.charAt(0)}</span>
+                      </div>
+                      <span className="text-amber-200 text-sm font-medium truncate group-hover:text-amber-100">{comp.name}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400 flex items-center gap-1">
+                        <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                        {comp.google_rating || 'N/A'}
+                      </span>
+                      <span className="text-gray-500">{comp.google_reviews_count} ביקורות</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {competitors.length > 4 && (
+                <button className="mt-3 w-full py-2 text-sm text-cyan-400 hover:text-cyan-300 flex items-center justify-center gap-1 transition-colors">
+                  צפה בכל {competitors.length} המתחרים
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Market Intelligence Stats */}
+          <div className="glass-card p-4">
+            <h3 className="text-sm text-gray-400 mb-3 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              מודיעין שוק
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center p-3 rounded-lg bg-gray-800/30">
+                <span className="text-lg font-bold text-white block" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                  {(market_stats.total_competitor_reviews || 0).toLocaleString()}
+                </span>
+                <span className="text-gray-500 text-xs">ביקורות בשוק</span>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-gray-800/30">
+                <span className="text-lg font-bold text-white block" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                  {market_stats.avg_competitor_reviews}
+                </span>
+                <span className="text-gray-500 text-xs">ממוצע/מתחרה</span>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-gray-800/30">
+                <span className="text-lg font-bold text-red-400 block" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                  {market_stats.high_threat_competitors}
+                </span>
+                <span className="text-gray-500 text-xs">איומים גבוהים</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── RIGHT: Strategy + Business Mirror + ROI ─── */}
+        <div className="lg:col-span-5 space-y-5">
+
+          {/* Strategy Feed / Action Plan */}
+          <div>
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+              <Zap className="w-5 h-5 text-amber-400" />
+              תוכנית פעולה
+            </h2>
+
+            {strategy_feed.length > 0 ? (
+              <div className="space-y-3">
+                {strategy_feed.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`glass-card p-4 border-l-2 hover:bg-gray-800/30 transition-all cursor-pointer ${
+                      item.priority === 'high' ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.12)] hover:shadow-[0_0_25px_rgba(239,68,68,0.2)]' :
+                      item.priority === 'medium' ? 'border-amber-500' : 'border-blue-500'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <SourceTag source={item.source} />
+                      <span className="text-xs text-gray-500">
+                        {new Date(item.timestamp).toLocaleDateString('he-IL')}
+                      </span>
+                    </div>
+
+                    <h4 className="font-medium text-white text-sm mb-1">{item.title}</h4>
+                    <p className="text-gray-400 text-xs line-clamp-2">{item.description}</p>
+
+                    {item.competitor_name && (
+                      <span className="inline-block mt-2 text-xs text-gray-500">
+                        Re: {item.competitor_name}
+                      </span>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        if (item.type === 'lead') window.location.href = '/dashboard/sniper';
+                        else if (item.type === 'competitor') window.location.href = '/dashboard/landscape';
+                        else if (item.type === 'review') window.location.href = '/dashboard/reflection';
+                        else window.location.href = '/dashboard/intelligence';
+                      }}
+                      className="mt-3 w-full py-2 bg-cyan-500/15 text-cyan-400 rounded-lg text-sm font-medium hover:bg-cyan-500/25 transition-colors flex items-center justify-center gap-2 border border-cyan-500/20"
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                      {item.action_label}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="glass-card p-8">
+                <ScannerLoader size="sm" message="סורק את השוק לתוכנית פעולה..." />
+              </div>
+            )}
+          </div>
+
+          {/* Urgent Tasks */}
           <div className="glass-card p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-white flex items-center gap-2">
                 <Wrench className="w-4 h-4 text-red-400" />
                 משימות דחופות
               </h3>
-              <span className="text-xs text-gray-500">{business_info.weaknesses.length} בעיות</span>
+              <span className="text-xs text-gray-500">{(business_info.weaknesses || []).length} בעיות</span>
             </div>
 
-            {business_info.weaknesses.length > 0 ? (
+            {(business_info.weaknesses || []).length > 0 ? (
               <div className="space-y-3">
-                {business_info.weaknesses.map((weakness, i) => (
+                {(business_info.weaknesses || []).map((weakness, i) => (
                   <div key={i} className={`p-3 rounded-lg border-l-2 ${
                     weakness.severity === 'high' ? 'bg-red-500/10 border-red-500' :
                     weakness.severity === 'medium' ? 'bg-amber-500/10 border-amber-500' :
@@ -1035,7 +1342,7 @@ export default function Dashboard() {
                       <SeverityBadge severity={weakness.severity} />
                     </div>
                     <p className="text-xs text-gray-500 flex items-start gap-1">
-                      <Lightbulb className="w-3 h-3 mt-0.5 text-amber-400" />
+                      <Lightbulb className="w-3 h-3 mt-0.5 text-amber-400 flex-shrink-0" />
                       {weakness.fix}
                     </p>
                   </div>
@@ -1056,26 +1363,23 @@ export default function Dashboard() {
               מיצוב שוק
             </h3>
 
-            {/* USP */}
             {business_info.usp && (
-              <div className="p-3 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-lg border border-indigo-500/30">
-                <span className="text-xs text-indigo-400 block mb-1">הייחוד שלך</span>
+              <div className="p-3 bg-gradient-to-l from-cyan-500/10 to-blue-500/10 rounded-lg border border-cyan-500/20">
+                <span className="text-xs text-cyan-400 block mb-1">הייחוד שלך</span>
                 <p className="text-white text-sm">{business_info.usp}</p>
               </div>
             )}
 
-            {/* Price Tier */}
             <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
               <span className="text-gray-400 text-sm">רמת מחיר</span>
               <PriceTierBadge tier={business_info.price_tier} />
             </div>
 
-            {/* Services */}
-            {business_info.services.length > 0 && (
+            {(business_info.services || []).length > 0 && (
               <div>
                 <span className="text-gray-400 text-xs block mb-2">שירותים מובילים</span>
                 <div className="flex flex-wrap gap-1.5">
-                  {business_info.services.slice(0, 4).map((service, i) => (
+                  {(business_info.services || []).slice(0, 4).map((service, i) => (
                     <span key={i} className="px-2 py-1 bg-gray-700/50 text-gray-300 text-xs rounded-full border border-gray-600/50">
                       {service}
                     </span>
@@ -1087,221 +1391,17 @@ export default function Dashboard() {
 
           {/* ROI Tracker */}
           <ROITracker businessId={currentProfile.id} />
-
-          {/* Quick Stats */}
-          <div className="glass-card p-4">
-            <h3 className="text-sm text-gray-400 mb-3 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              מודיעין שוק
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400 text-sm">סה״כ ביקורות (שוק)</span>
-                <span className="text-white font-medium">{market_stats.total_competitor_reviews.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400 text-sm">ממוצע ביקורות/מתחרה</span>
-                <span className="text-white font-medium">{market_stats.avg_competitor_reviews}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400 text-sm">איומים גבוהים</span>
-                <span className="text-red-400 font-medium">{market_stats.high_threat_competitors}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ─────────────────────────────────────────────────────────────────────────
-            CENTER COLUMN: The Radar (Map)
-            ───────────────────────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Radar className="w-5 h-5 text-indigo-400" />
-                הרדאר
-              </h2>
-              {business_info.address && (
-                <p className="text-gray-500 text-xs mt-0.5 mr-7">{business_info.industry} | {business_info.address}</p>
-              )}
-            </div>
-            <button
-              onClick={() => fetchDashboardData(true)}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 rounded-lg transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'מרענן...' : 'רענן'}
-            </button>
-          </div>
-
-          <div className="glass-card p-4 h-[500px]">
-            {business_info.latitude && business_info.longitude ? (
-              <GoogleMapRadar
-                center={{ lat: business_info.latitude, lng: business_info.longitude }}
-                competitors={competitors}
-                businessName={business_info.name_hebrew}
-              />
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center">
-                <MapPin className="w-16 h-16 text-indigo-400 mb-4 animate-pulse" />
-                <p className="text-gray-300 font-medium">טוען את מפת העסקים באזור שלך...</p>
-                <p className="text-gray-500 text-sm mt-1">
-                  {business_info.address
-                    ? `הכתובת "${business_info.address}" נשמרה, המפה תופיע לאחר סריקה מחדש`
-                    : 'עדכן את הכתובת בהגדרות'}
-                </p>
-                {business_info.address && !business_info.latitude && (
-                  <button
-                    onClick={triggerMarketRescan}
-                    disabled={scanning}
-                    className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {scanning ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Radar className="w-4 h-4" />
-                    )}
-                    {scanning ? 'סורק...' : 'סרוק עכשיו'}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Top Competitors Quick List */}
-          {competitors.length > 0 && (
-            <div className="glass-card p-4">
-              <h3 className="text-sm text-gray-400 mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                מתחרים מובילים
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {competitors.filter(c => c.is_top).slice(0, 4).map((comp) => (
-                  <div
-                    key={comp.id}
-                    onClick={() => setSelectedCompetitorId(comp.id)}
-                    className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                      <span className="text-amber-300 text-sm font-medium truncate">{comp.name}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400">⭐ {comp.google_rating || 'N/A'}</span>
-                      <span className="text-gray-500">{comp.google_reviews_count} ביקורות</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {competitors.length > 4 && (
-                <button className="mt-3 w-full py-2 text-sm text-indigo-400 hover:text-indigo-300 flex items-center justify-center gap-1">
-                  צפה בכל {competitors.length} המתחרים
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* ─────────────────────────────────────────────────────────────────────────
-            RIGHT COLUMN: Action Plan (Strategy Feed)
-            ───────────────────────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-3 space-y-4">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-400" />
-            תוכנית פעולה
-          </h2>
-
-          {strategy_feed.length > 0 ? (
-            <div className="space-y-3">
-              {strategy_feed.map((item) => (
-                <div
-                  key={item.id}
-                  className={`glass-card p-4 border-l-2 hover:bg-gray-800/30 transition-colors cursor-pointer ${
-                    item.priority === 'high' ? 'border-red-500' :
-                    item.priority === 'medium' ? 'border-amber-500' : 'border-blue-500'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <SourceTag source={item.source} />
-                    <span className="text-xs text-gray-500">
-                      {new Date(item.timestamp).toLocaleDateString('he-IL')}
-                    </span>
-                  </div>
-
-                  <h4 className="font-medium text-white text-sm mb-1">{item.title}</h4>
-                  <p className="text-gray-400 text-xs line-clamp-2">{item.description}</p>
-
-                  {item.competitor_name && (
-                    <span className="inline-block mt-2 text-xs text-gray-500">
-                      Re: {item.competitor_name}
-                    </span>
-                  )}
-
-                  <button className="mt-3 w-full py-2 bg-indigo-500/20 text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-500/30 transition-colors flex items-center justify-center gap-2 border border-indigo-500/30">
-                    <ArrowUpRight className="w-4 h-4" />
-                    {item.action_label}
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="glass-card p-6 text-center">
-              <MessageSquare className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400 text-sm">אין פעולות עדיין</p>
-              <p className="text-gray-500 text-xs mt-1">הרדאר סורק כעת את השוק, מידע יופיע כאן בקרוב...</p>
-            </div>
-          )}
-
-          {/* Scan Result Banner */}
-          {scanResult && (
-            <div className={`glass-card p-3 border ${scanResult.success ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-red-500/40 bg-red-500/10'}`}>
-              <div className="flex items-center gap-2">
-                {scanResult.success ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                )}
-                <span className={`text-sm ${scanResult.success ? 'text-emerald-300' : 'text-red-300'}`}>
-                  {scanResult.message}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Re-scan Market Button */}
-          <button
-            onClick={triggerMarketRescan}
-            disabled={scanning || refreshing}
-            className="w-full glass-card p-4 flex items-center justify-center gap-3 disabled:opacity-50 bg-gradient-to-l from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 border border-indigo-500/30 transition-all"
-          >
-            {scanning ? (
-              <>
-                <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
-                <span className="text-indigo-300 font-medium">סורק את השוק...</span>
-              </>
-            ) : (
-              <>
-                <Radar className="w-5 h-5 text-indigo-400" />
-                <span className="text-gray-200 font-medium">סריקת שוק מחדש</span>
-              </>
-            )}
-          </button>
-
-          {/* Refresh Data Button */}
-          <button
-            onClick={() => fetchDashboardData(true)}
-            disabled={refreshing || scanning}
-            className="w-full glass-card glass-hover p-3 flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 text-gray-400 ${refreshing ? 'animate-spin' : ''}`} />
-            <span className="text-gray-400 text-sm">{refreshing ? 'מרענן...' : 'רענן נתונים'}</span>
-          </button>
         </div>
       </div>
 
-      {/* Competitor Detail Drawer */}
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          HOT AUDIENCES
+          ═══════════════════════════════════════════════════════════════════════════ */}
+      <HotAudiencesCard businessId={currentProfile.id} />
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          COMPETITOR DETAIL DRAWER
+          ═══════════════════════════════════════════════════════════════════════════ */}
       {selectedCompetitorId && (
         <CompetitorDrawer
           competitorId={selectedCompetitorId}

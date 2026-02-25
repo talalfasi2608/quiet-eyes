@@ -4,8 +4,7 @@ import {
   Users, Target, Loader2, RefreshCw, ChevronDown, ChevronUp,
   Zap, Shield, ArrowUpRight
 } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import { apiFetch } from '../../services/api';
 
 interface BriefingData {
   business_name: string;
@@ -61,7 +60,7 @@ export default function DailyBriefing({ businessId }: { businessId: string }) {
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch(`${API_BASE}/cockpit/briefing/${businessId}`);
+      const res = await apiFetch(`/cockpit/briefing/${businessId}`);
       if (res.ok) {
         const data = await res.json();
         setBriefing(data);

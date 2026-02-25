@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { useSimulation } from '../../context/SimulationContext';
+import PageLoader from '../../components/ui/PageLoader';
 import { Building, MapPin, Phone, Globe, Clock, Bell, Shield, Save, Check, Loader2, AlertCircle, RefreshCw, Compass, CreditCard } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import { apiFetch } from '../../services/api';
 
 type ArchetypeId = 'Visual' | 'Expert' | 'Field' | 'Merchant';
 
@@ -79,6 +80,19 @@ export default function Settings() {
     scope: currentProfile?.scope || 'local',
   });
 
+  // Sync form when profile data loads asynchronously
+  useEffect(() => {
+    if (currentProfile) {
+      setFormData((prev) => ({
+        ...prev,
+        businessName: currentProfile.nameHebrew || currentProfile.business_name || prev.businessName,
+        address: currentProfile.address || prev.address,
+        archetype: currentProfile.archetype || prev.archetype,
+        scope: currentProfile.scope || prev.scope,
+      }));
+    }
+  }, [currentProfile]);
+
   const [notifications, setNotifications] = useState({
     newReviews: true,
     competitorAlerts: true,
@@ -99,13 +113,13 @@ export default function Settings() {
     if (!currentProfile?.id) return;
     setJobsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/jobs/${currentProfile.id}`);
+      const res = await apiFetch(`/jobs/${currentProfile.id}`);
       if (res.ok) {
         const data = await res.json();
         setJobs(data.jobs || []);
       }
     } catch {
-      // Non-critical
+      toast.error('שגיאה בטעינת הגדרות');
     } finally {
       setJobsLoading(false);
     }
@@ -119,9 +133,8 @@ export default function Settings() {
     if (!currentProfile?.id) return;
     setTogglingJob(jobId);
     try {
-      await fetch(`${API_BASE}/jobs/${currentProfile.id}/toggle/${jobId}`, {
+      await apiFetch(`/jobs/${currentProfile.id}/toggle/${jobId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active }),
       });
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: active ? 'active' : 'paused' } : j));
@@ -136,7 +149,9 @@ export default function Settings() {
     if (!currentProfile?.id) return;
     setResettingJobs(true);
     try {
-      await fetch(`${API_BASE}/jobs/${currentProfile.id}/ensure-defaults`, { method: 'POST' });
+      await apiFetch(`/jobs/${currentProfile.id}/ensure-defaults`, {
+        method: 'POST',
+      });
       await fetchJobs();
     } catch {
       // Non-critical
@@ -155,9 +170,8 @@ export default function Settings() {
     setSaveError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/business/profile/${currentProfile.id}`, {
+      const res = await apiFetch(`/business/profile/${currentProfile.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           business_name: formData.businessName || undefined,
           address: formData.address || undefined,
@@ -166,6 +180,7 @@ export default function Settings() {
           hours: formData.hours || undefined,
           archetype: formData.archetype || undefined,
           scope: formData.scope || undefined,
+          notifications,
         }),
       });
 
@@ -175,21 +190,25 @@ export default function Settings() {
       }
 
       setSaved(true);
+      toast.success('ההגדרות נשמרו בהצלחה');
       setTimeout(() => setSaved(false), 2000);
       await refreshProfile();
     } catch (err: unknown) {
+      toast.error('שגיאה בשמירה');
       setSaveError(err instanceof Error ? err.message : 'שגיאה בשמירה');
     } finally {
       setIsSaving(false);
     }
   };
 
+  if (!currentProfile) return <PageLoader message="טוען הגדרות..." />;
+
   return (
     <div className="space-y-6 fade-in">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">הגדרות</h1>
-          <p className="text-gray-400">פרופיל העסק והעדפות</p>
+          <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: "var(--font-display)" }}>הגדרות</h1>
+          <p className="text-[var(--text-secondary)]">פרופיל העסק והעדפות</p>
         </div>
         <div className="flex items-center gap-3">
           {saveError && (
@@ -310,8 +329,8 @@ export default function Settings() {
         {/* Archetype Selection */}
         <div className="glass-card">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-purple-400" />
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-cyan-400" />
             </div>
             <h2 className="text-lg font-semibold text-white">ארכיטיפ העסק</h2>
           </div>
@@ -504,7 +523,7 @@ export default function Settings() {
         <p className="text-gray-400 text-sm mb-4">נהלו את המנוי, שדרגו תוכנית וצפו בשימוש קרדיטים</p>
         <a
           href="/dashboard/billing"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium hover:from-indigo-500 hover:to-purple-500 transition-all"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-medium hover:from-blue-500 hover:to-cyan-500 transition-all"
         >
           <CreditCard className="w-4 h-4" />
           ניהול מנוי
@@ -519,7 +538,23 @@ export default function Settings() {
             <p className="text-white">מחק את החשבון</p>
             <p className="text-gray-500 text-sm">פעולה זו לא ניתנת לביטול</p>
           </div>
-          <button className="px-4 py-2 rounded-xl bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-colors">
+          <button
+            onClick={async () => {
+              if (!window.confirm('האם אתה בטוח שברצונך למחוק את החשבון? פעולה זו לא ניתנת לביטול.')) return;
+              try {
+                const res = await apiFetch(`/business/profile/${currentProfile?.id}`, { method: 'DELETE' });
+                if (res.ok) {
+                  toast.success('החשבון נמחק בהצלחה');
+                  window.location.href = '/';
+                } else {
+                  toast.error('שגיאה במחיקת החשבון');
+                }
+              } catch {
+                toast.error('שגיאה במחיקת החשבון');
+              }
+            }}
+            className="px-4 py-2 rounded-xl bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-colors"
+          >
             מחק חשבון
           </button>
         </div>

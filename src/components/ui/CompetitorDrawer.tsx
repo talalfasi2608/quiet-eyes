@@ -12,8 +12,8 @@ import {
   Shield,
   Clock,
 } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import { API_BASE } from '../../config/api';
+import { apiFetch } from '../../services/api';
 
 interface CompetitorDetail {
   competitor: {
@@ -74,7 +74,7 @@ export default function CompetitorDrawer({ competitorId, onClose }: CompetitorDr
     setLoading(true);
     setData(null);
     try {
-      const res = await fetch(`${API_BASE}/competitor/${competitorId}/detail`);
+      const res = await apiFetch(`/competitor/${competitorId}/detail`);
       if (res.ok) {
         const result = await res.json();
         if (result.success) setData(result);
@@ -103,7 +103,7 @@ export default function CompetitorDrawer({ competitorId, onClose }: CompetitorDr
     if (!competitorId || researching) return;
     setResearching(true);
     try {
-      await fetch(`${API_BASE}/research/competitor/${competitorId}`, { method: 'POST' });
+      await apiFetch(`/research/competitor/${competitorId}`, { method: 'POST' });
       await fetchDetail();
     } catch {
       // ignore
@@ -239,7 +239,7 @@ export default function CompetitorDrawer({ competitorId, onClose }: CompetitorDr
               )}
 
               {/* Intelligence Feed */}
-              {data.intelligence.length > 0 && (
+              {data.intelligence && data.intelligence.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold text-white mb-3">מודיעין אחרון</h4>
                   <div className="space-y-2">
@@ -284,7 +284,7 @@ export default function CompetitorDrawer({ competitorId, onClose }: CompetitorDr
                 </button>
                 <button
                   onClick={handleAskCOO}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-purple-600 text-white font-medium hover:bg-purple-500 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-cyan-600 text-white font-medium hover:bg-cyan-500 transition-colors"
                 >
                   <MessageSquare className="w-4 h-4" />
                   שאל את ה-COO

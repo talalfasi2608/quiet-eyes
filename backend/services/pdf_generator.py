@@ -95,6 +95,16 @@ def _reshape_hebrew(text: str) -> str:
 
 
 def _get_supabase():
+    """Get a Supabase client — prefers service-role to bypass RLS."""
+    try:
+        import os
+        from supabase import create_client
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        if url and key:
+            return create_client(url, key)
+    except Exception:
+        pass
     try:
         from config import supabase
         return supabase
@@ -388,15 +398,34 @@ def generate_weekly_brief(business_id: str) -> Optional[bytes]:
 
     logger.info(f"Generated PDF for {business_id}: {len(pdf_bytes)} bytes")
 
-    # Optionally store in database
+    # Store PDF in Supabase Storage + metadata in weekly_reports
     supabase = _get_supabase()
     if supabase:
+        pdf_url = None
+
+        # Upload to Supabase Storage
         try:
-            supabase.table("weekly_reports").insert({
+            file_name = f"{business_id}/{datetime.now(timezone.utc).strftime('%Y-%m-%d')}.pdf"
+            supabase.storage.from_("reports").upload(
+                file_name,
+                pdf_bytes,
+                {"content-type": "application/pdf", "upsert": "true"},
+            )
+            pdf_url = supabase.storage.from_("reports").get_public_url(file_name)
+            logger.info(f"Uploaded PDF to storage: {file_name}")
+        except Exception as e:
+            logger.debug(f"Could not upload PDF to storage: {e}")
+
+        # Store metadata (and URL if upload succeeded)
+        try:
+            row = {
                 "business_id": business_id,
                 "pdf_size_bytes": len(pdf_bytes),
                 "date_range": data["date_range"],
-            }).execute()
+            }
+            if pdf_url:
+                row["pdf_url"] = pdf_url
+            supabase.table("weekly_reports").insert(row).execute()
         except Exception as e:
             logger.debug(f"Could not store report metadata: {e}")
 

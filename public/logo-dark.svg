@@ -1,0 +1,32 @@
+<svg viewBox="0 0 520 140" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-d">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <linearGradient id="scan-grad-d" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0e1a" />
+      <stop offset="100%" stop-color="#0066cc" />
+    </linearGradient>
+  </defs>
+
+  <!-- ═══ Q MARK (dark variant for light backgrounds) ═══ -->
+  <g transform="translate(10, 5)">
+    <circle cx="65" cy="60" r="48" fill="none" stroke="#0a0e1a" stroke-width="4" />
+    <line x1="99" y1="94" x2="128" y2="123" stroke="url(#scan-grad-d)" stroke-width="4" stroke-linecap="round" />
+    <circle cx="128" cy="123" r="3" fill="#0066cc" opacity="0.8" />
+    <path d="M 30,60 C 40,36 90,36 100,60" fill="none" stroke="#0a0e1a" stroke-width="2.5" stroke-linecap="round" />
+    <path d="M 30,60 C 40,84 90,84 100,60" fill="none" stroke="#0a0e1a" stroke-width="2.5" stroke-linecap="round" />
+    <circle cx="65" cy="60" r="14" fill="none" stroke="#0066cc" stroke-width="1.5" opacity="0.4" />
+    <circle cx="65" cy="60" r="8" fill="#0066cc" filter="url(#glow-d)" />
+    <circle cx="62" cy="57" r="2.5" fill="#ffffff" opacity="0.5" />
+  </g>
+
+  <!-- ═══ WORDMARK ═══ -->
+  <text x="160" y="82" font-family="'Space Grotesk', 'Heebo', sans-serif" font-size="42" font-weight="600" fill="#0a0e1a" letter-spacing="-0.5">
+    Quiet<tspan fill="#0066cc">eyes</tspan>
+  </text>
+</svg>

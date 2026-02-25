@@ -457,7 +457,7 @@ except Exception as e:
 section("TEST 5: Review Auditor (Real Business Analysis)")
 
 tavily_key = os.getenv("TAVILY_API_KEY", "")
-openai_key = os.getenv("OPENAI_API_KEY", "")
+anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
 
 try:
     from services.review_scraper import analyze_reviews, _search_reviews_tavily, _analyze_with_ai
@@ -465,11 +465,11 @@ try:
 except ImportError as e:
     log_result("Review scraper module loads", "FAIL", str(e)[:80])
 
-if tavily_key and openai_key:
+if tavily_key and anthropic_key:
     try:
         # Test with a known Israeli restaurant
         print(f"\n  [{INFO}] Searching reviews for a real Israeli business...")
-        print(f"  [{INFO}] Using Tavily to find reviews + OpenAI to analyze...")
+        print(f"  [{INFO}] Using Tavily to find reviews + Claude to analyze...")
 
         raw_results = _search_reviews_tavily("Uma Sushi Bar", "Tel Aviv")
         if raw_results:
@@ -539,7 +539,7 @@ else:
     log_result(
         "Review auditor",
         "SKIP",
-        "OPENAI_API_KEY not set — review analysis requires OpenAI"
+        "ANTHROPIC_API_KEY not set — review analysis requires Claude"
     )
 
 

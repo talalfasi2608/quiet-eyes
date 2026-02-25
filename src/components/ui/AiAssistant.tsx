@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSimulation } from '../../context/SimulationContext';
-import { sendChatMessage } from '../../services/api';
+import { sendChatMessage, apiFetch } from '../../services/api';
 import type { ChatMessage } from '../../services/api';
 import { MessageCircle, X, Send, Bot, User, Loader2, Sparkles, History, Zap } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import { API_BASE } from '../../config/api';
 
 interface PromptTemplate {
   id: number;
@@ -30,7 +29,7 @@ export default function AiAssistant() {
 
   // Load prompt templates once
   useEffect(() => {
-    fetch(`${API_BASE}/prompt-templates`)
+    apiFetch('/prompt-templates')
       .then(r => r.json())
       .then(data => setTemplates(data.templates || []))
       .catch(() => {});
@@ -40,7 +39,7 @@ export default function AiAssistant() {
   const loadHistory = useCallback(async () => {
     if (!user?.id || historyLoaded) return;
     try {
-      const res = await fetch(`${API_BASE}/chat/${user.id}/history?limit=20`);
+      const res = await apiFetch(`/chat/${user.id}/history?limit=20`);
       const data = await res.json();
       if (data.messages && data.messages.length > 0) {
         const mapped: ChatMessage[] = data.messages.map((m: { role: string; content: string }) => ({
@@ -123,7 +122,6 @@ export default function AiAssistant() {
         setSuggestedQuestions(response.suggested_questions);
       }
     } catch (error) {
-      console.error('Chat error:', error);
       setMessages(prev => [
         ...prev,
         { role: 'assistant', content: 'מצטער, יש בעיה בחיבור. נסה שוב מאוחר יותר.' }
@@ -180,10 +178,10 @@ export default function AiAssistant() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+        className={`fixed bottom-6 right-4 md:right-6 z-50 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
           isOpen
             ? 'bg-gray-700 hover:bg-gray-600 rotate-90'
-            : 'bg-gradient-to-br from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 glow-primary'
+            : 'bg-gradient-to-br from-[#0066cc] to-[#00d4ff] hover:from-[#0077dd] hover:to-[#00e0ff] glow-primary'
         }`}
       >
         {isOpen ? (
@@ -195,9 +193,9 @@ export default function AiAssistant() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 h-[540px] rounded-2xl overflow-hidden shadow-2xl border border-gray-700/50 flex flex-col bg-gray-900/95 backdrop-blur-xl fade-in">
+        <div className="fixed bottom-20 md:bottom-24 inset-x-0 mx-2 md:mx-0 md:inset-x-auto md:right-6 z-50 w-auto md:w-96 h-[calc(100vh-6rem)] md:h-[540px] rounded-2xl overflow-hidden shadow-2xl border border-gray-700/50 flex flex-col bg-gray-900/95 backdrop-blur-xl fade-in">
           {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-700 p-4 flex items-center gap-3">
+          <div className="bg-gradient-to-r from-[#0066cc] to-[#0088dd] p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
               <Bot className="w-6 h-6 text-white" />
             </div>
@@ -209,10 +207,10 @@ export default function AiAssistant() {
           </div>
 
           {/* Quick Action Templates */}
-          {templates.length > 0 && messages.length <= 1 && !isLoading && (
+          {templates.length > 0 && !input.trim() && !isLoading && (
             <div className="px-3 py-2 border-b border-gray-700/50 bg-gray-800/30">
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Sparkles className="w-3 h-3 text-purple-400" />
+                <Sparkles className="w-3 h-3 text-cyan-400" />
                 <span className="text-[10px] text-gray-500">פעולות מהירות</span>
               </div>
               <div className="flex flex-wrap gap-1.5" dir="rtl">
@@ -220,7 +218,7 @@ export default function AiAssistant() {
                   <button
                     key={t.id}
                     onClick={() => handleTemplateClick(t)}
-                    className="px-2.5 py-1 rounded-full bg-gray-700/60 text-gray-300 text-xs hover:bg-indigo-600/30 hover:text-indigo-300 border border-gray-600/40 hover:border-indigo-500/40 transition-all"
+                    className="px-2.5 py-1 rounded-full bg-gray-700/60 text-gray-300 text-xs hover:bg-cyan-600/30 hover:text-cyan-300 border border-gray-600/40 hover:border-cyan-500/40 transition-all"
                   >
                     {t.icon || '⚡'} {t.name}
                   </button>
@@ -240,8 +238,8 @@ export default function AiAssistant() {
                 <div
                   className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
                     message.role === 'user'
-                      ? 'bg-indigo-600'
-                      : 'bg-gradient-to-br from-purple-600 to-indigo-600'
+                      ? 'bg-[#0066cc]'
+                      : 'bg-gradient-to-br from-[#0066cc] to-[#00d4ff]'
                   }`}
                 >
                   {message.role === 'user' ? (
@@ -255,7 +253,7 @@ export default function AiAssistant() {
                 <div
                   className={`max-w-[75%] rounded-2xl px-4 py-2 ${
                     message.role === 'user'
-                      ? 'bg-indigo-600 text-white rounded-tr-sm'
+                      ? 'bg-[#0066cc] text-white rounded-tr-sm'
                       : 'bg-gray-800 text-gray-100 rounded-tl-sm border border-gray-700/50'
                   }`}
                 >
@@ -276,7 +274,7 @@ export default function AiAssistant() {
                     <button
                       key={i}
                       onClick={() => handleSuggestedClick(q)}
-                      className="text-right px-3 py-1.5 rounded-lg bg-gray-800/60 text-gray-300 text-xs hover:bg-indigo-600/20 hover:text-indigo-300 border border-gray-700/40 hover:border-indigo-500/40 transition-all"
+                      className="text-right px-3 py-1.5 rounded-lg bg-gray-800/60 text-gray-300 text-xs hover:bg-cyan-600/20 hover:text-cyan-300 border border-gray-700/40 hover:border-cyan-500/40 transition-all"
                     >
                       {q}
                     </button>
@@ -288,12 +286,12 @@ export default function AiAssistant() {
             {/* Loading indicator */}
             {isLoading && (
               <div className="flex gap-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0066cc] to-[#00d4ff] flex items-center justify-center">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
                 <div className="bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 border border-gray-700/50">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+                    <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
                     <span className="text-gray-400 text-sm">COO חושב...</span>
                   </div>
                 </div>
@@ -311,16 +309,16 @@ export default function AiAssistant() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 placeholder="שאל אותי משהו..."
                 disabled={isLoading}
-                className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+                className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 disabled:opacity-50"
                 dir="rtl"
               />
               <button
                 onClick={() => handleSendMessage()}
                 disabled={!input.trim() || isLoading}
-                className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed hover:from-indigo-500 hover:to-purple-600 transition-all"
+                className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0066cc] to-[#00d4ff] flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed hover:from-[#0077dd] hover:to-[#00e0ff] transition-all"
               >
                 <Send className="w-5 h-5" />
               </button>

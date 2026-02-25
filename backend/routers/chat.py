@@ -92,6 +92,7 @@ async def chat(payload: ChatRequest, request: Request, auth_user_id: str = Depen
     biz_location = ""
     biz_audience = ""
     biz_description = ""
+    biz_id = ""
     competitors_count = 0
     if supabase:
         try:
@@ -153,6 +154,28 @@ async def chat(payload: ChatRequest, request: Request, auth_user_id: str = Depen
 4. אל תיתן עצות גנריות - רק מה שרלוונטי לעסק הזה ולתחום שלו
 5. אל תשאל מה העסק עושה - המידע כבר ניתן לך למעלה
 6. תן תוכנית פעולה מעשית וישירה"""
+
+        # Inject AI memory context + patterns + prediction
+        try:
+            from services.memory_engine import get_memory_engine
+            business_id = biz_id if biz_id else ""
+            if business_id:
+                sb = _get_service_client() or get_supabase_client(request)
+                memory_context = get_memory_engine().get_context_for_ai(business_id, sb)
+                if memory_context:
+                    system_prompt += f"\n\n## היסטוריית ביצועים\n{memory_context}"
+
+                # Inject latest prediction
+                try:
+                    from services.prediction_engine import get_prediction_engine
+                    pred = get_prediction_engine().get_latest_prediction(business_id, sb)
+                    if pred:
+                        import json as _json
+                        system_prompt += f"\n\n## תחזית לשבוע הנוכחי\n{_json.dumps(pred, ensure_ascii=False)}"
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.debug(f"Memory context injection skipped: {e}")
 
         # Build messages: history + current user message (system is separate in Claude)
         user_messages = []

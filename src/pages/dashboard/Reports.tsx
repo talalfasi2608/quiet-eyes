@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useSimulation } from '../../context/SimulationContext';
 import { apiFetch } from '../../services/api';
 import { FileDown, Loader2, BarChart3, Users, Zap, Target } from 'lucide-react';
+import toast from 'react-hot-toast';
+import PageLoader from '../../components/ui/PageLoader';
+import EmptyState from '../../components/ui/EmptyState';
 
 interface ReportPreview {
   business_name: string;
@@ -41,8 +44,8 @@ export default function Reports() {
       const data = await res.json();
       setPreview(data.preview);
     } catch (err) {
-      setError('Failed to load report preview');
-      console.error(err);
+      toast.error('שגיאה בטעינת דו"ח');
+      setError('שגיאה בטעינת דו"ח');
     } finally {
       setLoading(false);
     }
@@ -53,6 +56,10 @@ export default function Reports() {
     setDownloading(true);
     try {
       const response = await apiFetch(`/reports/weekly-brief/${currentProfile.id}`);
+      if (response.status === 404) {
+        toast.error('הדו"ח עדיין לא מוכן. המערכת תייצר אותו בקרוב.');
+        return;
+      }
       if (!response.ok) throw new Error('PDF generation failed');
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -64,7 +71,7 @@ export default function Reports() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('PDF download error:', err);
+      toast.error('שגיאה בהורדת PDF');
     } finally {
       setDownloading(false);
     }
@@ -87,7 +94,7 @@ export default function Reports() {
         <button
           onClick={handleDownload}
           disabled={downloading || !currentProfile?.id}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium transition-all duration-300 disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-500 text-white font-medium transition-all duration-300 disabled:opacity-50"
         >
           {downloading ? (
             <>
@@ -104,17 +111,21 @@ export default function Reports() {
       </div>
 
       {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-        </div>
-      )}
+      {loading && <PageLoader message='טוען דו"חות...' />}
 
       {/* Error */}
       {error && (
         <div className="glass-card p-4 border border-red-500/30 text-red-400 text-center">
           {error}
         </div>
+      )}
+
+      {!preview && !loading && !error && (
+        <EmptyState
+          icon={FileDown}
+          title='אין דו"חות זמינים'
+          description='הדו"ח השבועי ייוצר אוטומטית לאחר שהמערכת תאסוף מספיק מודיעין'
+        />
       )}
 
       {/* Preview Cards */}
@@ -168,8 +179,8 @@ export default function Reports() {
           {/* Events */}
           <div className="glass-card p-5">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-purple-400" />
+              <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-cyan-400" />
               </div>
               <div>
                 <p className="text-xs text-gray-400">אירועי מודיעין</p>

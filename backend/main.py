@@ -130,6 +130,9 @@ class GlobalRadar:
             JobType.PRICE_CHECK: CreditCost.COMPETITOR_SCAN,
             JobType.WEEKLY_REPORT: CreditCost.PDF_REPORT,
             JobType.MASTER_INTEL_SCAN: CreditCost.INTEL_SCAN,
+            JobType.WEEKLY_MEMORY_SNAPSHOT: CreditCost.MEMORY_SNAPSHOT,
+            JobType.WEEKLY_PREDICTION: CreditCost.PREDICTION,
+            JobType.MONTHLY_PATTERNS: CreditCost.PATTERN_DETECTION,
             # Legacy aliases
             "intel_leads": CreditCost.LEAD_SNIPE,
             "intel_competitors": CreditCost.COMPETITOR_SCAN,
@@ -197,6 +200,24 @@ class GlobalRadar:
                         f"[GlobalRadar] Intel scan done for {business_id}: "
                         f"{report.total_events} events, {report.total_trends} trends"
                     )
+
+                elif job_type == JobType.WEEKLY_MEMORY_SNAPSHOT:
+                    from services.memory_engine import get_memory_engine
+                    from config import supabase
+                    get_memory_engine().snapshot_week(business_id, supabase)
+                    logger.info(f"[GlobalRadar] Memory snapshot done for {business_id}")
+
+                elif job_type == JobType.WEEKLY_PREDICTION:
+                    from services.prediction_engine import get_prediction_engine
+                    from config import supabase
+                    get_prediction_engine().predict_next_week(business_id, supabase)
+                    logger.info(f"[GlobalRadar] Prediction done for {business_id}")
+
+                elif job_type == JobType.MONTHLY_PATTERNS:
+                    from services.memory_engine import get_memory_engine
+                    from config import supabase
+                    get_memory_engine().detect_patterns(business_id, supabase)
+                    logger.info(f"[GlobalRadar] Pattern detection done for {business_id}")
 
                 elif job_type in ("intel_trends", "audience_scan", "daily_summary"):
                     logger.debug(

@@ -1,29 +1,31 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SimulationProvider, useSimulation } from './context/SimulationContext';
 import { WorkspaceProvider } from './context/WorkspaceContext';
 import { SubscriptionProvider } from './context/SubscriptionContext';
 import DashboardLayout from './components/layout/DashboardLayout';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 import AuthPage from './pages/AuthPage';
 import LandingPage from './pages/public/LandingPage';
 import { Loader2 } from 'lucide-react';
 
-// Pages
-import Onboarding from './pages/auth/OnboardingNew'; // Using new 3-step wizard
-import Dashboard from './pages/dashboard/Dashboard'; // New Business DNA Dashboard
-import Focus from './pages/dashboard/Focus';
-import Landscape from './pages/dashboard/Landscape';
-import Horizon from './pages/dashboard/Horizon';
-import Reflection from './pages/dashboard/Reflection';
-import Settings from './pages/dashboard/Settings';
-import KnowledgeBase from './pages/dashboard/KnowledgeBase';
-import MarketIntelligence from './pages/dashboard/MarketIntelligence';
-import LeadSniperFeed from './pages/dashboard/LeadSniperFeed';
-import Vault from './pages/dashboard/Vault';
-import Staff from './pages/dashboard/Staff';
-import PlanManagement from './pages/dashboard/PlanManagement';
-import SuperAdmin from './pages/dashboard/SuperAdmin';
-import Reports from './pages/dashboard/Reports';
+// Lazy-loaded pages (code-split for faster initial load)
+const Onboarding = lazy(() => import('./pages/auth/OnboardingNew'));
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
+const Focus = lazy(() => import('./pages/dashboard/Focus'));
+const Landscape = lazy(() => import('./pages/dashboard/Landscape'));
+const Horizon = lazy(() => import('./pages/dashboard/Horizon'));
+const Reflection = lazy(() => import('./pages/dashboard/Reflection'));
+const Settings = lazy(() => import('./pages/dashboard/Settings'));
+const KnowledgeBase = lazy(() => import('./pages/dashboard/KnowledgeBase'));
+const MarketIntelligence = lazy(() => import('./pages/dashboard/MarketIntelligence'));
+const LeadSniperFeed = lazy(() => import('./pages/dashboard/LeadSniperFeed'));
+const Vault = lazy(() => import('./pages/dashboard/Vault'));
+const Staff = lazy(() => import('./pages/dashboard/Staff'));
+const PlanManagement = lazy(() => import('./pages/dashboard/PlanManagement'));
+const SuperAdmin = lazy(() => import('./pages/dashboard/SuperAdmin'));
+const Reports = lazy(() => import('./pages/dashboard/Reports'));
 import RoleGate from './components/auth/RoleGate';
 
 // Loading screen component
@@ -31,7 +33,7 @@ function LoadingScreen({ message = 'טוען...' }: { message?: string }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="text-center">
-        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mx-auto mb-4" />
+        <Loader2 className="w-12 h-12 text-cyan-500 animate-spin mx-auto mb-4" />
         <p className="text-gray-400">{message}</p>
       </div>
     </div>
@@ -50,15 +52,19 @@ function ProtectedRoutes() {
   // User hasn't completed onboarding - force to onboarding
   if (!hasCompletedOnboarding) {
     return (
-      <Routes>
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="*" element={<Navigate to="/onboarding" replace />} />
-      </Routes>
+      <Suspense fallback={<LoadingScreen message="טוען..." />}>
+        <Routes>
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="*" element={<Navigate to="/onboarding" replace />} />
+        </Routes>
+      </Suspense>
     );
   }
 
   // User has completed onboarding - show dashboard
   return (
+    <ErrorBoundary>
+    <Suspense fallback={<LoadingScreen message="טוען..." />}>
     <Routes>
       {/* Dashboard Routes */}
       <Route path="/dashboard" element={<DashboardLayout />}>
@@ -84,6 +90,8 @@ function ProtectedRoutes() {
       <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    </Suspense>
+    </ErrorBoundary>
   );
 }
 

@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-
-const API_BASE = 'http://localhost:8015';
+import { apiFetch } from '../services/api';
 
 interface SubscriptionState {
   tier: string;
@@ -49,9 +48,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/billing/status`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const res = await apiFetch('/billing/status');
 
       if (res.ok) {
         const data = await res.json();

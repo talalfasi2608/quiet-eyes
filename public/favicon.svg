@@ -1,0 +1,30 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="fg">
+      <feGaussianBlur stdDeviation="1" result="b" />
+      <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f0f4f8" />
+      <stop offset="100%" stop-color="#00d4ff" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="#0a0e1a" />
+
+  <!-- Q circle -->
+  <circle cx="14" cy="13.5" r="9.5" fill="none" stroke="#f0f4f8" stroke-width="1.8" />
+
+  <!-- Q tail -->
+  <line x1="20.5" y1="20" x2="26" y2="25.5" stroke="url(#sg)" stroke-width="1.8" stroke-linecap="round" />
+
+  <!-- Eye upper -->
+  <path d="M 7.5,13.5 C 9,9 19,9 20.5,13.5" fill="none" stroke="#f0f4f8" stroke-width="1.2" stroke-linecap="round" />
+
+  <!-- Eye lower -->
+  <path d="M 7.5,13.5 C 9,18 19,18 20.5,13.5" fill="none" stroke="#f0f4f8" stroke-width="1.2" stroke-linecap="round" />
+
+  <!-- Pupil -->
+  <circle cx="14" cy="13.5" r="3" fill="#00d4ff" filter="url(#fg)" />
+</svg>

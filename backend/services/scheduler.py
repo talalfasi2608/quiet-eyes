@@ -33,6 +33,9 @@ class JobType:
     MARKET_DISCOVERY = "market_discovery"
     WEEKLY_REPORT = "weekly_report"
     MASTER_INTEL_SCAN = "master_intel_scan"
+    WEEKLY_MEMORY_SNAPSHOT = "weekly_memory_snapshot"
+    WEEKLY_PREDICTION = "weekly_prediction"
+    MONTHLY_PATTERNS = "monthly_patterns"
     # Aliases (legacy job types created by older onboarding code)
     INTEL_LEADS = "intel_leads"
     INTEL_COMPETITORS = "intel_competitors"
@@ -61,6 +64,18 @@ DEFAULT_JOBS = [
     {
         "job_type": JobType.MASTER_INTEL_SCAN,
         "cron_expression": "0 */6 * * *",   # every 6 hours
+    },
+    {
+        "job_type": JobType.WEEKLY_MEMORY_SNAPSHOT,
+        "cron_expression": "0 6 * * 0",     # Sunday 6am UTC
+    },
+    {
+        "job_type": JobType.WEEKLY_PREDICTION,
+        "cron_expression": "0 7 * * 0",     # Sunday 7am UTC
+    },
+    {
+        "job_type": JobType.MONTHLY_PATTERNS,
+        "cron_expression": "0 4 1 * *",     # 1st of month 4am UTC
     },
 ]
 
@@ -280,6 +295,26 @@ class SchedulerService:
             # If candidate is in the past (same day but earlier time), add 7 days
             if candidate <= now:
                 candidate += timedelta(days=7)
+            return candidate
+
+        # ── Pattern: "M H D * *" -> specific day of month ──
+        dom_match = re.match(
+            r"^(\d+)\s+(\d+)\s+(\d+)\s+\*\s+\*$", cron_expression
+        )
+        if dom_match:
+            minute = int(dom_match.group(1))
+            hour = int(dom_match.group(2))
+            day = int(dom_match.group(3))
+
+            candidate = now.replace(
+                day=day, hour=hour, minute=minute, second=0, microsecond=0
+            )
+            if candidate <= now:
+                # Move to next month
+                if candidate.month == 12:
+                    candidate = candidate.replace(year=candidate.year + 1, month=1)
+                else:
+                    candidate = candidate.replace(month=candidate.month + 1)
             return candidate
 
         # ── Pattern: "0 */N * * *" -> every N hours at minute 0 ──

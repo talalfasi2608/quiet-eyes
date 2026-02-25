@@ -1,8 +1,8 @@
 """
 AI Engine for Quiet Eyes.
 
-Uses OpenAI GPT-4o-mini to analyze business data, classify archetypes,
-and generate actionable insight cards in Hebrew.
+Uses Anthropic Claude (via claude_client wrapper) to analyze business data,
+classify archetypes, and generate actionable insight cards in Hebrew.
 """
 
 import json
@@ -10,7 +10,8 @@ import uuid
 import logging
 from typing import Optional
 
-from openai import OpenAI, OpenAIError
+import anthropic
+from services import claude_client
 
 from models import (
     ActionCard,
@@ -22,23 +23,6 @@ from models import (
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# OPENAI CLIENT INITIALIZATION
-# =============================================================================
-
-def get_openai_client(api_key: str) -> OpenAI:
-    """
-    Create and return an OpenAI client instance.
-
-    Args:
-        api_key: OpenAI API key
-
-    Returns:
-        Configured OpenAI client
-    """
-    return OpenAI(api_key=api_key)
 
 
 # =============================================================================
@@ -71,50 +55,43 @@ Respond ONLY with valid JSON in this exact format:
 
 
 async def classify_business(
-    client: OpenAI,
     description: str
 ) -> dict:
     """
-    Classify a business into an archetype using GPT-4o-mini.
+    Classify a business into an archetype using Claude.
 
     Args:
-        client: OpenAI client instance
         description: Business description text
 
     Returns:
         Dictionary with archetype, name_hebrew, emoji, trending_topics
 
     Raises:
-        OpenAIError: If API call fails
+        anthropic.APIError: If API call fails
         ValueError: If response parsing fails
     """
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
+        content = claude_client.chat(
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a business classification expert. Always respond with valid JSON only."
-                },
                 {
                     "role": "user",
                     "content": ARCHETYPE_PROMPT.format(description=description)
                 }
             ],
+            system="You are a business classification expert. Always respond with valid JSON only.",
             temperature=0.3,  # Lower temperature for consistent classification
             max_tokens=200,
-            response_format={"type": "json_object"}
         )
 
-        result = json.loads(response.choices[0].message.content)
+        result = json.loads(content)
         logger.info(f"Classified business as: {result.get('archetype')}")
         return result
 
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse classification response: {e}")
         raise ValueError(f"Invalid JSON response from AI: {e}")
-    except OpenAIError as e:
-        logger.error(f"OpenAI API error during classification: {e}")
+    except anthropic.APIError as e:
+        logger.error(f"Claude API error during classification: {e}")
         raise
 
 
@@ -223,7 +200,6 @@ def _build_knowledge_context(business_id: str = None) -> str:
 
 
 async def generate_insights(
-    client: OpenAI,
     archetype: str,
     business_type: str,
     count: int = 3,
@@ -233,7 +209,6 @@ async def generate_insights(
     Generate actionable insight cards for a business.
 
     Args:
-        client: OpenAI client instance
         archetype: Business archetype (Visual/Expert/Field/Merchant)
         business_type: Specific business type in Hebrew
         count: Number of cards to generate
@@ -243,18 +218,13 @@ async def generate_insights(
         List of ActionCard objects
 
     Raises:
-        OpenAIError: If API call fails
+        anthropic.APIError: If API call fails
     """
     knowledge_context = _build_knowledge_context(business_id)
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
+        content = claude_client.chat(
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are an Israeli business intelligence expert. Generate realistic, actionable insights in Hebrew. Always respond with valid JSON array only."
-                },
                 {
                     "role": "user",
                     "content": INSIGHTS_PROMPT.format(
@@ -264,17 +234,16 @@ async def generate_insights(
                     )
                 }
             ],
+            system="You are an Israeli business intelligence expert. Generate realistic, actionable insights in Hebrew. Always respond with valid JSON only.",
             temperature=0.7,  # Higher temperature for creative insights
             max_tokens=800,
-            response_format={"type": "json_object"}
         )
 
-        # Parse the response - GPT returns JSON object, extract the array
-        content = response.choices[0].message.content
+        # Parse the response - extract the array
         logger.info(f"Raw insights response: {content[:200]}...")
         parsed = json.loads(content)
 
-        # Handle various key names GPT might use
+        # Handle various key names the model might use
         cards_data = []
         if isinstance(parsed, list):
             cards_data = parsed
@@ -293,16 +262,19 @@ async def generate_insights(
 
         cards = []
         for i, card_data in enumerate(cards_data[:count]):
-            card = ActionCard(
-                id=f"card_{uuid.uuid4().hex[:8]}",
-                type=CardType(card_data.get("type", "opportunity")),
-                title=card_data.get("title", ""),
-                description=card_data.get("description", ""),
-                action_button_text=card_data.get("action_button_text", "צפה"),
-                priority=card_data.get("priority", 3),
-                source="ai_generated"
-            )
-            cards.append(card)
+            try:
+                card = ActionCard(
+                    id=f"card_{uuid.uuid4().hex[:8]}",
+                    type=CardType(card_data.get("type", "opportunity")),
+                    title=(card_data.get("title", "") or "")[:100],
+                    description=(card_data.get("description", "") or "")[:500],
+                    action_button_text=(card_data.get("action_button_text", "צפה") or "צפה")[:50],
+                    priority=min(5, max(1, int(card_data.get("priority", 3)))),
+                    source="ai_generated"
+                )
+                cards.append(card)
+            except Exception as e:
+                logger.warning(f"Skipping invalid card data: {e}")
 
         logger.info(f"Generated {len(cards)} insight cards")
         return cards
@@ -311,8 +283,8 @@ async def generate_insights(
         logger.error(f"Failed to parse insights response: {e}")
         # Return fallback cards
         return _generate_fallback_cards(archetype)
-    except OpenAIError as e:
-        logger.error(f"OpenAI API error during insight generation: {e}")
+    except anthropic.APIError as e:
+        logger.error(f"Claude API error during insight generation: {e}")
         raise
 
 
@@ -342,7 +314,6 @@ Respond with ONLY valid JSON:
 
 
 async def generate_competitor_card(
-    client: OpenAI,
     competitor_name: str,
     competitor_type: str,
     finding: str
@@ -351,7 +322,6 @@ async def generate_competitor_card(
     Generate an alert card based on competitor scan results.
 
     Args:
-        client: OpenAI client instance
         competitor_name: Name of the competitor
         competitor_type: Type of competitor business
         finding: What was found during the scan
@@ -360,16 +330,11 @@ async def generate_competitor_card(
         ActionCard with competitor alert
 
     Raises:
-        OpenAIError: If API call fails
+        anthropic.APIError: If API call fails
     """
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
+        content = claude_client.chat(
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a competitive intelligence expert. Generate actionable alerts in Hebrew. Respond with valid JSON only."
-                },
                 {
                     "role": "user",
                     "content": COMPETITOR_CARD_PROMPT.format(
@@ -379,27 +344,27 @@ async def generate_competitor_card(
                     )
                 }
             ],
+            system="You are a competitive intelligence expert. Generate actionable alerts in Hebrew. Always respond with valid JSON only.",
             temperature=0.5,
             max_tokens=300,
-            response_format={"type": "json_object"}
         )
 
-        card_data = json.loads(response.choices[0].message.content)
+        card_data = json.loads(content)
 
         card = ActionCard(
             id=f"comp_{uuid.uuid4().hex[:8]}",
             type=CardType.ALERT,
-            title=card_data.get("title", "התראת מתחרה"),
-            description=card_data.get("description", ""),
-            action_button_text=card_data.get("action_button_text", "צפה בפרטים"),
-            priority=card_data.get("priority", 4),
+            title=(card_data.get("title", "התראת מתחרה") or "התראת מתחרה")[:100],
+            description=(card_data.get("description", "") or "")[:500],
+            action_button_text=(card_data.get("action_button_text", "צפה בפרטים") or "צפה בפרטים")[:50],
+            priority=min(5, max(1, int(card_data.get("priority", 4)))),
             source=f"competitor_scan:{competitor_name}"
         )
 
         logger.info(f"Generated competitor card for: {competitor_name}")
         return card
 
-    except (json.JSONDecodeError, OpenAIError) as e:
+    except (json.JSONDecodeError, anthropic.APIError, ValueError, Exception) as e:
         logger.error(f"Error generating competitor card: {e}")
         # Return fallback card
         return ActionCard(
@@ -418,21 +383,19 @@ async def generate_competitor_card(
 # =============================================================================
 
 async def analyze_business_full(
-    client: OpenAI,
     description: str
 ) -> tuple[BusinessProfile, list[ActionCard]]:
     """
     Perform complete business analysis: classification + insight generation.
 
     Args:
-        client: OpenAI client instance
         description: Business description text
 
     Returns:
         Tuple of (BusinessProfile, list of ActionCards)
     """
     # Step 1: Classify the business
-    classification = await classify_business(client, description)
+    classification = await classify_business(description)
 
     archetype_str = classification.get("archetype", "Merchant")
     name_hebrew = classification.get("name_hebrew", "עסק")
@@ -443,7 +406,7 @@ async def analyze_business_full(
     archetype = Archetype(archetype_str)
 
     # Step 2: Generate initial insights
-    cards = await generate_insights(client, archetype_str, name_hebrew)
+    cards = await generate_insights(archetype_str, name_hebrew)
 
     # Step 3: Create the business profile
     profile = BusinessProfile(

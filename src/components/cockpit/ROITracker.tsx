@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, CheckCircle2, Loader2 } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import { apiFetch } from '../../services/api';
 
 interface ROISummary {
   total_actions: number;
@@ -24,8 +23,11 @@ export default function ROITracker({ businessId }: { businessId: string }) {
 
   useEffect(() => {
     if (!businessId) return;
-    fetch(`${API_BASE}/cockpit/roi-summary/${businessId}`)
-      .then(r => r.json())
+    apiFetch(`/cockpit/roi-summary/${businessId}`)
+      .then(r => {
+        if (!r.ok) throw new Error('API error');
+        return r.json();
+      })
       .then(data => setSummary(data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -44,7 +46,7 @@ export default function ROITracker({ businessId }: { businessId: string }) {
         <span className="text-xs text-gray-500">{summary.total_actions} פעולות</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
           <DollarSign className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
           <span className="text-lg font-bold text-emerald-400">
@@ -55,14 +57,14 @@ export default function ROITracker({ businessId }: { businessId: string }) {
         <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
           <DollarSign className="w-5 h-5 text-blue-400 mx-auto mb-1" />
           <span className="text-lg font-bold text-blue-400">
-            ₪{summary.total_estimated_value.toLocaleString()}
+            ₪{(summary.total_estimated_value || 0).toLocaleString()}
           </span>
           <span className="text-xs text-gray-400 block">משוער</span>
         </div>
         <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
           <CheckCircle2 className="w-5 h-5 text-amber-400 mx-auto mb-1" />
           <span className="text-lg font-bold text-amber-400">
-            {Math.round(summary.roi_ratio * 100)}%
+            {Math.round((summary.roi_ratio || 0) * 100)}%
           </span>
           <span className="text-xs text-gray-400 block">מימוש</span>
         </div>
@@ -70,7 +72,7 @@ export default function ROITracker({ businessId }: { businessId: string }) {
 
       {/* Breakdown by type */}
       <div className="space-y-2">
-        {Object.entries(summary.by_type).map(([type, data]) => (
+        {Object.entries(summary.by_type || {}).map(([type, data]) => (
           <div key={type} className="flex items-center justify-between text-sm">
             <span className="text-gray-400">{TYPE_LABELS[type] || type}</span>
             <span className="text-white font-medium">{data.count}</span>

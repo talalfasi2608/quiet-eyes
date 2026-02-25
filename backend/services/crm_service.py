@@ -191,8 +191,9 @@ def _push_pipedrive(lead: dict, config: dict) -> dict:
         payload["person_id"] = None  # Would need to create/find person first
 
     resp = httpx.post(
-        f"https://api.pipedrive.com/v1/deals?api_token={api_token}",
+        "https://api.pipedrive.com/v1/deals",
         json=payload,
+        headers={"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"},
         timeout=15.0,
     )
     resp.raise_for_status()

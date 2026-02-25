@@ -40,6 +40,9 @@ class CreditCost:
     AI_ANALYSIS = 1
     PDF_REPORT = 1
     INTEL_SCAN = 2
+    MEMORY_SNAPSHOT = 1
+    PREDICTION = 1
+    PATTERN_DETECTION = 1
     CRM_PUSH = 0       # Free — already paid for the lead
     WHATSAPP_ALERT = 0  # Free — notification only
 

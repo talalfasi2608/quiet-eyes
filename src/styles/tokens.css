@@ -1,0 +1,110 @@
+/*
+ * Quieteyes Design Tokens
+ * "The eye that never sleeps"
+ *
+ * Usage: var(--token-name)
+ * All components should reference these tokens for consistency.
+ */
+
+:root {
+  /* ═══ Colors — Core Palette ═══ */
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #0d1321;
+  --bg-card: #111827;
+  --bg-card-hover: #151d2e;
+  --bg-elevated: #1a2332;
+
+  /* Borders */
+  --border: #1e2d40;
+  --border-subtle: #162030;
+  --border-accent: rgba(0, 212, 255, 0.25);
+
+  /* Accents */
+  --accent-primary: #00d4ff;
+  --accent-secondary: #0066cc;
+  --accent-glow: rgba(0, 212, 255, 0.15);
+  --accent-glow-strong: rgba(0, 212, 255, 0.35);
+
+  /* Text */
+  --text-primary: #f0f4f8;
+  --text-secondary: #8899aa;
+  --text-muted: #556677;
+  --text-accent: #00d4ff;
+
+  /* Status */
+  --success: #00c896;
+  --success-bg: rgba(0, 200, 150, 0.1);
+  --warning: #ff6b35;
+  --warning-bg: rgba(255, 107, 53, 0.1);
+  --danger: #ff3b5c;
+  --danger-bg: rgba(255, 59, 92, 0.1);
+  --info: #00d4ff;
+  --info-bg: rgba(0, 212, 255, 0.1);
+
+  /* Urgency (Alert system) */
+  --urgency-critical: #ff3b5c;
+  --urgency-critical-bg: rgba(255, 59, 92, 0.12);
+  --urgency-critical-border: rgba(255, 59, 92, 0.3);
+  --urgency-high: #ff6b35;
+  --urgency-high-bg: rgba(255, 107, 53, 0.12);
+  --urgency-high-border: rgba(255, 107, 53, 0.3);
+  --urgency-medium: #00d4ff;
+  --urgency-medium-bg: rgba(0, 212, 255, 0.08);
+  --urgency-medium-border: rgba(0, 212, 255, 0.25);
+  --urgency-low: #556677;
+  --urgency-low-bg: rgba(85, 102, 119, 0.08);
+  --urgency-low-border: rgba(85, 102, 119, 0.25);
+
+  /* ═══ Spacing ═══ */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+
+  /* ═══ Effects ═══ */
+  --glow: 0 0 20px rgba(0, 212, 255, 0.15);
+  --glow-strong: 0 0 40px rgba(0, 212, 255, 0.3);
+  --glow-critical: 0 0 20px rgba(255, 59, 92, 0.2);
+  --glow-warning: 0 0 20px rgba(255, 107, 53, 0.2);
+  --glass: rgba(17, 24, 39, 0.8);
+  --glass-border: rgba(30, 45, 64, 0.8);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+  /* ═══ Radius ═══ */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* ═══ Typography ═══ */
+  --font-body: 'Heebo', sans-serif;
+  --font-display: 'Space Grotesk', 'Heebo', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 2rem;      /* 32px */
+  --text-4xl: 2.5rem;    /* 40px */
+  --text-stat: 3rem;     /* 48px — for StatCard numbers */
+
+  /* ═══ Transitions ═══ */
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.15s ease-out;
+  --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ═══ Z-Index Scale ═══ */
+  --z-base: 0;
+  --z-card: 10;
+  --z-sticky: 20;
+  --z-sidebar: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+}

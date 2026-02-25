@@ -30,7 +30,7 @@ async def current_trends(user_id: str, request: Request, limit: int = Query(defa
 
     try:
         from services.trend_radar import generate_trends
-        trends = generate_trends(biz_id or user_id, sb)
+        trends = generate_trends(biz_id, sb)
         return {"trends": trends[:limit]}
     except Exception as e:
         logger.error(f"current_trends error: {e}")
@@ -50,7 +50,7 @@ async def upcoming_predictions(user_id: str, request: Request, days_ahead: int =
 
     try:
         from services.trend_radar import generate_predictions
-        return generate_predictions(biz_id or user_id, sb, days_ahead=days_ahead)
+        return generate_predictions(biz_id, sb, days_ahead=days_ahead)
     except Exception as e:
         logger.error(f"upcoming_predictions error: {e}")
         return {"events": [], "business_context": {"id": "", "name": "", "name_hebrew": "", "industry": "", "detected_categories": []}, "insights": []}
@@ -474,6 +474,237 @@ async def business_history(business_id: str, request: Request, days: int = Query
     except Exception as e:
         logger.error(f"business_history error: {e}")
         return {"snapshots": [], "days": days}
+
+
+# ── Daily Focus (מיקוד) ──
+
+@router.get("/business/daily-focus/{user_id}")
+async def daily_focus(user_id: str, request: Request, auth_user_id: str = Depends(require_auth)):
+    """
+    Returns data for the Focus page: 3 prioritized daily tasks,
+    biggest opportunity, and yesterday summary.
+    """
+    sb = _get_service_client() or get_supabase_client(request)
+    biz_id = None
+    business_name = ""
+    industry = ""
+    location = ""
+
+    if sb:
+        biz_id = resolve_business_id(sb, user_id, auth_user_id)
+        if not biz_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif user_id != auth_user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    tasks = []
+    biggest_opportunity = None
+    yesterday_summary = {
+        "leads_found": 0, "leads_actioned": 0, "events_count": 0,
+        "scans_run": 0, "streak_days": 0, "summary_text": "אין נתונים מאתמול"
+    }
+
+    if sb and biz_id:
+        client = _get_service_client() or sb
+        try:
+            # Get business info
+            biz = client.table("businesses").select("business_name, industry, location").eq("id", biz_id).limit(1).execute()
+            if biz.data:
+                business_name = biz.data[0].get("business_name", "")
+                industry = biz.data[0].get("industry", "")
+                location = biz.data[0].get("location", "")
+        except Exception as e:
+            logger.debug(f"daily_focus biz info: {e}")
+
+        # ── Gather raw data ──
+        new_leads = []
+        high_threats = []
+        recent_events = []
+        competitors_data = []
+
+        try:
+            leads_r = client.table("leads_discovered").select("id, summary, platform, relevance_score, source_url, created_at, status") \
+                .eq("business_id", biz_id).eq("status", "new").order("created_at", desc=True).limit(20).execute()
+            new_leads = leads_r.data or []
+        except Exception as e:
+            logger.debug(f"daily_focus leads: {e}")
+
+        try:
+            comp_r = client.table("competitors").select("id, name, google_rating, google_reviews_count, perceived_threat_level, identified_weakness") \
+                .eq("business_id", biz_id).execute()
+            competitors_data = comp_r.data or []
+            high_threats = [c for c in competitors_data if (c.get("perceived_threat_level") or "").lower() == "high"]
+        except Exception as e:
+            logger.debug(f"daily_focus competitors: {e}")
+
+        try:
+            events_r = client.table("intelligence_events").select("id, title, description, event_type, severity, source, created_at, is_read") \
+                .eq("business_id", biz_id).order("created_at", desc=True).limit(10).execute()
+            recent_events = events_r.data or []
+        except Exception as e:
+            logger.debug(f"daily_focus events: {e}")
+
+        # ── Build tasks (max 3, priority ordered) ──
+
+        # Task 1: New leads
+        if new_leads:
+            count = len(new_leads)
+            best = max(new_leads, key=lambda l: l.get("relevance_score") or 0)
+            tasks.append({
+                "id": "task-leads",
+                "title": f"טפל ב-{count} לידים חדשים",
+                "description": f"נמצאו {count} לידים שמחכים לתשומת לב. הליד הטוב ביותר: {best.get('summary', 'ליד חדש')[:60]}",
+                "priority": "high",
+                "category": "leads",
+                "action_label": "צפה בלידים",
+                "action_path": "/dashboard/sniper",
+                "icon": "target",
+                "metric": f"{count} לידים חדשים",
+            })
+
+            # Set biggest opportunity from highest relevance lead
+            biggest_opportunity = {
+                "title": best.get("summary", "ליד חם")[:80],
+                "description": f"נמצא ב-{best.get('platform', 'האינטרנט')} עם רלוונטיות {best.get('relevance_score', 0)}%",
+                "source": best.get("platform", "web"),
+                "relevance_score": best.get("relevance_score", 0),
+                "action_path": "/dashboard/sniper",
+                "action_label": "פתח עכשיו",
+                "url": best.get("source_url", ""),
+            }
+
+        # Task 2: High-threat competitor
+        if high_threats and len(tasks) < 3:
+            threat = high_threats[0]
+            threat_name = threat.get("name", "מתחרה")
+            weakness = threat.get("identified_weakness", "")
+            desc = f"{threat_name} מזוהה כאיום גבוה."
+            if weakness:
+                desc += f" חולשה: {weakness[:50]}"
+            tasks.append({
+                "id": "task-competitor",
+                "title": f"בנה אסטרטגיה נגד {threat_name}",
+                "description": desc,
+                "priority": "high",
+                "category": "competitor",
+                "action_label": "צפה בנוף התחרותי",
+                "action_path": "/dashboard/landscape",
+                "icon": "shield",
+                "metric": f"{len(high_threats)} איומים גבוהים",
+            })
+
+        # Task 3: Unread intelligence events
+        unread_events = [e for e in recent_events if not e.get("is_read")]
+        if unread_events and len(tasks) < 3:
+            count_e = len(unread_events)
+            urgent = [e for e in unread_events if (e.get("severity") or "").lower() in ("high", "critical")]
+            title = f"צפה ב-{count_e} עדכוני מודיעין"
+            if urgent:
+                title = f"⚠ {len(urgent)} התראות דחופות + {count_e - len(urgent)} עדכונים"
+            tasks.append({
+                "id": "task-intelligence",
+                "title": title,
+                "description": unread_events[0].get("title", "עדכון חדש") if unread_events else "",
+                "priority": "high" if urgent else "medium",
+                "category": "intelligence",
+                "action_label": "צפה במודיעין",
+                "action_path": "/dashboard/intelligence",
+                "icon": "radar",
+                "metric": f"{count_e} עדכונים חדשים",
+            })
+
+        # Task: Check market trends (if room)
+        if len(tasks) < 3:
+            tasks.append({
+                "id": "task-trends",
+                "title": f"בדוק מגמות שוק ב{industry}",
+                "description": f"צפה במגמות העדכניות בתעשיית ה{industry} ב{location} ותכנן בהתאם.",
+                "priority": "medium",
+                "category": "trends",
+                "action_label": "צפה במגמות",
+                "action_path": "/dashboard/horizon",
+                "icon": "trending",
+                "metric": "מגמות חדשות",
+            })
+
+        # Task: Scan competitors (if room)
+        if not competitors_data and len(tasks) < 3:
+            tasks.append({
+                "id": "task-scan",
+                "title": "הפעל סריקת מתחרים ראשונה",
+                "description": "טרם נסרקו מתחרים. הפעל סריקה כדי לזהות איומים והזדמנויות.",
+                "priority": "medium",
+                "category": "scan",
+                "action_label": "סרוק עכשיו",
+                "action_path": "/dashboard/landscape",
+                "icon": "search",
+                "metric": "0 מתחרים",
+            })
+
+        # Set biggest opportunity from intelligence if not from leads
+        if not biggest_opportunity and unread_events:
+            opp_events = [e for e in unread_events if e.get("event_type") == "opportunity"]
+            ev = opp_events[0] if opp_events else unread_events[0]
+            biggest_opportunity = {
+                "title": ev.get("title", "הזדמנות חדשה")[:80],
+                "description": ev.get("description", "")[:120],
+                "source": ev.get("source", "system"),
+                "relevance_score": 70,
+                "action_path": "/dashboard/intelligence",
+                "action_label": "צפה בפרטים",
+                "url": "",
+            }
+
+        # ── Yesterday summary ──
+        try:
+            yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+            yesterday_start = yesterday.replace(hour=0, minute=0, second=0).isoformat()
+            yesterday_end = yesterday.replace(hour=23, minute=59, second=59).isoformat()
+
+            # Leads found yesterday
+            yl = client.table("leads_discovered").select("id, status") \
+                .eq("business_id", biz_id).gte("created_at", yesterday_start).lte("created_at", yesterday_end).execute()
+            yl_data = yl.data or []
+            y_leads_found = len(yl_data)
+            y_leads_actioned = sum(1 for l in yl_data if l.get("status") in ("sniped", "dismissed"))
+
+            # Events yesterday
+            ye = client.table("intelligence_events").select("id") \
+                .eq("business_id", biz_id).gte("created_at", yesterday_start).lte("created_at", yesterday_end).execute()
+            y_events = len(ye.data or [])
+
+            # Build summary text
+            parts = []
+            if y_leads_found:
+                parts.append(f"נמצאו {y_leads_found} לידים")
+            if y_leads_actioned:
+                parts.append(f"טופלו {y_leads_actioned}")
+            if y_events:
+                parts.append(f"{y_events} עדכוני מודיעין")
+            if not parts:
+                parts.append("יום שקט — אין אירועים חדשים")
+
+            yesterday_summary = {
+                "leads_found": y_leads_found,
+                "leads_actioned": y_leads_actioned,
+                "events_count": y_events,
+                "scans_run": 0,
+                "streak_days": 1 if (y_leads_actioned > 0 or y_events > 0) else 0,
+                "summary_text": " | ".join(parts),
+            }
+        except Exception as e:
+            logger.debug(f"daily_focus yesterday: {e}")
+
+    return {
+        "tasks": tasks[:3],
+        "biggest_opportunity": biggest_opportunity,
+        "yesterday_summary": yesterday_summary,
+        "business_name": business_name,
+        "industry": industry,
+        "location": location,
+        "competitors_count": len(competitors_data) if sb and biz_id else 0,
+        "new_leads_count": len(new_leads) if sb and biz_id else 0,
+    }
 
 
 # ── Business Feed & Actions ──

@@ -3,11 +3,15 @@
  * Connects the React frontend to the FastAPI backend
  */
 
-const API_BASE_URL = 'http://localhost:8015';
+import { API_BASE as API_BASE_URL } from '../config/api';
+import { supabase } from '../lib/supabaseClient';
 
 /**
  * Authenticated fetch wrapper.
- * Automatically injects Bearer token from Supabase session if available.
+ * Primary: Supabase SDK getSession() (handles refresh automatically).
+ * Fallback: read token directly from localStorage (synchronous, avoids
+ *           the race condition where the SDK hasn't finished restoring
+ *           the session yet on initial page load).
  */
 export async function apiFetch(
   path: string,
@@ -18,18 +22,31 @@ export async function apiFetch(
     ...(options.headers as Record<string, string> || {}),
   };
 
-  // Try to get the session token from localStorage (Supabase stores it there)
+  // Try 1: Supabase SDK (handles token refresh)
   try {
-    const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-    if (storageKey) {
-      const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-      const token = stored?.access_token;
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
     }
   } catch {
-    // No token available — continue without auth
+    // SDK call failed — fall through to localStorage
+  }
+
+  // Try 2: Direct localStorage read (synchronous fallback for race conditions)
+  if (!headers['Authorization']) {
+    try {
+      const storageKey = Object.keys(localStorage).find(
+        k => k.startsWith('sb-') && k.endsWith('-auth-token')
+      );
+      if (storageKey) {
+        const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        if (stored?.access_token) {
+          headers['Authorization'] = `Bearer ${stored.access_token}`;
+        }
+      }
+    } catch {
+      // No token available
+    }
   }
 
   const url = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
@@ -115,11 +132,8 @@ export async function onboardBusiness(
   userId: string,
   address?: string
 ): Promise<OnboardResponse> {
-  const response = await fetch(`${API_BASE_URL}/onboard`, {
+  const response = await apiFetch('/onboard', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify({
       description,
       user_id: userId,
@@ -129,7 +143,7 @@ export async function onboardBusiness(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || `API error: ${response.status}`);
+    throw new Error(error.detail || 'שגיאת שרת');
   }
 
   return response.json();
@@ -142,7 +156,7 @@ export async function onboardBusiness(
 export async function getBusinessByUserId(
   userId: string
 ): Promise<BusinessProfile | null> {
-  const response = await fetch(`${API_BASE_URL}/business/user/${userId}`);
+  const response = await apiFetch(`/business/user/${userId}`);
 
   if (response.status === 404) {
     // User hasn't onboarded yet
@@ -150,7 +164,7 @@ export async function getBusinessByUserId(
   }
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    throw new Error('שגיאת שרת');
   }
 
   const data: GetBusinessResponse = await response.json();
@@ -164,25 +178,16 @@ export async function analyzeBusinessText(
   text: string,
   _type: string = 'General'
 ): Promise<AnalyzeResponse> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/analyze-business`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ description: text }),
-    });
+  const response = await apiFetch('/analyze-business', {
+    method: 'POST',
+    body: JSON.stringify({ description: text }),
+  });
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data: AnalyzeResponse = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Failed to analyze business:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error('שגיאת שרת');
   }
+
+  return response.json();
 }
 
 /**
@@ -192,28 +197,19 @@ export async function scanCompetitor(
   competitorName: string,
   competitorType: string
 ): Promise<ScanCompetitorResponse> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/scan-competitor`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        competitor_name: competitorName,
-        competitor_type: competitorType,
-      }),
-    });
+  const response = await apiFetch('/scan-competitor', {
+    method: 'POST',
+    body: JSON.stringify({
+      competitor_name: competitorName,
+      competitor_type: competitorType,
+    }),
+  });
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data: ScanCompetitorResponse = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Failed to scan competitor:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error('שגיאת שרת');
   }
+
+  return response.json();
 }
 
 /**
@@ -257,17 +253,14 @@ export async function sendChatMessage(
   const body: Record<string, unknown> = { user_id: userId, message };
   if (promptTemplateId) body.prompt_template_id = promptTemplateId;
 
-  const response = await fetch(`${API_BASE_URL}/chat`, {
+  const response = await apiFetch('/chat', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || `API error: ${response.status}`);
+    throw new Error(error.detail || 'שגיאת שרת');
   }
 
   return response.json();

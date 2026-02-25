@@ -5,7 +5,6 @@ import { useWorkspace } from '../../context/WorkspaceContext';
 import { useSimulation } from '../../context/SimulationContext';
 import { apiFetch } from '../../services/api';
 import {
-  Eye,
   Focus,
   Map,
   TrendingUp,
@@ -18,13 +17,15 @@ import {
   Home,
   Radar,
   Crosshair,
-  Ghost,
   CreditCard,
   Archive,
   Users,
   FileDown,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 const navItems = [
   { path: '/dashboard', label: 'הקוקפיט', icon: Home, description: 'תדריך יומי ומודיעין', end: true },
@@ -58,12 +59,17 @@ export default function Sidebar() {
   const { currentProfile } = useSimulation();
   const [signingOut, setSigningOut] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleDownloadPDF = async () => {
     if (!currentProfile?.id || downloading) return;
     setDownloading(true);
     try {
       const response = await apiFetch(`/reports/weekly-brief/${currentProfile.id}`);
+      if (response.status === 404) {
+        toast.error('הדו"ח עדיין לא מוכן. המערכת תייצר אותו בקרוב.');
+        return;
+      }
       if (!response.ok) throw new Error('PDF generation failed');
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -75,7 +81,7 @@ export default function Sidebar() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('PDF download error:', err);
+      toast.error('שגיאה בהורדת PDF');
     } finally {
       setDownloading(false);
     }
@@ -95,28 +101,54 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar fixed top-0 right-0 h-screen w-72 glass border-l border-gray-700/50 flex flex-col z-50">
+    <>
+      {/* Hamburger Button - Mobile Only */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="md:hidden fixed top-4 right-4 z-[60] w-10 h-10 rounded-xl bg-gray-800/90 backdrop-blur-sm border border-gray-700/50 flex items-center justify-center text-white"
+      >
+        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
+
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+    <aside className={`sidebar fixed top-0 right-0 h-screen w-72 glass border-l border-gray-700/50 flex flex-col z-50 transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0`}>
       {/* Logo Section */}
       <div className="p-6 border-b border-gray-700/30">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center glow-primary">
-            <Ghost className="w-6 h-6 text-white" />
-          </div>
+          <img src="/logo-icon-only.svg" alt="Quieteyes" className="w-10 h-10" />
           <div>
-            <h1 className="text-xl font-bold text-white">Strategic Ghost</h1>
+            <h1 className="text-xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Quiet<span className="text-[#00d4ff]">eyes</span>
+            </h1>
             <p className="text-xs text-gray-400">מודיעין עסקי</p>
           </div>
         </div>
         {/* Plan Badge + Credits */}
         {!subLoading && (
-          <div className="mt-3 flex items-center justify-between">
-            <span className={`px-2 py-0.5 rounded text-xs font-medium text-white ${TIER_COLORS[tier] || 'bg-gray-600'}`}>
-              {tierName}
-            </span>
-            <span className="text-xs text-gray-400 flex items-center gap-1">
-              <CreditCard className="w-3 h-3" />
-              {tier === 'elite' ? '∞' : creditsRemaining}/{tier === 'elite' ? '∞' : creditsLimit}
-            </span>
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className={`px-2 py-0.5 rounded text-xs font-medium text-white ${TIER_COLORS[tier] || 'bg-gray-600'}`}>
+                {tierName}
+              </span>
+              <span className="text-xs text-gray-400" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                {tier === 'elite' ? '∞' : creditsRemaining}/{tier === 'elite' ? '∞' : creditsLimit}
+              </span>
+            </div>
+            {tier !== 'elite' && creditsLimit > 0 && (
+              <div className="h-1 bg-gray-700/50 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (creditsRemaining / creditsLimit) * 100)}%` }}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -128,11 +160,13 @@ export default function Sidebar() {
             key={item.path}
             to={item.path}
             end={item.end || false}
+            onClick={() => setIsOpen(false)}
+            title={item.description}
             className={({ isActive }) =>
               "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group " +
               (isActive
-                ? "bg-indigo-500/20 border border-indigo-500/30 text-white"
-                : "text-gray-400 hover:bg-gray-800/50 hover:text-white")
+                ? "bg-cyan-500/10 text-white border-l-2 border-l-cyan-400"
+                : "text-gray-400 hover:bg-gray-800/50 hover:text-white border-l-2 border-l-transparent")
             }
           >
             <item.icon className="w-5 h-5" />
@@ -152,7 +186,7 @@ export default function Sidebar() {
           <button
             onClick={handleDownloadPDF}
             disabled={downloading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium text-sm transition-all duration-300 disabled:opacity-50 glow-primary"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0066cc] to-[#00d4ff] hover:from-[#0077dd] hover:to-[#00e0ff] text-black font-medium text-sm transition-all duration-300 disabled:opacity-50 shadow-[0_0_20px_rgba(0,212,255,0.15)]"
           >
             {downloading ? (
               <>
@@ -205,5 +239,6 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     Application settings loaded from environment variables.
 
     Attributes:
-        openai_api_key: OpenAI API key for AI features
+        anthropic_api_key: Anthropic API key for Claude AI features
         supabase_url: Supabase project URL
         supabase_key: Supabase anonymous/service key
         host: Server host address
@@ -25,10 +25,10 @@ class Settings(BaseSettings):
         debug: Enable debug mode
     """
 
-    # OpenAI Configuration
-    openai_api_key: Optional[str] = Field(
+    # Anthropic / Claude Configuration
+    anthropic_api_key: Optional[str] = Field(
         default=None,
-        description="OpenAI API key for GPT-4o-mini"
+        description="Anthropic API key for Claude claude-sonnet-4-6"
     )
 
     # Supabase Configuration
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
         description="Server host"
     )
     port: int = Field(
-        default=8000,
+        default=8015,
         description="Server port"
     )
     debug: bool = Field(
@@ -96,7 +96,7 @@ class Settings(BaseSettings):
     @property
     def is_ai_available(self) -> bool:
         """Check if AI features are available."""
-        return self.openai_api_key is not None
+        return self.anthropic_api_key is not None
 
     @property
     def is_db_available(self) -> bool:

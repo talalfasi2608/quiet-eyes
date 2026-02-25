@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../services/api';
 import {
   LineChart,
   Line,
@@ -53,8 +54,8 @@ interface HistoryResponse {
 
 // Color palette for competitor lines
 const COLORS = [
-  '#6366f1', // indigo
-  '#8b5cf6', // violet
+  '#0066cc', // blue
+  '#00d4ff', // cyan
   '#ec4899', // pink
   '#f59e0b', // amber
   '#10b981', // emerald
@@ -95,7 +96,7 @@ function CustomTooltip({
               </span>
             </div>
             <span className="text-white font-medium text-sm">
-              {metric === 'rating' ? entry.value.toFixed(1) : entry.value}
+              {metric === 'rating' ? (entry.value || 0).toFixed(1) : (entry.value ?? 0)}
               {metric === 'rating' && <Star className="w-3 h-3 inline ml-1 text-yellow-400" />}
             </span>
           </div>
@@ -145,36 +146,33 @@ export default function CompetitorChart() {
 
     try {
       // First get the business ID for this user
-      const businessResponse = await fetch(
-        `http://localhost:8015/business/user/${user.id}`
-      );
+      const businessResponse = await apiFetch(`/business/user/${user.id}`);
 
       if (!businessResponse.ok) {
-        throw new Error('Failed to fetch business');
+        throw new Error('שגיאה בטעינת עסק');
       }
 
       const businessData = await businessResponse.json();
       const businessId = businessData.business?.id;
 
       if (!businessId) {
-        throw new Error('No business found');
+        throw new Error('לא נמצא עסק');
       }
 
       // Now fetch history
-      const response = await fetch(
-        `http://localhost:8015/business/history/${businessId}?days=${periodDays}`
+      const response = await apiFetch(
+        `/business/history/${businessId}?days=${periodDays}`
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch history data');
+        throw new Error('שגיאה בטעינת נתוני היסטוריה');
       }
 
       const result: HistoryResponse = await response.json();
       setData(result);
 
     } catch (err) {
-      console.error('Chart data error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load chart data');
+      setError(err instanceof Error ? err.message : 'שגיאה בטעינת נתוני הגרף');
     } finally {
       setLoading(false);
     }
@@ -225,8 +223,8 @@ export default function CompetitorChart() {
     return (
       <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8">
         <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-          <p className="text-gray-400">Loading market momentum data...</p>
+          <Loader2 className="w-10 h-10 text-cyan-500 animate-spin mb-4" />
+          <p className="text-gray-400">טוען נתוני מגמות שוק...</p>
         </div>
       </div>
     );
@@ -244,7 +242,7 @@ export default function CompetitorChart() {
             className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-lg text-red-300 text-sm flex items-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
-            Retry
+            נסה שוב
           </button>
         </div>
       </div>
@@ -257,9 +255,9 @@ export default function CompetitorChart() {
       <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8">
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <BarChart3 className="w-12 h-12 text-gray-600 mb-4" />
-          <p className="text-gray-400 mb-2">No historical data available yet</p>
+          <p className="text-gray-400 mb-2">אין נתונים היסטוריים עדיין</p>
           <p className="text-gray-500 text-sm">
-            Run a few scans to start tracking competitor trends
+            הפעל כמה סריקות כדי להתחיל לעקוב אחר מגמות מתחרים
           </p>
         </div>
       </div>
@@ -272,13 +270,13 @@ export default function CompetitorChart() {
       <div className="p-6 border-b border-gray-700/50">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30">
-              <TrendingUp className="w-6 h-6 text-indigo-400" />
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
+              <TrendingUp className="w-6 h-6 text-cyan-400" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Market Momentum</h2>
+              <h2 className="text-xl font-bold text-white">מגמות שוק</h2>
               <p className="text-sm text-gray-400">
-                {data.competitors_count} competitors · {data.total_snapshots} data points
+                {data.competitors_count} מתחרים · {data.total_snapshots} נקודות נתונים
               </p>
             </div>
           </div>
@@ -291,24 +289,24 @@ export default function CompetitorChart() {
                 className={`
                   flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors
                   ${metric === 'reviews_count'
-                    ? 'bg-indigo-500/20 text-indigo-400'
+                    ? 'bg-cyan-500/20 text-cyan-400'
                     : 'text-gray-400 hover:text-white'}
                 `}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
-                Reviews
+                ביקורות
               </button>
               <button
                 onClick={() => setMetric('rating')}
                 className={`
                   flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors
                   ${metric === 'rating'
-                    ? 'bg-indigo-500/20 text-indigo-400'
+                    ? 'bg-cyan-500/20 text-cyan-400'
                     : 'text-gray-400 hover:text-white'}
                 `}
               >
                 <Star className="w-3.5 h-3.5" />
-                Ratings
+                דירוגים
               </button>
             </div>
 
@@ -321,7 +319,7 @@ export default function CompetitorChart() {
                   className={`
                     px-3 py-1.5 rounded-md text-xs font-medium transition-colors
                     ${periodDays === days
-                      ? 'bg-purple-500/20 text-purple-400'
+                      ? 'bg-cyan-500/20 text-cyan-400'
                       : 'text-gray-400 hover:text-white'}
                   `}
                 >
@@ -334,7 +332,7 @@ export default function CompetitorChart() {
             <button
               onClick={fetchHistory}
               className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors"
-              title="Refresh data"
+              title="רענן נתונים"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -369,12 +367,12 @@ export default function CompetitorChart() {
                 axisLine={{ stroke: '#4b5563' }}
                 domain={metric === 'rating' ? [0, 5] : ['auto', 'auto']}
                 tickFormatter={(value) =>
-                  metric === 'rating' ? value.toFixed(1) : value.toString()
+                  metric === 'rating' ? (value || 0).toFixed(1) : String(value ?? 0)
                 }
               />
               <Tooltip
                 content={<CustomTooltip metric={metric} />}
-                cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '5 5' }}
+                cursor={{ stroke: '#00d4ff', strokeWidth: 1, strokeDasharray: '5 5' }}
               />
               <Legend content={<CustomLegend />} />
 
@@ -411,25 +409,25 @@ export default function CompetitorChart() {
             <div className="text-2xl font-bold text-white">
               {data.competitors_count}
             </div>
-            <div className="text-xs text-gray-500">Competitors Tracked</div>
+            <div className="text-xs text-gray-500">מתחרים במעקב</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-indigo-400">
+            <div className="text-2xl font-bold text-cyan-400">
               {data.total_snapshots}
             </div>
-            <div className="text-xs text-gray-500">Total Snapshots</div>
+            <div className="text-xs text-gray-500">סה"כ דגימות</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-400">
+            <div className="text-2xl font-bold text-cyan-400">
               {data.unique_dates}
             </div>
-            <div className="text-xs text-gray-500">Days of Data</div>
+            <div className="text-xs text-gray-500">ימי נתונים</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-emerald-400">
               {periodDays}d
             </div>
-            <div className="text-xs text-gray-500">Time Period</div>
+            <div className="text-xs text-gray-500">תקופה</div>
           </div>
         </div>
       </div>

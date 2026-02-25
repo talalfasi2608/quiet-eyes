@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useSubscription } from '../../context/SubscriptionContext';
-import { useAuth } from '../../context/AuthContext';
+import PageLoader from '../../components/ui/PageLoader';
 import {
   CreditCard,
   Zap,
@@ -14,8 +15,7 @@ import {
   ArrowUpRight,
   Sparkles,
 } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import { apiFetch } from '../../services/api';
 
 interface TierInfo {
   id: string;
@@ -43,7 +43,7 @@ const TIER_ICONS: Record<string, typeof Star> = {
 const TIER_GRADIENTS: Record<string, string> = {
   free: 'from-gray-600 to-gray-700',
   basic: 'from-blue-600 to-blue-700',
-  pro: 'from-indigo-600 to-purple-600',
+  pro: 'from-blue-600 to-cyan-500',
   elite: 'from-amber-500 to-amber-700',
 };
 
@@ -64,7 +64,6 @@ const ACTION_LABELS: Record<string, string> = {
 
 export default function PlanManagement() {
   const { tier, tierName, creditsRemaining, creditsLimit, hasStripe, refreshSubscription } = useSubscription();
-  const { session } = useAuth();
 
   const [tiers, setTiers] = useState<TierInfo[]>([]);
   const [creditCosts, setCreditCosts] = useState<Record<string, number>>({});
@@ -74,20 +73,30 @@ export default function PlanManagement() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [showUsage, setShowUsage] = useState(false);
+  const [suggestedPlan, setSuggestedPlan] = useState<string | null>(null);
 
-  const authHeaders = () => ({
-    'Content-Type': 'application/json',
-    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-  });
+  // Check if user came from landing page with a pre-selected plan
+  useEffect(() => {
+    const stored = localStorage.getItem('quieteyes_selected_plan');
+    if (stored) {
+      setSuggestedPlan(stored);
+      localStorage.removeItem('quieteyes_selected_plan');
+    }
+  }, []);
 
   // Fetch available tiers
   useEffect(() => {
     const fetchTiers = async () => {
       try {
-        const res = await fetch(`${API_BASE}/billing/tiers`);
+        const res = await apiFetch(`/billing/tiers`);
         if (res.ok) {
           const data = await res.json();
-          setTiers(data.tiers || []);
+          // Map API field 'price' to frontend field 'price_monthly'
+          const mappedTiers = (data.tiers || []).map((t: Record<string, unknown>) => ({
+            ...t,
+            price_monthly: t.price ?? t.price_monthly ?? 0,
+          }));
+          setTiers(mappedTiers);
           setCreditCosts(data.credit_costs || {});
         }
       } catch {
@@ -103,9 +112,7 @@ export default function PlanManagement() {
   const fetchUsage = async () => {
     setIsLoadingUsage(true);
     try {
-      const res = await fetch(`${API_BASE}/billing/usage`, {
-        headers: authHeaders(),
-      });
+      const res = await apiFetch(`/billing/usage`);
       if (res.ok) {
         const data = await res.json();
         setUsage(data.usage || []);
@@ -120,9 +127,8 @@ export default function PlanManagement() {
   const handleCheckout = async (tierId: string) => {
     setCheckoutLoading(tierId);
     try {
-      const res = await fetch(`${API_BASE}/billing/checkout`, {
+      const res = await apiFetch(`/billing/checkout`, {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({
           tier: tierId,
           success_url: `${window.location.origin}/dashboard/billing?upgraded=true`,
@@ -130,17 +136,14 @@ export default function PlanManagement() {
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
-          return;
-        }
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.url) {
+        window.location.href = data.url;
+        return;
       }
-      const err = await res.json().catch(() => null);
-      alert(err?.detail || 'שגיאה ביצירת הזמנה');
+      toast.error('שגיאה ביצירת הזמנה');
     } catch {
-      alert('שגיאת רשת');
+      toast.error('שגיאת רשת');
     } finally {
       setCheckoutLoading(null);
     }
@@ -149,25 +152,21 @@ export default function PlanManagement() {
   const handlePortal = async () => {
     setPortalLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/billing/portal`, {
+      const res = await apiFetch(`/billing/portal`, {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({
           return_url: `${window.location.origin}/dashboard/billing`,
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) {
-          window.open(data.url, '_blank');
-          return;
-        }
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.url) {
+        window.open(data.url, '_blank');
+        return;
       }
-      const err = await res.json().catch(() => null);
-      alert(err?.detail || 'שגיאה בפתיחת פורטל');
+      toast.error('שגיאה בפתיחת פורטל');
     } catch {
-      alert('שגיאת רשת');
+      toast.error('שגיאת רשת');
     } finally {
       setPortalLoading(false);
     }
@@ -185,11 +184,13 @@ export default function PlanManagement() {
 
   const creditsPercent = creditsLimit > 0 ? Math.min(100, (creditsRemaining / creditsLimit) * 100) : 100;
 
+  if (isLoadingTiers) return <PageLoader message="טוען תוכניות..." />;
+
   return (
     <div className="space-y-8" dir="rtl">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center">
           <CreditCard className="w-6 h-6 text-white" />
         </div>
         <div>
@@ -251,10 +252,10 @@ export default function PlanManagement() {
       {Object.keys(creditCosts).length > 0 && (
         <div className="glass-card p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-400" />
+            <Sparkles className="w-5 h-5 text-cyan-400" />
             עלות קרדיטים לפעולה
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {Object.entries(creditCosts).map(([action, cost]) => (
               <div key={action} className="rounded-xl bg-gray-800/50 border border-gray-700/30 p-3 text-center">
                 <p className="text-xl font-bold text-white">{cost}</p>
@@ -274,9 +275,10 @@ export default function PlanManagement() {
             <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {tiers.map((t) => {
               const isCurrentTier = t.id === tier;
+              const isSuggested = t.id === suggestedPlan && !isCurrentTier;
               const Icon = TIER_ICONS[t.id] || Shield;
               const gradient = TIER_GRADIENTS[t.id] || TIER_GRADIENTS.free;
               const isUpgrade = !isCurrentTier && t.id !== 'free';
@@ -286,9 +288,16 @@ export default function PlanManagement() {
                 <div
                   key={t.id}
                   className={`glass-card p-6 relative overflow-hidden transition-all duration-300 ${
-                    isCurrentTier ? `border-2 ${TIER_BORDERS[t.id]}` : 'hover:border-gray-600/50'
+                    isCurrentTier ? `border-2 ${TIER_BORDERS[t.id]}` : isSuggested ? `border-2 border-indigo-500/50 ring-2 ring-indigo-500/20` : 'hover:border-gray-600/50'
                   }`}
                 >
+                  {isSuggested && (
+                    <div className="absolute top-3 left-3">
+                      <span className="px-2 py-1 rounded-lg bg-indigo-500/20 text-indigo-400 text-xs font-medium border border-indigo-500/30 animate-pulse">
+                        מומלץ עבורך
+                      </span>
+                    </div>
+                  )}
                   {isCurrentTier && (
                     <div className="absolute top-3 left-3">
                       <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-medium border border-emerald-500/30">
