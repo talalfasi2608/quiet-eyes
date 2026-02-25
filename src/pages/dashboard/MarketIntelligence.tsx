@@ -31,8 +31,8 @@ import {
   ArrowUpRight,
   Activity
 } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import toast from 'react-hot-toast';
+import { apiFetch } from '../../services/api';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -74,17 +74,17 @@ function RadarPulse({ isScanning }: { isScanning: boolean }) {
       {/* Scanning line */}
       {isScanning && (
         <div
-          className="absolute inset-0 rounded-full overflow-hidden"
+          className="absolute inset-0 rounded-full overflow-hidden animate-spin"
           style={{
             background: 'conic-gradient(from 0deg, transparent 0deg, rgba(99, 102, 241, 0.5) 60deg, transparent 120deg)',
-            animation: 'spin 2s linear infinite'
+            animationDuration: '2s'
           }}
         />
       )}
 
       {/* Center icon */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center shadow-lg ${isScanning ? 'animate-pulse' : ''}`}>
+        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-cyan-700 flex items-center justify-center shadow-lg ${isScanning ? 'animate-pulse' : ''}`}>
           <Radar className="w-6 h-6 text-white" />
         </div>
       </div>
@@ -124,7 +124,7 @@ function SourceIcon({ source }: { source: string }) {
   if (lower.includes('facebook')) return <Facebook className="w-4 h-4 text-blue-400" />;
   if (lower.includes('google') || lower.includes('maps')) return <MapPin className="w-4 h-4 text-emerald-400" />;
   if (lower.includes('madlan')) return <Building2 className="w-4 h-4 text-amber-400" />;
-  if (lower.includes('ad')) return <Megaphone className="w-4 h-4 text-purple-400" />;
+  if (lower.includes('ad')) return <Megaphone className="w-4 h-4 text-cyan-400" />;
   if (lower.includes('price')) return <DollarSign className="w-4 h-4 text-emerald-400" />;
 
   return <Globe className="w-4 h-4 text-gray-400" />;
@@ -157,7 +157,10 @@ function OpportunityCard({ item }: { item: IntelItem }) {
           <SourceIcon source={item.source} />
           <span>{item.source}</span>
         </div>
-        <button className="flex items-center gap-1 text-emerald-400 text-xs hover:text-emerald-300 transition-colors">
+        <button
+          onClick={() => { window.location.href = '/dashboard/sniper'; }}
+          className="flex items-center gap-1 text-emerald-400 text-xs hover:text-emerald-300 transition-colors"
+        >
           <span>תפוס ליד</span>
           <ArrowUpRight className="w-3 h-3" />
         </button>
@@ -185,7 +188,7 @@ function PriceAlertCard({ item }: { item: IntelItem }) {
           {item.is_fresh && <FreshBadge />}
         </div>
         <div className="flex items-center gap-2">
-          {priceDiff && (
+          {priceDiff != null && !isNaN(priceDiff) && (
             <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs">
               <TrendingDown className="w-3 h-3" />
               {priceDiff.toFixed(0)}% זול יותר
@@ -225,7 +228,10 @@ function PriceAlertCard({ item }: { item: IntelItem }) {
         <span className="text-xs text-gray-500">
           {new Date(item.timestamp).toLocaleDateString('he-IL')}
         </span>
-        <button className="flex items-center gap-1 text-amber-400 text-xs hover:text-amber-300 transition-colors">
+        <button
+          onClick={() => { window.location.href = '/dashboard/landscape'; }}
+          className="flex items-center gap-1 text-amber-400 text-xs hover:text-amber-300 transition-colors"
+        >
           <span>נתח השפעה</span>
           <ArrowUpRight className="w-3 h-3" />
         </button>
@@ -245,18 +251,18 @@ function AdInsightCard({ item }: { item: IntelItem }) {
   const adCount = adData?.ad_count || 0;
 
   return (
-    <div className="glass-card p-4 border-r-4 border-purple-500 hover:bg-purple-500/5 transition-all cursor-pointer group">
+    <div className="glass-card p-4 border-r-4 border-cyan-500 hover:bg-cyan-500/5 transition-all cursor-pointer group">
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-            <Megaphone className="w-4 h-4 text-purple-400" />
+          <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+            <Megaphone className="w-4 h-4 text-cyan-400" />
           </div>
           {item.is_fresh && <FreshBadge />}
         </div>
         <PriorityIndicator priority={item.priority} />
       </div>
 
-      <h4 className="font-semibold text-white text-sm mb-1 group-hover:text-purple-300 transition-colors">
+      <h4 className="font-semibold text-white text-sm mb-1 group-hover:text-cyan-300 transition-colors">
         {item.title}
       </h4>
 
@@ -297,9 +303,12 @@ function AdInsightCard({ item }: { item: IntelItem }) {
         <span className="text-xs text-gray-500">
           {new Date(item.timestamp).toLocaleDateString('he-IL')}
         </span>
-        <button className="flex items-center gap-1 text-purple-400 text-xs hover:text-purple-300 transition-colors">
+        <button
+          onClick={() => { window.location.href = '/dashboard/landscape'; }}
+          className="flex items-center gap-1 text-cyan-400 text-xs hover:text-cyan-300 transition-colors"
+        >
           <span>צפה במודעות</span>
-          <ExternalLink className="w-3 h-3" />
+          <Eye className="w-3 h-3" />
         </button>
       </div>
     </div>
@@ -340,23 +349,31 @@ export default function MarketIntelligence() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'opportunities' | 'prices' | 'ads'>('all');
 
+  // Safety timeout: never spin forever
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   // Fetch intelligence feed
   const fetchFeed = useCallback(async () => {
-    if (!currentProfile?.id) return;
+    if (!currentProfile?.id) { setLoading(false); return; }
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/intelligence/feed/${currentProfile.id}?limit=30`);
+      const response = await apiFetch(`/intelligence/feed/${currentProfile.id}?limit=30`);
 
       if (response.ok) {
         const data = await response.json();
         setFeed(data);
         setError(null);
       } else {
-        throw new Error('Failed to load intelligence feed');
+        throw new Error('טעינת מודיעין השוק נכשלה');
       }
     } catch (err) {
-      console.error('Feed error:', err);
+      toast.error('שגיאה בטעינת מודיעין שוק');
       setError('טעינת מודיעין השוק נכשלה');
     } finally {
       setLoading(false);
@@ -370,7 +387,7 @@ export default function MarketIntelligence() {
     setScanning(true);
 
     try {
-      await fetch(`${API_BASE}/intelligence/scan/${currentProfile.id}`, {
+      await apiFetch(`/intelligence/scan/${currentProfile.id}`, {
         method: 'POST'
       });
 
@@ -380,7 +397,7 @@ export default function MarketIntelligence() {
         setScanning(false);
       }, 10000);  // Wait 10 seconds then refresh
     } catch (err) {
-      console.error('Scan error:', err);
+      toast.error('שגיאה בסריקה');
       setScanning(false);
     }
   };
@@ -405,11 +422,11 @@ export default function MarketIntelligence() {
     <div className="space-y-6 fade-in">
       {/* Header */}
       <header className="glass-card p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <RadarPulse isScanning={scanning} />
             <div>
-              <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-white flex items-center gap-3" style={{ fontFamily: "var(--font-display)" }}>
                 מודיעין שוק
                 {scanning && (
                   <span className="text-sm font-normal text-indigo-400 flex items-center gap-2">
@@ -430,7 +447,7 @@ export default function MarketIntelligence() {
             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
               scanning
                 ? 'bg-indigo-600/50 text-indigo-300 cursor-wait'
-                : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:shadow-indigo-500/30'
+                : 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white hover:shadow-lg hover:shadow-indigo-500/30'
             }`}
           >
             {scanning ? (
@@ -459,7 +476,7 @@ export default function MarketIntelligence() {
           >
             <div className="flex items-center justify-between mb-1">
               <Activity className={`w-5 h-5 ${activeTab === 'all' ? 'text-indigo-400' : 'text-gray-500'}`} />
-              <span className={`text-2xl font-bold ${activeTab === 'all' ? 'text-indigo-400' : 'text-white'}`}>
+              <span className={`text-2xl font-bold ${activeTab === 'all' ? 'text-indigo-400' : 'text-white'}`} style={{ fontFamily: "var(--font-mono)" }}>
                 {totals.all}
               </span>
             </div>
@@ -476,7 +493,7 @@ export default function MarketIntelligence() {
           >
             <div className="flex items-center justify-between mb-1">
               <Users className={`w-5 h-5 ${activeTab === 'opportunities' ? 'text-emerald-400' : 'text-gray-500'}`} />
-              <span className={`text-2xl font-bold ${activeTab === 'opportunities' ? 'text-emerald-400' : 'text-white'}`}>
+              <span className={`text-2xl font-bold ${activeTab === 'opportunities' ? 'text-emerald-400' : 'text-white'}`} style={{ fontFamily: "var(--font-mono)" }}>
                 {totals.opportunities}
               </span>
             </div>
@@ -493,7 +510,7 @@ export default function MarketIntelligence() {
           >
             <div className="flex items-center justify-between mb-1">
               <Tag className={`w-5 h-5 ${activeTab === 'prices' ? 'text-amber-400' : 'text-gray-500'}`} />
-              <span className={`text-2xl font-bold ${activeTab === 'prices' ? 'text-amber-400' : 'text-white'}`}>
+              <span className={`text-2xl font-bold ${activeTab === 'prices' ? 'text-amber-400' : 'text-white'}`} style={{ fontFamily: "var(--font-mono)" }}>
                 {totals.prices}
               </span>
             </div>
@@ -504,13 +521,13 @@ export default function MarketIntelligence() {
             onClick={() => setActiveTab('ads')}
             className={`p-4 rounded-xl border transition-all ${
               activeTab === 'ads'
-                ? 'bg-purple-500/20 border-purple-500/50'
+                ? 'bg-cyan-500/20 border-cyan-500/50'
                 : 'bg-gray-800/30 border-gray-700/50 hover:border-gray-600'
             }`}
           >
             <div className="flex items-center justify-between mb-1">
-              <Megaphone className={`w-5 h-5 ${activeTab === 'ads' ? 'text-purple-400' : 'text-gray-500'}`} />
-              <span className={`text-2xl font-bold ${activeTab === 'ads' ? 'text-purple-400' : 'text-white'}`}>
+              <Megaphone className={`w-5 h-5 ${activeTab === 'ads' ? 'text-cyan-400' : 'text-gray-500'}`} />
+              <span className={`text-2xl font-bold ${activeTab === 'ads' ? 'text-cyan-400' : 'text-white'}`} style={{ fontFamily: "var(--font-mono)" }}>
                 {totals.ads}
               </span>
             </div>
@@ -544,7 +561,7 @@ export default function MarketIntelligence() {
       {/* Empty State */}
       {!loading && !error && feed?.total_count === 0 && (
         <div className="glass-card p-12 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-6">
             <Radar className="w-10 h-10 text-indigo-400" />
           </div>
           <h3 className="text-xl font-bold text-white mb-2">אין מודיעין עדיין</h3>
@@ -554,7 +571,7 @@ export default function MarketIntelligence() {
           <button
             onClick={triggerScan}
             disabled={scanning}
-            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-indigo-500/30 transition-all"
+            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-cyan-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-indigo-500/30 transition-all"
           >
             <Radar className="w-5 h-5 inline ml-2" />
             התחל סריקה ראשונה
@@ -566,17 +583,17 @@ export default function MarketIntelligence() {
       {!loading && !error && feed && feed.total_count > 0 && (
         <div className="space-y-6">
           {/* Opportunities Section */}
-          {(activeTab === 'all' || activeTab === 'opportunities') && feed.opportunities.length > 0 && (
+          {(activeTab === 'all' || activeTab === 'opportunities') && (feed.opportunities || []).length > 0 && (
             <section>
               <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
                 <Users className="w-5 h-5 text-emerald-400" />
                 הזדמנויות חיות
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">
-                  {feed.opportunities.length}
+                  {(feed.opportunities || []).length}
                 </span>
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {feed.opportunities.map(item => (
+                {(feed.opportunities || []).map(item => (
                   <OpportunityCard key={item.id} item={item} />
                 ))}
               </div>
@@ -584,17 +601,17 @@ export default function MarketIntelligence() {
           )}
 
           {/* Price Alerts Section */}
-          {(activeTab === 'all' || activeTab === 'prices') && feed.price_alerts.length > 0 && (
+          {(activeTab === 'all' || activeTab === 'prices') && (feed.price_alerts || []).length > 0 && (
             <section>
               <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
                 <Tag className="w-5 h-5 text-amber-400" />
                 התראות מחיר
                 <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs">
-                  {feed.price_alerts.length}
+                  {(feed.price_alerts || []).length}
                 </span>
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {feed.price_alerts.map(item => (
+                {(feed.price_alerts || []).map(item => (
                   <PriceAlertCard key={item.id} item={item} />
                 ))}
               </div>
@@ -602,17 +619,17 @@ export default function MarketIntelligence() {
           )}
 
           {/* Ad Insights Section */}
-          {(activeTab === 'all' || activeTab === 'ads') && feed.ad_insights.length > 0 && (
+          {(activeTab === 'all' || activeTab === 'ads') && (feed.ad_insights || []).length > 0 && (
             <section>
               <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
-                <Megaphone className="w-5 h-5 text-purple-400" />
+                <Megaphone className="w-5 h-5 text-cyan-400" />
                 תובנות פרסום
-                <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-xs">
-                  {feed.ad_insights.length}
+                <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 text-xs">
+                  {(feed.ad_insights || []).length}
                 </span>
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {feed.ad_insights.map(item => (
+                {(feed.ad_insights || []).map(item => (
                   <AdInsightCard key={item.id} item={item} />
                 ))}
               </div>
@@ -620,17 +637,17 @@ export default function MarketIntelligence() {
           )}
 
           {/* Other Alerts */}
-          {activeTab === 'all' && feed.other_alerts.length > 0 && (
+          {activeTab === 'all' && (feed.other_alerts || []).length > 0 && (
             <section>
               <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
                 <Zap className="w-5 h-5 text-gray-400" />
                 התראות נוספות
                 <span className="px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 text-xs">
-                  {feed.other_alerts.length}
+                  {(feed.other_alerts || []).length}
                 </span>
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {feed.other_alerts.map(item => (
+                {(feed.other_alerts || []).map(item => (
                   <div key={item.id} className="glass-card p-4 border-r-4 border-gray-500">
                     <h4 className="font-medium text-white text-sm mb-1">{item.title}</h4>
                     <p className="text-gray-400 text-xs">{item.description}</p>
@@ -642,13 +659,6 @@ export default function MarketIntelligence() {
         </div>
       )}
 
-      {/* CSS for radar animation */}
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -2,9 +2,11 @@
 CRM Router — Push leads to external CRM systems.
 """
 
+import os
 import logging
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
+from routers._auth_helper import require_auth
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,24 @@ class PushLeadRequest(BaseModel):
     lead_id: str
 
 
+def _get_service_client():
+    """Get service-role client to bypass RLS."""
+    try:
+        from supabase import create_client
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        if url and key:
+            return create_client(url, key)
+    except Exception:
+        pass
+    return None
+
+
 def _get_supabase():
+    """Get DB client — prefer service-role to bypass RLS."""
+    svc = _get_service_client()
+    if svc:
+        return svc
     try:
         from config import supabase
         return supabase
@@ -23,9 +42,35 @@ def _get_supabase():
         return None
 
 
+@router.get("/status")
+async def crm_status(auth_user_id: str = Depends(require_auth)):
+    """Check if any CRM integration is available (HubSpot, webhook, etc.)."""
+    hubspot_token = os.getenv("HUBSPOT_ACCESS_TOKEN") or os.getenv("HUBSPOT_API_KEY")
+    if hubspot_token:
+        return {"configured": True, "provider": "hubspot"}
+
+    # Check if workspace has a CRM integration in DB
+    supabase = _get_supabase()
+    if supabase:
+        try:
+            result = (
+                supabase.table("crm_integrations")
+                .select("provider")
+                .limit(1)
+                .execute()
+            )
+            if result.data:
+                return {"configured": True, "provider": result.data[0].get("provider", "webhook")}
+        except Exception:
+            pass
+
+    return {"configured": False, "provider": None, "message": "אינטגרציית CRM אינה מוגדרת עדיין"}
+
+
 @router.post("/push-lead")
 async def push_lead(
     req: PushLeadRequest,
+    auth_user_id: str = Depends(require_auth),
 ):
     """
     Push a lead to the workspace's configured CRM.

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { useSimulation } from '../../context/SimulationContext';
 import { loadGoogleMaps } from '../../lib/googleMaps';
+import { apiFetch } from '../../services/api';
 import { MapPin, Star, Search, RefreshCw, Loader2, AlertTriangle, Crosshair, Zap, Radio, Shield, Target } from 'lucide-react';
 import CompetitorGrowthChart from '../../components/ui/CompetitorGrowthChart';
 import CompetitorMatrix from '../../components/ui/CompetitorMatrix';
@@ -25,6 +27,7 @@ const darkMapStyle = [
 interface Competitor {
   id: string;
   name: string;
+  place_id?: string;
   description?: string;
   perceived_threat_level: string;
   google_rating?: number;
@@ -79,7 +82,7 @@ function ScanningOverlay({ businessName }: { businessName: string }) {
 
           {/* Center icon */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center shadow-lg shadow-indigo-500/50">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-600 to-cyan-700 flex items-center justify-center shadow-lg shadow-blue-500/50">
               <Crosshair className="w-10 h-10 text-white animate-pulse" />
             </div>
           </div>
@@ -118,7 +121,7 @@ function ScanningOverlay({ businessName }: { businessName: string }) {
         {/* Progress bar */}
         <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full transition-all duration-500"
+            className="h-full bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full transition-all duration-500"
             style={{ width: `${((scanPhase + 1) / phases.length) * 100}%` }}
           />
         </div>
@@ -148,8 +151,8 @@ function StarRating({ rating, reviews }: { rating: number; reviews: number }) {
           />
         ))}
       </div>
-      <span className="text-white font-semibold">{rating.toFixed(1)}</span>
-      <span className="text-gray-500 text-sm">({reviews.toLocaleString()})</span>
+      <span className="text-white font-semibold">{(rating || 0).toFixed(1)}</span>
+      <span className="text-gray-500 text-sm">({(reviews || 0).toLocaleString()})</span>
     </div>
   );
 }
@@ -199,20 +202,42 @@ export default function Landscape() {
         const avgLat = validCoords.reduce((sum, c) => sum + (c.latitude || 0), 0) / validCoords.length;
         const avgLng = validCoords.reduce((sum, c) => sum + (c.longitude || 0), 0) / validCoords.length;
         setMapCenter({ lat: avgLat, lng: avgLng });
+        return;
       }
     }
+
+    // Priority 3: Default to Israel center so the map always renders
+    setMapCenter({ lat: 31.77, lng: 35.22 });
   }, [currentProfile?.latitude, currentProfile?.longitude, competitors]);
 
   const fetchCompetitors = async (businessId: string) => {
     try {
-      const response = await fetch(`http://localhost:8015/competitors/${businessId}`);
+      const response = await apiFetch(`/competitors/${businessId}`);
       if (response.ok) {
         const data = await response.json();
-        setCompetitors(data.competitors || []);
+        // Deduplicate by place_id || name (consistent with backend)
+        const seen = new Map<string, Competitor>();
+        for (const c of (data.competitors || []) as Competitor[]) {
+          const key = (c.place_id || c.name).trim().toLowerCase();
+          if (!seen.has(key)) seen.set(key, c);
+        }
+        setCompetitors(Array.from(seen.values()));
       }
     } catch (error) {
-      console.error('Failed to fetch competitors:', error);
+      toast.error('שגיאה בטעינת מתחרים');
     }
+  };
+
+  // Haversine distance in km
+  const getDistanceKm = (comp: Competitor): number | null => {
+    const bizLat = currentProfile?.latitude;
+    const bizLng = currentProfile?.longitude;
+    if (!bizLat || !bizLng || !comp.latitude || !comp.longitude) return null;
+    const R = 6371;
+    const dLat = (comp.latitude - bizLat) * Math.PI / 180;
+    const dLon = (comp.longitude - bizLng) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(bizLat*Math.PI/180) * Math.cos(comp.latitude*Math.PI/180) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   };
 
   const handleScanCompetitors = async () => {
@@ -220,7 +245,7 @@ export default function Landscape() {
     setLoading(true);
     try {
       // Trigger competitor discovery via radar/discovery endpoint
-      const response = await fetch(`http://localhost:8015/radar/sync/${currentProfile.id}`, {
+      const response = await apiFetch(`/radar/sync/${currentProfile.id}`, {
         method: 'POST',
       });
       if (response.ok) {
@@ -228,7 +253,7 @@ export default function Landscape() {
         await fetchCompetitors(currentProfile.id);
       }
     } catch (error) {
-      console.error('Failed to scan competitors:', error);
+      toast.error('שגיאה בסריקה');
     } finally {
       setLoading(false);
     }
@@ -393,7 +418,7 @@ export default function Landscape() {
           <>
             <div ref={mapContainerRef} className="w-full h-full" />
             {!mapsReady && (
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 flex items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-cyan-900/20 flex items-center justify-center">
                 <div className="text-center">
                   <Loader2 className="w-12 h-12 text-indigo-400 mx-auto mb-3 animate-spin" />
                   <p className="text-gray-400">טוען מפה...</p>
@@ -466,7 +491,7 @@ export default function Landscape() {
 
         {competitors.length === 0 ? (
           <div className="text-center py-16">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
               <AlertTriangle className="w-10 h-10 text-indigo-400" />
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">לא נמצאו מתחרים עדיין</h3>
@@ -515,14 +540,24 @@ export default function Landscape() {
                   </span>
                 </div>
 
-                {/* Rating */}
-                {competitor.google_rating ? (
-                  <div className="mb-4">
+                {/* Rating + Distance */}
+                <div className="flex items-center justify-between mb-4">
+                  {competitor.google_rating ? (
                     <StarRating rating={competitor.google_rating} reviews={competitor.google_reviews_count || 0} />
-                  </div>
-                ) : (
-                  <div className="mb-4 text-gray-500 text-sm">אין דירוג זמין</div>
-                )}
+                  ) : (
+                    <span className="text-gray-500 text-sm">אין דירוג זמין</span>
+                  )}
+                  {(() => {
+                    const dist = getDistanceKm(competitor);
+                    if (dist === null) return null;
+                    return (
+                      <span className="flex items-center gap-1 text-xs text-gray-400 bg-gray-700/40 px-2 py-1 rounded-full">
+                        <MapPin className="w-3 h-3" />
+                        {dist < 1 ? `${Math.round(dist * 1000)} מ'` : `${dist.toFixed(1)} ק"מ`}
+                      </span>
+                    );
+                  })()}
+                </div>
 
                 {/* Weakness */}
                 {competitor.identified_weakness && (
@@ -538,7 +573,7 @@ export default function Landscape() {
                 {/* Action Button */}
                 <button
                   onClick={() => handleDirectAction(competitor.name)}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 px-4 rounded-lg font-medium hover:from-indigo-500 hover:to-purple-500 transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-indigo-500/25"
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white py-2.5 px-4 rounded-lg font-medium hover:from-blue-500 hover:to-cyan-500 transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-blue-500/25"
                 >
                   <Zap className="w-4 h-4" />
                   <span>קבל אסטרטגיית תקיפה</span>

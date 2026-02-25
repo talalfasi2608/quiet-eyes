@@ -23,6 +23,8 @@ import {
   ChevronRight,
   Star
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { apiFetch } from '../../services/api';
 
 // Types
 interface TrackedSite {
@@ -54,8 +56,6 @@ interface KnowledgeData {
   competitiveEdge: string;
 }
 
-const API_BASE = 'http://localhost:8015';
-
 export default function KnowledgeBase() {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -84,6 +84,14 @@ export default function KnowledgeBase() {
     lastUpdated: ''
   });
 
+  // Safety timeout: never spin forever
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   // Fetch initial data
   useEffect(() => {
     if (user?.id) {
@@ -97,7 +105,7 @@ export default function KnowledgeBase() {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/knowledge/${user.id}`);
+      const response = await apiFetch(`/knowledge/${user.id}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -119,7 +127,7 @@ export default function KnowledgeBase() {
         generateDefaultSites();
       }
     } catch (err) {
-      console.error('Failed to fetch knowledge data:', err);
+      toast.error('שגיאה בטעינת נתונים');
       generateDefaultSites();
     } finally {
       setLoading(false);
@@ -178,9 +186,8 @@ export default function KnowledgeBase() {
     setSaving(true);
 
     try {
-      const response = await fetch(`${API_BASE}/knowledge/${user.id}`, {
+      const response = await apiFetch(`/knowledge/${user.id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           knowledge: knowledgeData,
           tracked_sites: trackedSites.filter(s => s.type === 'custom')
@@ -192,7 +199,7 @@ export default function KnowledgeBase() {
         setTimeout(() => setSaved(false), 2000);
       }
     } catch (err) {
-      console.error('Failed to save:', err);
+      toast.error('שגיאה בשמירה');
       setError('שמירת השינויים נכשלה');
     } finally {
       setSaving(false);
@@ -224,9 +231,8 @@ export default function KnowledgeBase() {
 
       // Trigger discovery for this site
       if (user?.id) {
-        await fetch(`${API_BASE}/knowledge/discover-site`, {
+        await apiFetch(`/knowledge/discover-site`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             user_id: user.id,
             url
@@ -234,7 +240,6 @@ export default function KnowledgeBase() {
         });
       }
     } catch (err) {
-      console.error('Invalid URL:', err);
       setError('פורמט כתובת לא תקין');
     } finally {
       setAddingSite(false);
@@ -249,7 +254,7 @@ export default function KnowledgeBase() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch(`${API_BASE}/knowledge/learn/${user.id}`, {
+      const response = await apiFetch(`/knowledge/learn/${user.id}`, {
         method: 'POST'
       });
 
@@ -258,7 +263,7 @@ export default function KnowledgeBase() {
         fetchKnowledgeData();
       }
     } catch (err) {
-      console.error('Learning trigger failed:', err);
+      // silently ignore
     }
   };
 
@@ -279,8 +284,8 @@ export default function KnowledgeBase() {
       {/* Header */}
       <header className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 flex items-center justify-center">
-            <Brain className="w-7 h-7 text-violet-400" />
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
+            <Brain className="w-7 h-7 text-cyan-400" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white mb-1">בסיס ידע</h1>
@@ -317,7 +322,7 @@ export default function KnowledgeBase() {
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
           <p className="text-red-300">{error}</p>
-          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-300">
+          <button onClick={() => setError(null)} className="ms-auto text-red-400 hover:text-red-300">
             &times;
           </button>
         </div>
@@ -387,7 +392,7 @@ export default function KnowledgeBase() {
               {/* Competitive Edge */}
               <div>
                 <label className="flex items-center gap-2 text-gray-300 text-sm font-medium mb-2">
-                  <Zap className="w-4 h-4 text-purple-400" />
+                  <Zap className="w-4 h-4 text-cyan-400" />
                   יתרון תחרותי
                 </label>
                 <textarea
@@ -413,7 +418,7 @@ export default function KnowledgeBase() {
                 </div>
               </div>
               <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-sm">
-                {trackedSites.length} sites
+                {trackedSites.length} אתרים
               </span>
             </div>
 
@@ -444,7 +449,7 @@ export default function KnowledgeBase() {
                       <div className="flex items-center gap-2">
                         <p className="text-white font-medium truncate">{site.name}</p>
                         {site.type === 'auto' && (
-                          <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-xs">
+                          <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-xs">
                             זוהה ע״י AI
                           </span>
                         )}
@@ -490,7 +495,7 @@ export default function KnowledgeBase() {
                   onChange={(e) => setNewSiteUrl(e.target.value)}
                   placeholder="הוסף כתובת אתר למעקב..."
                   className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700/50 text-white placeholder-gray-500 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all"
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddSite()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddSite()}
                 />
               </div>
               <button
@@ -523,7 +528,7 @@ export default function KnowledgeBase() {
               <button
                 onClick={triggerLearning}
                 className="p-2 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors"
-                title="Trigger learning"
+                title="הפעל למידה"
               >
                 <RefreshCw className="w-5 h-5" />
               </button>
@@ -556,7 +561,7 @@ export default function KnowledgeBase() {
                   />
                   <defs>
                     <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#8b5cf6" />
+                      <stop offset="0%" stopColor="#00d4ff" />
                       <stop offset="100%" stopColor="#06b6d4" />
                     </linearGradient>
                   </defs>
@@ -585,7 +590,7 @@ export default function KnowledgeBase() {
                   </div>
                   <div className="h-2 rounded-full bg-gray-700/50 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-500 transition-all duration-500"
+                      className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-500 transition-all duration-500"
                       style={{ width: `${category.progress}%` }}
                     />
                   </div>
@@ -609,11 +614,23 @@ export default function KnowledgeBase() {
             </h3>
             <div className="space-y-3">
               <button
-                onClick={() => window.open(`${API_BASE}/domain/insight/${user?.id}`, '_blank')}
+                onClick={async () => {
+                  try {
+                    const res = await apiFetch(`/domain/insight/${user?.id}`);
+                    const data = await res.json();
+                    if (data.insight) {
+                      toast.success('תובנה נוצרה בהצלחה');
+                    } else {
+                      toast('אין תובנות זמינות כרגע');
+                    }
+                  } catch {
+                    toast.error('שגיאה ביצירת תובנה');
+                  }
+                }}
                 className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/30 hover:border-indigo-500/30 text-gray-300 hover:text-white transition-all group"
               >
                 <div className="flex items-center gap-3">
-                  <Brain className="w-5 h-5 text-violet-400" />
+                  <Brain className="w-5 h-5 text-cyan-400" />
                   <span>צור תובנה ראשית</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-indigo-400 transition-colors" />
@@ -643,7 +660,7 @@ export default function KnowledgeBase() {
           </div>
 
           {/* Tips Card */}
-          <div className="glass-card bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20">
+          <div className="glass-card bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
                 <BookOpen className="w-5 h-5 text-indigo-400" />

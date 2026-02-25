@@ -7,24 +7,38 @@ import logging
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Query, Depends, Body
 from typing import Optional
+from routers._auth_helper import require_auth
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-# Super-admin UID loaded from environment
-SUPER_ADMIN_UID = os.getenv("SUPER_ADMIN_UID", "")
-
-
 def _is_super_admin(user_id: str) -> bool:
     """Check if user is the super admin."""
-    if not SUPER_ADMIN_UID:
+    super_uid = os.getenv("SUPER_ADMIN_UID", "")
+    if not super_uid:
         return False
-    return user_id == SUPER_ADMIN_UID
+    return user_id == super_uid
+
+
+def _get_service_client():
+    """Get service-role client to bypass RLS (admin needs full access)."""
+    try:
+        from supabase import create_client
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        if url and key:
+            return create_client(url, key)
+    except Exception:
+        pass
+    return None
 
 
 def _get_supabase():
-    """Lazy import of supabase client to avoid circular imports."""
+    """Lazy import — prefer service-role to bypass RLS for admin operations."""
+    svc = _get_service_client()
+    if svc:
+        return svc
     try:
         from config import supabase
         return supabase
@@ -44,6 +58,7 @@ def _require_super_admin(user_id: str):
 
 @router.get("/audit-logs")
 async def get_audit_logs(
+    auth_user_id: str = Depends(require_auth),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     user_id: Optional[str] = Query(default=None),
@@ -51,6 +66,7 @@ async def get_audit_logs(
     path_contains: Optional[str] = Query(default=None),
 ):
     """Paginated audit log retrieval with optional filters."""
+    _require_super_admin(auth_user_id)
     supabase = _get_supabase()
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -78,10 +94,10 @@ async def get_audit_logs(
 
 @router.get("/super-dashboard")
 async def super_dashboard(
-    user_id: str = Query(..., description="Caller's user ID"),
+    auth_user_id: str = Depends(require_auth),
 ):
     """Global stats for the super-admin dashboard."""
-    _require_super_admin(user_id)
+    _require_super_admin(auth_user_id)
     supabase = _get_supabase()
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -140,10 +156,10 @@ async def super_dashboard(
 @router.get("/super-dashboard/workspace/{workspace_id}")
 async def workspace_detail(
     workspace_id: int,
-    user_id: str = Query(..., description="Caller's user ID"),
+    auth_user_id: str = Depends(require_auth),
 ):
     """Detailed view of a single workspace."""
-    _require_super_admin(user_id)
+    _require_super_admin(auth_user_id)
     supabase = _get_supabase()
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -193,7 +209,7 @@ async def workspace_detail(
 
 @router.get("/super-dashboard/workspaces-table")
 async def workspaces_table(
-    user_id: str = Query(..., description="Caller's user ID"),
+    auth_user_id: str = Depends(require_auth),
     sort_by: str = Query(default="name", description="Column to sort by"),
     sort_dir: str = Query(default="asc", description="Sort direction: asc or desc"),
 ):
@@ -203,7 +219,7 @@ async def workspaces_table(
     Columns: name, owner_email, tier, api_usage_24h, last_active,
              total_leads, total_competitors, businesses_count
     """
-    _require_super_admin(user_id)
+    _require_super_admin(auth_user_id)
     supabase = _get_supabase()
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -350,7 +366,7 @@ async def workspaces_table(
 @router.post("/impersonate/{workspace_id}")
 async def impersonate_workspace(
     workspace_id: int,
-    user_id: str = Query(..., description="Caller's user ID"),
+    auth_user_id: str = Depends(require_auth),
 ):
     """
     Super-admin impersonation — returns the workspace context
@@ -360,7 +376,7 @@ async def impersonate_workspace(
     This does NOT create a session or modify any data.
     The frontend uses the returned data to override WorkspaceContext.
     """
-    _require_super_admin(user_id)
+    _require_super_admin(auth_user_id)
     supabase = _get_supabase()
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -411,7 +427,7 @@ async def impersonate_workspace(
                 "admin_impersonate",
                 f"Super-admin impersonating workspace {workspace_id}",
                 details={
-                    "admin_user_id": user_id,
+                    "admin_user_id": auth_user_id,
                     "workspace_id": workspace_id,
                     "workspace_name": ws.data.get("name", ""),
                 },
@@ -438,3 +454,32 @@ async def impersonate_workspace(
     except Exception as e:
         logger.error(f"Impersonation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# GET /admin/api-health
+# =============================================================================
+
+@router.get("/api-health")
+async def api_health(auth_user_id: str = Depends(require_auth)):
+    """
+    Comprehensive API health check — tests all external service integrations.
+    Only accessible by SUPER_ADMIN_UID.
+    """
+    _require_super_admin(auth_user_id)
+
+    from utils.api_health_check import run_all_checks
+    results = await run_all_checks()
+
+    from datetime import datetime, timezone
+    return {
+        "success": True,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "apis": results,
+        "summary": {
+            "total": len(results),
+            "ok": sum(1 for r in results if r["status"] == "ok"),
+            "error": sum(1 for r in results if r["status"] == "error"),
+            "not_configured": sum(1 for r in results if r["status"] == "not_configured"),
+        }
+    }

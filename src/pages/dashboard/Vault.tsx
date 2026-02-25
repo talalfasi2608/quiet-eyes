@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSimulation } from '../../context/SimulationContext';
 import {
   Archive,
@@ -14,8 +14,8 @@ import {
   Clock,
   ChevronDown,
 } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import toast from 'react-hot-toast';
+import { apiFetch } from '../../services/api';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // EVENT CONFIG
@@ -26,7 +26,7 @@ const EVENT_CONFIG: Record<string, { icon: typeof Bell; color: string; bg: strin
   competitor_change: { icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-500/15', label: 'שינוי מתחרה' },
   price_alert: { icon: DollarSign, color: 'text-red-400', bg: 'bg-red-500/15', label: 'התראת מחיר' },
   scan_completed: { icon: CheckCircle, color: 'text-blue-400', bg: 'bg-blue-500/15', label: 'סריקה הושלמה' },
-  system_alert: { icon: Bell, color: 'text-purple-400', bg: 'bg-purple-500/15', label: 'התראת מערכת' },
+  system_alert: { icon: Bell, color: 'text-cyan-400', bg: 'bg-cyan-500/15', label: 'התראת מערכת' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -79,6 +79,8 @@ export default function Vault() {
   const [toDate, setToDate] = useState('');
   const [eventType, setEventType] = useState('');
   const [searchText, setSearchText] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Data state
   const [events, setEvents] = useState<VaultEvent[]>([]);
@@ -88,10 +90,26 @@ export default function Vault() {
   const [offset, setOffset] = useState(0);
   const LIMIT = 50;
 
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setSearchText(value);
+    }, 300);
+  };
+
   // ── Fetch events ──────────────────────────────────────────────────────────
+  // Safety timeout: never spin forever
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   const fetchEvents = useCallback(
     async (newOffset = 0, append = false) => {
-      if (!businessId) return;
+      if (!businessId) { setLoading(false); return; }
 
       if (append) setLoadingMore(true);
       else setLoading(true);
@@ -105,9 +123,8 @@ export default function Vault() {
         params.set('limit', String(LIMIT));
         params.set('offset', String(newOffset));
 
-        const url = `${API_BASE}/vault/timeline/${businessId}?${params.toString()}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Failed to fetch vault timeline');
+        const res = await apiFetch(`/vault/timeline/${businessId}?${params.toString()}`);
+        if (!res.ok) throw new Error('שגיאה בטעינת הכספת');
 
         const data = await res.json();
         const fetched: VaultEvent[] = data.events || [];
@@ -120,7 +137,7 @@ export default function Vault() {
         setTotalCount(data.total_count || 0);
         setOffset(newOffset + fetched.length);
       } catch (err) {
-        console.error('Vault fetch error:', err);
+        toast.error('שגיאה בטעינת הכספת');
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -150,12 +167,12 @@ export default function Vault() {
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header className="glass-card p-6">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-secondary)] to-[var(--accent-primary)] flex items-center justify-center shadow-lg shadow-[var(--accent-primary)]/20">
             <Archive className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">הכספת</h1>
-            <p className="text-gray-400 text-sm">ארכיון מודיעין היסטורי</p>
+            <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>הכספת</h1>
+            <p className="text-[var(--text-secondary)] text-sm">ארכיון מודיעין היסטורי</p>
           </div>
         </div>
       </header>
@@ -214,8 +231,8 @@ export default function Vault() {
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
             <input
               type="text"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="חיפוש בכותרת ותיאור..."
               className="w-full bg-gray-800/50 border border-gray-700/50 rounded-lg pr-10 pl-4 py-2.5 text-sm text-gray-300 focus:border-indigo-500/50 focus:outline-none transition-colors placeholder-gray-600"
             />
@@ -226,9 +243,9 @@ export default function Vault() {
       {/* ── Results count ───────────────────────────────────────────────────── */}
       {!loading && (
         <div className="flex items-center justify-between text-sm text-gray-500 px-1">
-          <span>{totalCount} אירועים נמצאו</span>
+          <span><span style={{ fontFamily: "var(--font-mono)" }}>{totalCount}</span> אירועים נמצאו</span>
           {events.length > 0 && (
-            <span>מציג {events.length} מתוך {totalCount}</span>
+            <span>מציג <span style={{ fontFamily: "var(--font-mono)" }}>{events.length}</span> מתוך <span style={{ fontFamily: "var(--font-mono)" }}>{totalCount}</span></span>
           )}
         </div>
       )}

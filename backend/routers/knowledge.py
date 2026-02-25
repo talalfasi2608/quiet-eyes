@@ -6,17 +6,36 @@ KnowledgeBase.tsx calls GET/POST /knowledge/{user_id} and related endpoints.
 """
 
 import logging
+import os
 from typing import Optional
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
+from routers._auth_helper import require_auth
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/knowledge", tags=["Knowledge Base"])
 
 
+def _get_service_client():
+    """Get service-role client to bypass RLS."""
+    try:
+        from supabase import create_client
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        if url and key:
+            return create_client(url, key)
+    except Exception:
+        pass
+    return None
+
+
 def _get_supabase():
+    """Get DB client — prefer service-role to bypass RLS."""
+    svc = _get_service_client()
+    if svc:
+        return svc
     try:
         from config import supabase
         return supabase
@@ -65,9 +84,27 @@ def _default_learning_progress():
     }
 
 
+# ── Fixed routes MUST come before /{user_id} to avoid route collision ──
+
+@router.post("/discover-site")
+async def discover_site(payload: DiscoverSitePayload, auth_user_id: str = Depends(require_auth)):
+    """Discover and analyze a tracked site (stub — returns acknowledgment)."""
+    if payload.user_id != auth_user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    logger.info(f"Site discovery requested: {payload.url} for user {payload.user_id}")
+    return {
+        "success": True,
+        "message": "Site discovery initiated",
+        "url": payload.url,
+        "status": "pending",
+    }
+
+
 @router.get("/{user_id}")
-async def get_knowledge(user_id: str):
+async def get_knowledge(user_id: str, auth_user_id: str = Depends(require_auth)):
     """Fetch knowledge base data for a user."""
+    if user_id != auth_user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
     supabase = _get_supabase()
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -88,19 +125,27 @@ async def get_knowledge(user_id: str):
                 "learning_progress": row.get("learning_progress", _default_learning_progress()),
             }
         else:
-            # No data yet — return defaults (frontend will show default sites)
-            raise HTTPException(status_code=404, detail="No knowledge data found")
-    except HTTPException:
-        raise
+            # No data yet — return empty defaults so frontend can show its default state
+            return {
+                "knowledge": {},
+                "tracked_sites": [],
+                "learning_progress": _default_learning_progress(),
+            }
     except Exception as e:
         logger.error(f"get_knowledge error: {e}")
-        # Table might not exist — return 404 so frontend uses defaults
-        raise HTTPException(status_code=404, detail="Knowledge base not available")
+        # Table might not exist — return defaults so frontend isn't blocked
+        return {
+            "knowledge": {},
+            "tracked_sites": [],
+            "learning_progress": _default_learning_progress(),
+        }
 
 
 @router.post("/{user_id}")
-async def save_knowledge(user_id: str, payload: KnowledgeSavePayload):
+async def save_knowledge(user_id: str, payload: KnowledgeSavePayload, auth_user_id: str = Depends(require_auth)):
     """Save knowledge base data for a user."""
+    if user_id != auth_user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
     supabase = _get_supabase()
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -127,21 +172,11 @@ async def save_knowledge(user_id: str, payload: KnowledgeSavePayload):
         return {"success": True, "warning": "Data saved locally only"}
 
 
-@router.post("/discover-site")
-async def discover_site(payload: DiscoverSitePayload):
-    """Discover and analyze a tracked site (stub — returns acknowledgment)."""
-    logger.info(f"Site discovery requested: {payload.url} for user {payload.user_id}")
-    return {
-        "success": True,
-        "message": "Site discovery initiated",
-        "url": payload.url,
-        "status": "pending",
-    }
-
-
 @router.post("/learn/{user_id}")
-async def trigger_learning(user_id: str):
+async def trigger_learning(user_id: str, auth_user_id: str = Depends(require_auth)):
     """Trigger a learning cycle for the user's knowledge base."""
+    if user_id != auth_user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
     supabase = _get_supabase()
 
     # Calculate updated learning progress based on knowledge completeness

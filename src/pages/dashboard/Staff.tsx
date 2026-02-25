@@ -3,8 +3,8 @@ import { useSimulation } from '../../context/SimulationContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { useAuth } from '../../context/AuthContext';
 import { Users, UserPlus, Shield, Trash2, Loader2, AlertCircle, Check, Star, Target, MessageSquare, CheckCircle, BarChart3 } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import toast from 'react-hot-toast';
+import { apiFetch } from '../../services/api';
 
 interface StaffMember {
   user_id: string | null;
@@ -36,7 +36,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function Staff() {
-  const { businessProfile } = useSimulation();
+  const { currentProfile } = useSimulation();
   const { workspaceId, isOwnerOrAdmin } = useWorkspace();
   const { session } = useAuth();
 
@@ -51,28 +51,29 @@ export default function Staff() {
   const [memberKpis, setMemberKpis] = useState<Record<string, MemberKPI>>({});
   const [teamStats, setTeamStats] = useState<{totalLeads: number; totalReviews: number; totalTasks: number; topPerformer: string} | null>(null);
 
-  const authHeaders = useCallback(() => ({
-    'Content-Type': 'application/json',
-    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-  }), [session?.access_token]);
+  // Safety timeout: never spin forever
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, []);
 
   const fetchMembers = useCallback(async () => {
-    if (!workspaceId) return;
+    if (!workspaceId) { setIsLoading(false); return; }
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/staff/list/${workspaceId}`, {
-        headers: authHeaders(),
-      });
+      const res = await apiFetch(`/staff/list/${workspaceId}`);
       if (res.ok) {
         const data = await res.json();
         setMembers(Array.isArray(data) ? data : data.members || []);
       }
     } catch {
-      // silently fail
+      toast.error('שגיאה בטעינת צוות');
     } finally {
       setIsLoading(false);
     }
-  }, [workspaceId, authHeaders]);
+  }, [workspaceId]);
 
   useEffect(() => {
     fetchMembers();
@@ -87,9 +88,7 @@ export default function Staff() {
       for (const member of members) {
         if (!member.user_id) continue;
         try {
-          const res = await fetch(`${API_BASE}/staff/kpis/${workspaceId}/${member.user_id}`, {
-            headers: authHeaders(),
-          });
+          const res = await apiFetch(`/staff/kpis/${workspaceId}/${member.user_id}`);
           if (res.ok) {
             const data = await res.json();
             const kpis = data.kpis || {};
@@ -123,9 +122,8 @@ export default function Staff() {
     setInviteSuccess(null);
 
     try {
-      const res = await fetch(`${API_BASE}/staff/invite`, {
+      const res = await apiFetch(`/staff/invite`, {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({
           workspace_id: workspaceId,
           email: inviteEmail.trim(),
@@ -154,9 +152,8 @@ export default function Staff() {
   const handleRoleChange = async (userId: string, newRole: string) => {
     if (!workspaceId) return;
     try {
-      const res = await fetch(`${API_BASE}/staff/${workspaceId}/${userId}/role`, {
+      const res = await apiFetch(`/staff/${workspaceId}/${userId}/role`, {
         method: 'PATCH',
-        headers: authHeaders(),
         body: JSON.stringify({ role: newRole }),
       });
       if (res.ok) {
@@ -170,9 +167,8 @@ export default function Staff() {
   const handleRemove = async (userId: string) => {
     if (!workspaceId) return;
     try {
-      const res = await fetch(`${API_BASE}/staff/${workspaceId}/${userId}`, {
+      const res = await apiFetch(`/staff/${workspaceId}/${userId}`, {
         method: 'DELETE',
-        headers: authHeaders(),
       });
       if (res.ok) {
         fetchMembers();
@@ -193,9 +189,7 @@ export default function Staff() {
           const member = members.find(m => (m.user_id || m.email) === memberId);
           const userId = member?.user_id;
           if (userId && workspaceId) {
-            const res = await fetch(`${API_BASE}/staff/kpis/${workspaceId}/${userId}`, {
-              headers: authHeaders(),
-            });
+            const res = await apiFetch(`/staff/kpis/${workspaceId}/${userId}`);
             if (res.ok) {
               const data = await res.json();
               if (data.kpis) {
@@ -224,7 +218,7 @@ export default function Staff() {
     <div className="space-y-8" dir="rtl">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-600 flex items-center justify-center">
           <Users className="w-6 h-6 text-white" />
         </div>
         <div>
@@ -246,8 +240,8 @@ export default function Staff() {
               <p className="text-2xl font-bold text-white">{teamStats.totalLeads}</p>
               <p className="text-xs text-gray-400">לידים טופלו</p>
             </div>
-            <div className="rounded-xl bg-purple-500/10 border border-purple-500/20 p-4 text-center">
-              <MessageSquare className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+            <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/20 p-4 text-center">
+              <MessageSquare className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
               <p className="text-2xl font-bold text-white">{teamStats.totalReviews}</p>
               <p className="text-xs text-gray-400">ביקורות נענו</p>
             </div>
@@ -294,7 +288,7 @@ export default function Staff() {
             <button
               onClick={handleInvite}
               disabled={isInviting || !inviteEmail.trim()}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-medium hover:from-indigo-500 hover:to-cyan-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isInviting ? (
                 <>
@@ -361,7 +355,7 @@ export default function Staff() {
                     onClick={() => memberId && toggleExpand(memberId)}
                   >
                     {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-bold text-sm">{firstLetter}</span>
                     </div>
 
@@ -435,7 +429,7 @@ export default function Staff() {
                           <p className="text-xs text-gray-400">לידים טופלו</p>
                         </div>
                         <div className="glass-card p-3 text-center">
-                          <MessageSquare className="w-5 h-5 text-purple-400 mx-auto mb-1" />
+                          <MessageSquare className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
                           <p className="text-xl font-bold text-white">{memberKpis[memberId].reviews_responded}</p>
                           <p className="text-xs text-gray-400">ביקורות נענו</p>
                         </div>

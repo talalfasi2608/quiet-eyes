@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSimulation } from '../../context/SimulationContext';
 import { Calendar, TrendingUp, Zap, Loader2, CalendarX, Sparkles, CheckCircle2, Clock, AlertTriangle, Flame, ArrowUpRight } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8015';
+import toast from 'react-hot-toast';
+import { apiFetch } from '../../services/api';
 
 interface TrendItem {
   id: string;
@@ -53,6 +53,15 @@ export default function Horizon() {
   const [trends, setTrends] = useState<TrendItem[]>([]);
   const [trendsLoading, setTrendsLoading] = useState(false);
 
+  // Safety timeout: never spin forever
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      setTrendsLoading(false);
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   useEffect(() => {
     if (!currentProfile?.id) return;
 
@@ -60,8 +69,8 @@ export default function Horizon() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          `${API_BASE}/predictions/upcoming/${currentProfile.id}?days_ahead=90`
+        const response = await apiFetch(
+          `/predictions/upcoming/${currentProfile.id}?days_ahead=90`
         );
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -69,8 +78,8 @@ export default function Horizon() {
         const data = await response.json();
         setPredictions(data);
       } catch (err: any) {
-        console.error('[Horizon] Failed to fetch predictions:', err);
-        setError(err.message || 'Failed to load predictions');
+        toast.error('שגיאה בטעינת תחזיות');
+        setError(err.message || 'שגיאה בטעינת תחזיות');
       } finally {
         setLoading(false);
       }
@@ -86,15 +95,15 @@ export default function Horizon() {
     const fetchTrends = async () => {
       setTrendsLoading(true);
       try {
-        const response = await fetch(
-          `${API_BASE}/trends/current/${currentProfile.id}?limit=10`
+        const response = await apiFetch(
+          `/trends/current/${currentProfile.id}?limit=10`
         );
         if (response.ok) {
           const data = await response.json();
           setTrends(data.trends || []);
         }
       } catch (err) {
-        console.error('[Horizon] Failed to fetch trends:', err);
+        toast.error('שגיאה בטעינת טרנדים');
       } finally {
         setTrendsLoading(false);
       }
@@ -159,8 +168,8 @@ export default function Horizon() {
   return (
     <div className="space-y-6 fade-in">
       <header>
-        <h1 className="text-3xl font-bold text-white mb-2">האופק</h1>
-        <p className="text-gray-400">מגמות, אירועים והזדמנויות עתידיות עבור {nameHebrew} {emoji}</p>
+        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: "var(--font-display)" }}>האופק</h1>
+        <p className="text-[var(--text-secondary)]">מגמות, אירועים והזדמנויות עתידיות עבור {nameHebrew} {emoji}</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -310,17 +319,17 @@ export default function Horizon() {
                     <div className="grid grid-cols-1 gap-2">
                       <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800/50">
                         <span className="text-gray-400 text-sm">סה"כ אירועים</span>
-                        <span className="text-white font-semibold">{events.length}</span>
+                        <span className="text-white font-semibold" style={{ fontFamily: "var(--font-mono)" }}>{events.length}</span>
                       </div>
                       <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800/50">
                         <span className="text-gray-400 text-sm">רלוונטיות גבוהה</span>
-                        <span className="text-emerald-400 font-semibold">
+                        <span className="text-emerald-400 font-semibold" style={{ fontFamily: "var(--font-mono)" }}>
                           {events.filter(e => e.relevance === 'high').length}
                         </span>
                       </div>
                       <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800/50">
                         <span className="text-gray-400 text-sm">תוך שבועיים</span>
-                        <span className="text-amber-400 font-semibold">
+                        <span className="text-amber-400 font-semibold" style={{ fontFamily: "var(--font-mono)" }}>
                           {events.filter(e => e.days_until <= 14).length}
                         </span>
                       </div>
@@ -330,7 +339,7 @@ export default function Horizon() {
 
                 {/* Closest event highlight */}
                 {events.length > 0 && events[0].days_until <= 30 && (
-                  <div className="p-3 rounded-lg bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20">
+                  <div className="p-3 rounded-lg bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
                     <p className="text-gray-400 text-xs mb-1">האירוע הקרוב ביותר</p>
                     <p className="text-white font-semibold text-sm">{events[0].name_hebrew}</p>
                     <p className={`text-sm font-medium mt-1 ${getDaysUntilColor(events[0].days_until)}`}>
@@ -351,8 +360,8 @@ export default function Horizon() {
       {/* Trends Section - Live data from Trend Radar API */}
       <div className="glass-card">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-purple-400" />
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-cyan-400" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-white">רדאר מגמות</h2>
@@ -372,7 +381,7 @@ export default function Horizon() {
 
         {trendsLoading ? (
           <div className="text-center py-12">
-            <Loader2 className="w-10 h-10 text-purple-400 animate-spin mx-auto mb-4" />
+            <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
             <p className="text-gray-400">סורק מגמות...</p>
           </div>
         ) : trends.length === 0 ? (
@@ -409,7 +418,7 @@ export default function Horizon() {
                         ? 'bg-red-500/20 text-red-300'
                         : 'bg-amber-500/20 text-amber-300'
                     }`}>
-                      {trend.change_pct > 0 ? '+' : ''}{trend.change_pct.toFixed(0)}%
+                      {(trend.change_pct || 0) > 0 ? '+' : ''}{(trend.change_pct || 0).toFixed(0)}%
                     </span>
                   </div>
 
@@ -417,8 +426,8 @@ export default function Horizon() {
 
                   {trend.action && (
                     <div className="flex items-start gap-1.5 mb-2">
-                      <Zap className="w-3 h-3 text-purple-400 mt-0.5 flex-shrink-0" />
-                      <p className="text-purple-300 text-xs">{trend.action}</p>
+                      <Zap className="w-3 h-3 text-cyan-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-cyan-300 text-xs">{trend.action}</p>
                     </div>
                   )}
 
@@ -435,7 +444,7 @@ export default function Horizon() {
 
             {/* Top breakout trend highlight */}
             {trends.some(t => t.level === 'breakout') && (
-              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-red-500/10 to-purple-500/10 border border-red-500/20">
+              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-red-500/10 to-cyan-500/10 border border-red-500/20">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
                     <Flame className="w-6 h-6 text-red-400" />
@@ -446,7 +455,7 @@ export default function Horizon() {
                       {(() => {
                         const top = trends.find(t => t.level === 'breakout');
                         return top
-                          ? `"${top.keyword}" עלה ב-${top.change_pct.toFixed(0)}% — ${top.analysis || 'הגב מהר לפני המתחרים!'}`
+                          ? `"${top.keyword}" עלה ב-${(top.change_pct || 0).toFixed(0)}% — ${top.analysis || 'הגב מהר לפני המתחרים!'}`
                           : '';
                       })()}
                     </p>
@@ -457,15 +466,15 @@ export default function Horizon() {
 
             {/* Smart recommendation for emerging trends */}
             {!trends.some(t => t.level === 'breakout') && trends.length > 0 && (
-              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20">
+              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-6 h-6 text-purple-400" />
+                  <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-6 h-6 text-cyan-400" />
                   </div>
                   <div>
                     <h3 className="text-white font-semibold mb-1">המלצה חכמה</h3>
                     <p className="text-gray-300 text-sm">
-                      {`מגמת "${trends[0].keyword}" עולה ב-${trends[0].change_pct.toFixed(0)}%. שקול לשלב אותה באסטרטגיה השיווקית שלך.`}
+                      {`מגמת "${trends[0].keyword}" עולה ב-${(trends[0].change_pct || 0).toFixed(0)}%. שקול לשלב אותה באסטרטגיה השיווקית שלך.`}
                     </p>
                   </div>
                 </div>
