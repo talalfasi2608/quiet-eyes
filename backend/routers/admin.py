@@ -471,7 +471,6 @@ async def api_health(auth_user_id: str = Depends(require_auth)):
     from utils.api_health_check import run_all_checks
     results = await run_all_checks()
 
-    from datetime import datetime, timezone
     return {
         "success": True,
         "checked_at": datetime.now(timezone.utc).isoformat(),
@@ -483,3 +482,106 @@ async def api_health(auth_user_id: str = Depends(require_auth)):
             "not_configured": sum(1 for r in results if r["status"] == "not_configured"),
         }
     }
+
+
+# =============================================================================
+# GET /admin/data-freshness
+# =============================================================================
+
+@router.get("/data-freshness")
+async def data_freshness(auth_user_id: str = Depends(require_auth)):
+    """
+    Returns last-updated timestamps for all key data types across all businesses.
+    Helps diagnose data staleness issues.
+    """
+    _require_super_admin(auth_user_id)
+    supabase = _get_supabase()
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    now = datetime.now(timezone.utc)
+    freshness: dict = {}
+
+    tables = [
+        ("leads_discovered", "created_at"),
+        ("competitors", "created_at"),
+        ("intelligence_events", "created_at"),
+        ("scheduled_jobs", "last_run_at"),
+    ]
+
+    for table_name, date_col in tables:
+        try:
+            result = (
+                supabase.table(table_name)
+                .select(date_col)
+                .order(date_col, desc=True)
+                .limit(1)
+                .execute()
+            )
+            if result.data and result.data[0].get(date_col):
+                last = result.data[0][date_col]
+                try:
+                    last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
+                    age_hours = (now - last_dt).total_seconds() / 3600
+                except Exception:
+                    age_hours = -1
+                freshness[table_name] = {
+                    "last_updated": last,
+                    "age_hours": round(age_hours, 1),
+                    "stale": age_hours > 24,
+                }
+            else:
+                freshness[table_name] = {
+                    "last_updated": None,
+                    "age_hours": -1,
+                    "stale": True,
+                }
+        except Exception as e:
+            freshness[table_name] = {"error": str(e)}
+
+    # Per-business lead freshness
+    try:
+        biz_res = supabase.table("businesses").select("id, business_name").execute()
+        business_freshness = []
+        for biz in (biz_res.data or []):
+            bid = biz["id"]
+            lead_res = (
+                supabase.table("leads_discovered")
+                .select("created_at")
+                .eq("business_id", bid)
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+            last_lead = None
+            lead_age = -1
+            if lead_res.data and lead_res.data[0].get("created_at"):
+                last_lead = lead_res.data[0]["created_at"]
+                try:
+                    last_dt = datetime.fromisoformat(last_lead.replace("Z", "+00:00"))
+                    lead_age = round((now - last_dt).total_seconds() / 3600, 1)
+                except Exception:
+                    pass
+
+            job_res = (
+                supabase.table("scheduled_jobs")
+                .select("job_type, last_run_at, next_run_at, status")
+                .eq("business_id", bid)
+                .eq("job_type", "lead_snipe")
+                .maybe_single()
+                .execute()
+            )
+            job_info = job_res.data if job_res else None
+
+            business_freshness.append({
+                "business_id": bid,
+                "business_name": biz.get("business_name", ""),
+                "last_lead_at": last_lead,
+                "lead_age_hours": lead_age,
+                "lead_snipe_job": job_info,
+            })
+        freshness["per_business"] = business_freshness
+    except Exception as e:
+        freshness["per_business_error"] = str(e)
+
+    return {"success": True, "checked_at": now.isoformat(), "freshness": freshness}

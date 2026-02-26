@@ -12,38 +12,50 @@ import {
 
 const TIERS = [
   {
-    id: 'basic',
-    name: 'Basic',
-    nameHe: 'בסיסי',
+    id: 'free',
+    name: 'Free',
+    nameHe: 'חינם',
     price: 0,
     yearlyPrice: 0,
     label: 'חינם',
     yearlyLabel: 'חינם',
-    features: ['10 קרדיטים לחודש', 'דשבורד בסיסי', 'פרופיל עסק אחד', 'סריקות שוק בסיסיות'],
+    features: ['10 קרדיטים לחודש', 'דשבורד בסיסי', 'פרופיל עסק אחד', 'מתחרה אחד', 'סריקות שוק בסיסיות'],
     cta: 'התחל בחינם',
+    popular: false,
+  },
+  {
+    id: 'starter',
+    name: 'Starter',
+    nameHe: 'סטארטר',
+    price: 149,
+    yearlyPrice: 99,
+    label: '₪149',
+    yearlyLabel: '₪99',
+    features: ['50 קרדיטים לחודש', 'עד 3 מתחרים', '30 סריקות לידים', "צ'אט AI COO", 'תדריך יומי', 'דוחות AI'],
+    cta: 'התחל 14 יום חינם',
     popular: false,
   },
   {
     id: 'pro',
     name: 'Pro',
     nameHe: 'מקצועי',
-    price: 149,
-    yearlyPrice: 119,
-    label: '₪149',
-    yearlyLabel: '₪119',
-    features: ['200 קרדיטים לחודש', "צ'אט AI COO", 'תדריך יומי', 'סריקת מתחרים מעמיקה', 'גילוי לידים', 'תמיכה בעדיפות'],
+    price: 299,
+    yearlyPrice: 199,
+    label: '₪299',
+    yearlyLabel: '₪199',
+    features: ['200 קרדיטים לחודש', 'עד 10 מתחרים', '200 סריקות לידים', 'התראות WhatsApp', 'אוטומציות', 'עד 3 ערים', 'עד 3 חברי צוות'],
     cta: 'התחל 14 יום חינם',
     popular: true,
   },
   {
-    id: 'elite',
-    name: 'Elite',
-    nameHe: 'עילית',
-    price: 349,
-    yearlyPrice: 279,
-    label: '₪349',
-    yearlyLabel: '₪279',
-    features: ['קרדיטים ללא הגבלה', 'הכל ב-Pro', 'ניהול צוות', 'לוגים ובקרה', 'אינטגרציות מותאמות', 'מנהל לקוח ייעודי'],
+    id: 'business',
+    name: 'Business',
+    nameHe: 'עסקי',
+    price: 599,
+    yearlyPrice: 399,
+    label: '₪599',
+    yearlyLabel: '₪399',
+    features: ['קרדיטים ללא הגבלה', 'הכל ב-Pro', 'ניהול צוות', 'לוגים ובקרה', 'גישת API', 'מנהל לקוח ייעודי'],
     cta: 'צור קשר',
     popular: false,
   },
@@ -386,10 +398,23 @@ export default function LandingPage() {
         )}
       </nav>
 
+      {/* ═══════════ BETA CTA BANNER ═══════════ */}
+      <div className="fixed top-[57px] w-full z-40 bg-gradient-to-r from-indigo-600/90 to-cyan-500/90 backdrop-blur-sm border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-center gap-3 text-sm">
+          <span className="text-white/90">הצטרפו לבטא הסגורה — מקומות מוגבלים!</span>
+          <button
+            onClick={() => navigate('/beta')}
+            className="px-4 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-all border border-white/20"
+          >
+            הצטרף עכשיו
+          </button>
+        </div>
+      </div>
+
       {/* ═══════════════════════════════════════════════════════════════════════════
           HERO
           ═══════════════════════════════════════════════════════════════════════════ */}
-      <section className="relative pt-28 md:pt-36 pb-20 md:pb-32 px-6 overflow-hidden">
+      <section className="relative pt-36 md:pt-44 pb-20 md:pb-32 px-6 overflow-hidden">
         {/* Background effects */}
         <StarField />
         <FloatingParticles />
@@ -899,7 +924,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5 reveal-stagger">
+          <div className="grid md:grid-cols-4 gap-4 reveal-stagger">
             {TIERS.map((tier) => (
               <div
                 key={tier.id}

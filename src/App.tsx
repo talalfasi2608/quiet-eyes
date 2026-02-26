@@ -28,6 +28,8 @@ const SuperAdmin = lazy(() => import('./pages/dashboard/SuperAdmin'));
 const Reports = lazy(() => import('./pages/dashboard/Reports'));
 const Automations = lazy(() => import('./pages/dashboard/Automations'));
 const Pricing = lazy(() => import('./pages/public/Pricing'));
+const BetaLanding = lazy(() => import('./pages/public/BetaLanding'));
+const BetaOnboarding = lazy(() => import('./pages/auth/BetaOnboarding'));
 import RoleGate from './components/auth/RoleGate';
 
 // Loading screen component
@@ -90,6 +92,8 @@ function ProtectedRoutes() {
 
       {/* Public pages accessible when logged in */}
       <Route path="/pricing" element={<Pricing />} />
+      <Route path="/beta" element={<BetaLanding />} />
+      <Route path="/beta-onboarding" element={<BetaOnboarding />} />
 
       {/* Redirect everything else to dashboard */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -119,6 +123,7 @@ function AppContent() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/beta" element={<BetaLanding />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>

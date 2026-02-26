@@ -21,6 +21,7 @@ interface SubscriptionContextType extends SubscriptionState {
   isElite: boolean;
   isTrial: boolean;
   isBusiness: boolean;
+  isBetaUser: boolean;
   refreshSubscription: () => Promise<void>;
 }
 
@@ -44,6 +45,7 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   isElite: false,
   isTrial: false,
   isBusiness: false,
+  isBetaUser: false,
   refreshSubscription: async () => {},
 });
 
@@ -101,6 +103,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   })();
 
+  // Check beta user status from localStorage (set during beta onboarding)
+  const isBetaUser = (() => {
+    try {
+      return !!localStorage.getItem('qe_beta_activated_at');
+    } catch {
+      return false;
+    }
+  })();
+
   return (
     <SubscriptionContext.Provider
       value={{
@@ -109,6 +120,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         isElite,
         isTrial,
         isBusiness,
+        isBetaUser,
         refreshSubscription: fetchSubscription,
       }}
     >

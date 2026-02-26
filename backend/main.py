@@ -100,7 +100,25 @@ class GlobalRadar:
                 self._run_scheduled_jobs()
             except Exception as e:
                 logger.error(f"[GlobalRadar] ERROR: {e}")
+            # Beta feedback triggers — run once daily
+            try:
+                self._check_beta_triggers()
+            except Exception as e:
+                logger.debug(f"[GlobalRadar] Beta trigger check error: {e}")
             self._stop_event.wait(timeout=self.poll_interval_seconds)
+
+    def _check_beta_triggers(self):
+        """Run beta feedback triggers once per day."""
+        now = datetime.now(timezone.utc)
+        last = self.last_run.get("_beta_triggers")
+        if last and (now - last).total_seconds() < 86400:
+            return  # Already ran today
+        try:
+            from services.beta_scheduler import check_beta_feedback_triggers
+            check_beta_feedback_triggers()
+            self.last_run["_beta_triggers"] = now
+        except ImportError:
+            pass
 
     def _ensure_all_default_jobs(self):
         """Create default scheduled jobs for every active business."""
@@ -133,6 +151,13 @@ class GlobalRadar:
             JobType.WEEKLY_MEMORY_SNAPSHOT: CreditCost.MEMORY_SNAPSHOT,
             JobType.WEEKLY_PREDICTION: CreditCost.PREDICTION,
             JobType.MONTHLY_PATTERNS: CreditCost.PATTERN_DETECTION,
+            # Phase 3: Automation Engine
+            JobType.REVIEW_MONITOR: CreditCost.REVIEW_RESPONSE,
+            JobType.COMPETITOR_ALERTS_AUTO: CreditCost.COMPETITOR_ALERT_AUTO,
+            JobType.MORNING_BRIEFING: CreditCost.MORNING_BRIEFING_SEND,
+            JobType.CAMPAIGN_TRIGGERS: CreditCost.CAMPAIGN_GENERATE,
+            # Daily full scan (leads + competitors + market combined)
+            JobType.DAILY_FULL_SCAN: CreditCost.LEAD_SNIPE + CreditCost.COMPETITOR_SCAN + CreditCost.MARKET_DISCOVERY,
             # Legacy aliases
             "intel_leads": CreditCost.LEAD_SNIPE,
             "intel_competitors": CreditCost.COMPETITOR_SCAN,
@@ -218,6 +243,34 @@ class GlobalRadar:
                     from config import supabase
                     get_memory_engine().detect_patterns(business_id, supabase)
                     logger.info(f"[GlobalRadar] Pattern detection done for {business_id}")
+
+                # Phase 3: Automation Engine dispatch
+                elif job_type == JobType.REVIEW_MONITOR:
+                    from services.review_responder import get_review_responder
+                    from config import supabase
+                    count = get_review_responder().check_new_reviews(business_id, supabase)
+                    logger.info(f"[GlobalRadar] Review monitor done for {business_id}: {count} processed")
+
+                elif job_type == JobType.COMPETITOR_ALERTS_AUTO:
+                    from services.competitor_alerts import get_competitor_alerts
+                    from config import supabase
+                    count = get_competitor_alerts().check_all_competitors(business_id, supabase)
+                    logger.info(f"[GlobalRadar] Competitor alerts done for {business_id}: {count} alerts")
+
+                elif job_type == JobType.MORNING_BRIEFING:
+                    from services.morning_briefing import get_morning_briefing
+                    from config import supabase
+                    get_morning_briefing().send_morning_briefing(business_id, supabase)
+                    logger.info(f"[GlobalRadar] Morning briefing done for {business_id}")
+
+                elif job_type == JobType.CAMPAIGN_TRIGGERS:
+                    from services.campaign_generator import get_campaign_generator
+                    from config import supabase
+                    count = get_campaign_generator().check_triggers(business_id, supabase)
+                    logger.info(f"[GlobalRadar] Campaign triggers done for {business_id}: {count} campaigns")
+
+                elif job_type == JobType.DAILY_FULL_SCAN:
+                    self._handle_daily_full_scan(business_id)
 
                 elif job_type in ("intel_trends", "audience_scan", "daily_summary"):
                     logger.debug(
@@ -553,6 +606,43 @@ class GlobalRadar:
                 details={"business_id": business_id},
             )
 
+    def _handle_daily_full_scan(self, business_id: str):
+        """
+        Daily comprehensive scan: leads + competitors + market discovery.
+        Runs at 6am UTC (8am Israel) to ensure fresh data every morning.
+        """
+        logger.info(f"[GlobalRadar] Starting daily full scan for {business_id}")
+
+        # 1. Lead sniping
+        try:
+            from services.lead_sniper import get_lead_sniper
+            from config import supabase
+            sniper = get_lead_sniper()
+            report = sniper.sniping_mission(business_id, supabase)
+            logger.info(
+                f"[GlobalRadar] DFS lead snipe: {report.leads_saved} saved for {business_id}"
+            )
+        except Exception as e:
+            logger.error(f"[GlobalRadar] DFS lead snipe error: {e}")
+
+        time.sleep(2)
+
+        # 2. Competitor scan
+        try:
+            self._handle_competitor_scan(business_id)
+        except Exception as e:
+            logger.error(f"[GlobalRadar] DFS competitor scan error: {e}")
+
+        time.sleep(2)
+
+        # 3. Market discovery
+        try:
+            self._handle_market_discovery(business_id)
+        except Exception as e:
+            logger.error(f"[GlobalRadar] DFS market discovery error: {e}")
+
+        logger.info(f"[GlobalRadar] Daily full scan complete for {business_id}")
+
     def trigger_immediate(self, business_id: str) -> dict:
         """Run market_discovery and lead_sniping immediately for a business."""
         results: dict = {"lead_sniping": None}
@@ -668,6 +758,10 @@ from routers.radar import router as radar_router
 from routers.misc_api import router as misc_api_router
 from routers.notifications import router as notifications_router
 from routers.intel_scanner_api import router as intel_scanner_router
+from routers.automations import router as automations_router
+from routers.whatsapp_webhook import router as whatsapp_webhook_router
+from routers.waitlist import router as waitlist_router
+from routers.feedback import router as feedback_router
 app.include_router(admin_router)
 app.include_router(crm_router)
 app.include_router(auditor_router)
@@ -690,6 +784,10 @@ app.include_router(radar_router)
 app.include_router(misc_api_router)
 app.include_router(notifications_router)
 app.include_router(intel_scanner_router)
+app.include_router(automations_router)
+app.include_router(whatsapp_webhook_router)
+app.include_router(waitlist_router)
+app.include_router(feedback_router)
 
 
 # =============================================================================

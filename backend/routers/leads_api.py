@@ -80,11 +80,29 @@ async def list_leads(business_id: str, request: Request, auth_user_id: str = Dep
     approved_count = sum(1 for l in leads if l.get("status") == "sniped")
     rejected_count = sum(1 for l in leads if l.get("status") == "dismissed")
 
+    # Last scan timestamp
+    last_scan_at = None
+    try:
+        sb2 = _get_service_client() or supabase
+        job_res = (
+            sb2.table("scheduled_jobs")
+            .select("last_run_at")
+            .eq("business_id", business_id)
+            .eq("job_type", "lead_snipe")
+            .maybe_single()
+            .execute()
+        )
+        if job_res and job_res.data:
+            last_scan_at = job_res.data.get("last_run_at")
+    except Exception:
+        pass
+
     return {
         "success": True,
         "leads": leads,
         "counts": {"new": new_count, "sniped": approved_count, "dismissed": rejected_count},
         "total": len(leads),
+        "last_scan_at": last_scan_at,
     }
 
 
@@ -114,6 +132,60 @@ async def snipe_leads(business_id: str, request: Request, auth_user_id: str = De
     except Exception as e:
         logger.error(f"Sniping mission failed for {business_id}: {e}")
         raise HTTPException(status_code=500, detail="Sniping mission failed")
+
+
+@router.post("/refresh/{business_id}")
+async def refresh_leads(business_id: str, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("leads_scans_per_month"))):
+    """
+    Force-refresh leads: archive stale 'new' leads older than 24h, then trigger a fresh scan.
+    Solves the "same leads showing from yesterday" problem.
+    """
+    supabase = _get_service_client() or get_supabase_client(request)
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    _verify_business_owner(supabase, business_id, auth_user_id)
+
+    sb = _get_service_client() or supabase
+    archived = 0
+
+    # Archive stale 'new' leads older than 24 hours
+    try:
+        from datetime import datetime, timezone, timedelta
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        stale = (
+            sb.table("leads_discovered")
+            .select("id")
+            .eq("business_id", business_id)
+            .eq("status", "new")
+            .lt("created_at", cutoff)
+            .execute()
+        )
+        stale_ids = [r["id"] for r in (stale.data or [])]
+        if stale_ids:
+            for sid in stale_ids:
+                sb.table("leads_discovered").update({"status": "dismissed"}).eq("id", sid).execute()
+                archived += 1
+    except Exception as e:
+        logger.debug(f"Lead archival: {e}")
+
+    # Trigger fresh scan
+    try:
+        from services.lead_sniper import get_lead_sniper
+        sniper = get_lead_sniper()
+        report = sniper.sniping_mission(business_id, sb)
+        return {
+            "success": True,
+            "message": "Leads refreshed",
+            "archived_stale": archived,
+            "leads_found": report.leads_found,
+            "leads_saved": report.leads_saved,
+            "total_scanned": report.total_results_scanned,
+            "source_counts": report.source_counts,
+            "errors": report.errors,
+        }
+    except Exception as e:
+        logger.error(f"Lead refresh failed for {business_id}: {e}")
+        raise HTTPException(status_code=500, detail="Lead refresh failed")
 
 
 @router.get("/{business_id}/feedback-stats")

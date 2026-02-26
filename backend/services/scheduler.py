@@ -46,6 +46,8 @@ class JobType:
     WEATHER_UPDATE = "weather_update"
     JOBS_SCAN = "jobs_scan"
     LICENSES_SCAN = "licenses_scan"
+    # Daily full scan (leads + competitors + market discovery)
+    DAILY_FULL_SCAN = "daily_full_scan"
     # Aliases (legacy job types created by older onboarding code)
     INTEL_LEADS = "intel_leads"
     INTEL_COMPETITORS = "intel_competitors"
@@ -103,6 +105,11 @@ DEFAULT_JOBS = [
     {
         "job_type": JobType.CAMPAIGN_TRIGGERS,
         "cron_expression": "0 7 * * *",     # daily 7am UTC (9am Israel)
+    },
+    # Daily full scan: leads + competitors + market at 6am UTC (8am Israel)
+    {
+        "job_type": JobType.DAILY_FULL_SCAN,
+        "cron_expression": "0 6 * * *",     # daily 6am UTC (8am Israel)
     },
     # Phase 4: Expanded Data Sources
     {

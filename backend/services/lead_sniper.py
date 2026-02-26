@@ -634,14 +634,48 @@ class LeadSniperService:
     # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _deduplicate(leads: list[DiscoveredLead], existing_urls: set[str]) -> list[DiscoveredLead]:
-        seen: set[str] = set()
+    def _text_similarity(text_a: str, text_b: str) -> float:
+        """Word-overlap ratio between two texts (Jaccard similarity)."""
+        if not text_a or not text_b:
+            return 0.0
+        words_a = set(text_a.lower().split())
+        words_b = set(text_b.lower().split())
+        if not words_a or not words_b:
+            return 0.0
+        intersection = words_a & words_b
+        union = words_a | words_b
+        return len(intersection) / len(union)
+
+    @staticmethod
+    def _deduplicate(
+        leads: list[DiscoveredLead],
+        existing_urls: set[str],
+        existing_summaries: list[str] | None = None,
+        similarity_threshold: float = 0.75,
+    ) -> list[DiscoveredLead]:
+        seen_urls: set[str] = set()
+        seen_texts: list[str] = list(existing_summaries or [])
         unique = []
         for lead in leads:
             normalized = lead.source_url.strip().rstrip("/").lower()
-            if normalized and normalized not in existing_urls and normalized not in seen:
-                seen.add(normalized)
-                unique.append(lead)
+            # URL dedup
+            if normalized and (normalized in existing_urls or normalized in seen_urls):
+                continue
+            # Text-similarity dedup — skip if summary is >75% similar to any seen lead
+            is_text_dup = False
+            lead_text = (lead.summary or "") + " " + (lead.original_text or "")
+            if lead_text.strip():
+                for seen in seen_texts:
+                    if LeadSniperService._text_similarity(lead_text, seen) >= similarity_threshold:
+                        is_text_dup = True
+                        break
+            if is_text_dup:
+                logger.debug(f"Skipped text-duplicate lead: {lead.source_url[:60]}")
+                continue
+            if normalized:
+                seen_urls.add(normalized)
+            seen_texts.append(lead_text)
+            unique.append(lead)
         return unique
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -723,12 +757,13 @@ class LeadSniperService:
         except Exception:
             pass
 
-        # ── Step 3: Get existing URLs for dedup ────────────────────────
+        # ── Step 3: Get existing URLs + summaries for dedup ────────────
         existing_urls: set[str] = set()
+        existing_summaries: list[str] = []
         try:
             existing = (
                 supabase.table("leads_discovered")
-                .select("source_url")
+                .select("source_url, summary, original_text")
                 .eq("business_id", business_id)
                 .execute()
             )
@@ -736,6 +771,9 @@ class LeadSniperService:
                 url = (row.get("source_url") or "").strip().rstrip("/").lower()
                 if url:
                     existing_urls.add(url)
+                text = (row.get("summary") or "") + " " + (row.get("original_text") or "")
+                if text.strip():
+                    existing_summaries.append(text)
         except Exception:
             pass
 
@@ -820,8 +858,8 @@ class LeadSniperService:
             negative_prompts=negative_prompts,
         )
 
-        # ── Step 8: Deduplicate ────────────────────────────────────────
-        unique_leads = self._deduplicate(all_leads, existing_urls)
+        # ── Step 8: Deduplicate (URL + text-similarity) ─────────────────
+        unique_leads = self._deduplicate(all_leads, existing_urls, existing_summaries)
 
         # Sort by score, take top 20
         unique_leads.sort(key=lambda l: l.relevance_score, reverse=True)

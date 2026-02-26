@@ -37,6 +37,12 @@ import {
   UserPlus,
   ChevronLeft,
   ChevronRight,
+  Rocket,
+  Star as StarIcon,
+  Hash,
+  Smile,
+  Frown,
+  Meh,
 } from 'lucide-react';
 import {
   BarChart,
@@ -53,7 +59,7 @@ import PageLoader from '../../components/ui/PageLoader';
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type TabId = 'overview' | 'users' | 'subscriptions' | 'health' | 'announcements';
+type TabId = 'overview' | 'users' | 'subscriptions' | 'health' | 'announcements' | 'beta';
 type SortDir = 'asc' | 'desc';
 
 interface OverviewData {
@@ -164,6 +170,7 @@ const TABS: { id: TabId; label: string; icon: typeof Users }[] = [
   { id: 'subscriptions', label: 'מנויים והכנסות', icon: CreditCard },
   { id: 'health', label: 'בריאות מערכת', icon: Server },
   { id: 'announcements', label: 'הודעות', icon: Megaphone },
+  { id: 'beta', label: 'בטא', icon: Rocket },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -204,6 +211,21 @@ export default function SuperAdmin() {
   const [modal, setModal] = useState<ModalState>({ type: null });
   const [modalInput, setModalInput] = useState<Record<string, string>>({});
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Beta
+  const [betaStats, setBetaStats] = useState<{
+    total: number; total_waiting: number; total_invited: number;
+    total_activated: number; conversion_rate: number;
+    signups_by_source: Record<string, number>; top_referrers: Array<{ id: string; name: string; count: number }>;
+  } | null>(null);
+  const [betaEntries, setBetaEntries] = useState<Array<Record<string, any>>>([]);
+  const [betaFeedback, setBetaFeedback] = useState<Array<Record<string, any>>>([]);
+  const [npsSummary, setNpsSummary] = useState<{
+    nps_score: number; average_score: number; promoters: number;
+    passives: number; detractors: number; total_responses: number; response_rate: number;
+  } | null>(null);
+  const [betaLoading, setBetaLoading] = useState(false);
+  const [betaInviteCount, setBetaInviteCount] = useState('5');
 
   // Broadcast
   const [broadcastMsg, setBroadcastMsg] = useState('');
@@ -301,6 +323,45 @@ export default function SuperAdmin() {
   useEffect(() => {
     if (activeTab === 'health' && !apiHealth) fetchApiHealth();
   }, [activeTab, apiHealth, fetchApiHealth]);
+
+  // ── Beta fetch ──
+  const fetchBetaData = useCallback(async () => {
+    setBetaLoading(true);
+    try {
+      const [statsRes, entriesRes, feedbackRes, npsRes] = await Promise.all([
+        apiFetch('/waitlist/stats'),
+        apiFetch('/waitlist/entries?limit=50'),
+        apiFetch('/feedback/all?limit=50'),
+        apiFetch('/feedback/nps-summary'),
+      ]);
+      if (statsRes.ok) setBetaStats(await statsRes.json());
+      if (entriesRes.ok) { const d = await entriesRes.json(); setBetaEntries(d.entries || []); }
+      if (feedbackRes.ok) { const d = await feedbackRes.json(); setBetaFeedback(d.feedback || []); }
+      if (npsRes.ok) setNpsSummary(await npsRes.json());
+    } catch { /* silent */ }
+    setBetaLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'beta' && !betaStats && !error) fetchBetaData();
+  }, [activeTab, betaStats, error, fetchBetaData]);
+
+  const handleBetaInvite = async (waitlistId: string) => {
+    try {
+      const res = await apiFetch(`/waitlist/invite/${waitlistId}`, { method: 'POST' });
+      if (res.ok) fetchBetaData();
+    } catch { /* silent */ }
+  };
+
+  const handleBetaInviteBatch = async () => {
+    try {
+      const res = await apiFetch('/waitlist/invite-batch', {
+        method: 'POST',
+        body: JSON.stringify({ count: parseInt(betaInviteCount) || 5 }),
+      });
+      if (res.ok) fetchBetaData();
+    } catch { /* silent */ }
+  };
 
   // ── User sort ──
   const handleUserSort = (col: string) => {
@@ -1141,6 +1202,228 @@ export default function SuperAdmin() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════ BETA TAB ═══════════════════════════ */}
+      {activeTab === 'beta' && (
+        <div className="space-y-6">
+          {betaLoading && !betaStats ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+            </div>
+          ) : betaStats && (
+            <>
+              {/* Stats Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <StatCard icon={Users} label="ברשימת המתנה" value={betaStats.total_waiting} color="from-blue-500 to-blue-600" />
+                <StatCard icon={Send} label="הוזמנו" value={betaStats.total_invited} color="from-indigo-500 to-indigo-600" />
+                <StatCard icon={CheckCircle2} label="הופעלו" value={betaStats.total_activated} color="from-emerald-500 to-emerald-600" />
+                <StatCard icon={Activity} label="המרה %" value={`${betaStats.conversion_rate}%`} color="from-cyan-500 to-cyan-600" />
+                <StatCard icon={StarIcon} label="NPS" value={npsSummary?.nps_score ?? '—'} color="from-amber-500 to-amber-600" />
+                <StatCard icon={Hash} label="סה״כ" value={betaStats.total} color="from-gray-500 to-gray-600" />
+              </div>
+
+              {/* Invite Batch */}
+              <div className="glass-card p-5 flex items-center gap-4 flex-wrap">
+                <span className="text-sm text-gray-300 font-medium">הזמנה מהירה:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={betaInviteCount}
+                  onChange={e => setBetaInviteCount(e.target.value)}
+                  className="w-20 bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  onClick={handleBetaInviteBatch}
+                  className="btn-primary flex items-center gap-2 text-sm"
+                >
+                  <Send className="w-4 h-4" />
+                  הזמן את {betaInviteCount} הבאים ברשימה
+                </button>
+                <button
+                  onClick={fetchBetaData}
+                  className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 text-gray-400 hover:text-white transition-colors"
+                >
+                  <RefreshCw className={`w-4 h-4 ${betaLoading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {/* Source Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="glass-card p-5">
+                  <p className="text-sm text-gray-400 mb-3 font-medium">מקורות הרשמה</p>
+                  <div className="space-y-2">
+                    {Object.entries(betaStats.signups_by_source || {}).map(([source, count]) => (
+                      <div key={source} className="flex items-center justify-between">
+                        <span className="text-sm text-gray-300 capitalize">{source}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 bg-indigo-500/30 rounded-full overflow-hidden w-24">
+                            <div
+                              className="h-full bg-indigo-500 rounded-full"
+                              style={{ width: `${Math.min(100, (count / betaStats.total) * 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-500 w-8 text-left">{count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* NPS Summary */}
+                {npsSummary && npsSummary.total_responses > 0 && (
+                  <div className="glass-card p-5">
+                    <p className="text-sm text-gray-400 mb-3 font-medium">NPS סיכום</p>
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <div className="text-center p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                        <Smile className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
+                        <p className="text-lg font-bold text-emerald-400">{npsSummary.promoters}</p>
+                        <p className="text-[10px] text-gray-500">מקדמים (9-10)</p>
+                      </div>
+                      <div className="text-center p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                        <Meh className="w-5 h-5 text-amber-400 mx-auto mb-1" />
+                        <p className="text-lg font-bold text-amber-400">{npsSummary.passives}</p>
+                        <p className="text-[10px] text-gray-500">פסיביים (7-8)</p>
+                      </div>
+                      <div className="text-center p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                        <Frown className="w-5 h-5 text-red-400 mx-auto mb-1" />
+                        <p className="text-lg font-bold text-red-400">{npsSummary.detractors}</p>
+                        <p className="text-[10px] text-gray-500">מבקרים (0-6)</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>ממוצע: {npsSummary.average_score}</span>
+                      <span>שיעור תגובה: {npsSummary.response_rate}%</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Referrers */}
+                {betaStats.top_referrers.length > 0 && (
+                  <div className="glass-card p-5">
+                    <p className="text-sm text-gray-400 mb-3 font-medium">מפנים מובילים</p>
+                    <div className="space-y-2">
+                      {betaStats.top_referrers.slice(0, 5).map((ref, i) => (
+                        <div key={ref.id} className="flex items-center justify-between">
+                          <span className="text-sm text-gray-300">
+                            <span className="text-gray-500 ml-2">#{i + 1}</span>
+                            {ref.name}
+                          </span>
+                          <span className="text-xs text-indigo-400 font-bold">{ref.count} הפניות</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Waitlist Table */}
+              <div className="glass-card overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-700/50 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-white">רשימת המתנה</h3>
+                </div>
+                {betaEntries.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-700/50 bg-gray-800/30">
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">#</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">שם</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">אימייל</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">טלפון</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">סוג עסק</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">סטטוס</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">הפניות</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">פעולות</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {betaEntries.map(entry => (
+                          <tr key={entry.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                            <td className="py-2 px-3 text-gray-500 text-xs">{entry.position}</td>
+                            <td className="py-2 px-3 text-white font-medium">{entry.name}</td>
+                            <td className="py-2 px-3 text-gray-300 text-xs">{entry.email}</td>
+                            <td className="py-2 px-3 text-gray-400 text-xs" dir="ltr">{entry.phone || '—'}</td>
+                            <td className="py-2 px-3 text-gray-400 text-xs">{entry.business_type || '—'}</td>
+                            <td className="py-2 px-3">
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                entry.status === 'activated' ? 'text-emerald-400 bg-emerald-500/10' :
+                                entry.status === 'invited' ? 'text-blue-400 bg-blue-500/10' :
+                                entry.status === 'waiting' ? 'text-amber-400 bg-amber-500/10' :
+                                'text-gray-400 bg-gray-500/10'
+                              }`}>
+                                {entry.status === 'activated' ? 'פעיל' :
+                                 entry.status === 'invited' ? 'הוזמן' :
+                                 entry.status === 'waiting' ? 'ממתין' :
+                                 entry.status}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-gray-400 text-xs">{entry.referral_count || 0}</td>
+                            <td className="py-2 px-3">
+                              {entry.status === 'waiting' && (
+                                <button
+                                  onClick={() => handleBetaInvite(entry.id)}
+                                  className="px-2.5 py-1 rounded-lg bg-indigo-600/20 text-indigo-400 text-xs hover:bg-indigo-600/30 transition-colors"
+                                >
+                                  הזמן
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-500 py-8">אין רשומות ברשימת ההמתנה</p>
+                )}
+              </div>
+
+              {/* Feedback List */}
+              {betaFeedback.length > 0 && (
+                <div className="glass-card overflow-hidden">
+                  <div className="px-5 py-3 border-b border-gray-700/50">
+                    <h3 className="text-sm font-medium text-white">פידבקים אחרונים</h3>
+                  </div>
+                  <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-gray-900">
+                        <tr className="border-b border-gray-700/50">
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">סוג</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">ציון</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">הודעה</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">טריגר</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-400">תאריך</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {betaFeedback.map(fb => (
+                          <tr key={fb.id} className="border-b border-gray-800/50">
+                            <td className="py-2 px-3">
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                fb.type === 'nps' ? 'text-amber-400 bg-amber-500/10' :
+                                fb.type === 'bug' ? 'text-red-400 bg-red-500/10' :
+                                fb.type === 'feature_request' ? 'text-blue-400 bg-blue-500/10' :
+                                'text-gray-400 bg-gray-500/10'
+                              }`}>
+                                {fb.type}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-gray-300">{fb.score ?? '—'}</td>
+                            <td className="py-2 px-3 text-gray-400 text-xs max-w-[300px] truncate">{fb.message || '—'}</td>
+                            <td className="py-2 px-3 text-gray-500 text-xs">{fb.trigger}</td>
+                            <td className="py-2 px-3 text-gray-500 text-xs">{formatDate(fb.created_at)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
