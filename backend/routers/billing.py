@@ -1,13 +1,20 @@
 """
 Billing Router.
 
-GET /billing/status — returns subscription tier, credits, and status.
-Uses the user's JWT to identify the user and look up their subscription.
+Endpoints:
+  GET  /billing/status   — subscription tier, credits, plan details
+  GET  /billing/tiers    — available plans with ILS prices
+  POST /billing/checkout — create Stripe checkout session
+  POST /billing/portal   — create Stripe billing portal session
+  POST /billing/webhook  — Stripe webhook handler (no auth)
+  GET  /billing/usage    — credit usage history
 """
 
 import logging
 import os
 from fastapi import APIRouter, HTTPException, Request, Depends
+from pydantic import BaseModel
+from typing import Optional
 from routers._auth_helper import require_auth, get_supabase_client
 
 logger = logging.getLogger(__name__)
@@ -27,14 +34,17 @@ def _get_service_client():
     return None
 
 
+# =============================================================================
+# GET /billing/status
+# =============================================================================
+
 @router.get("/status")
 async def billing_status(request: Request, auth_user_id: str = Depends(require_auth)):
-    """Return subscription tier and credit balance for the authenticated user."""
+    """Return subscription tier, credit balance, and plan details for the authenticated user."""
     supabase = _get_service_client() or get_supabase_client(request)
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    # Try to find subscription for this user
     try:
         result = (
             supabase.table("subscriptions")
@@ -52,11 +62,13 @@ async def billing_status(request: Request, auth_user_id: str = Depends(require_a
                 "credits_reset_at": sub.get("credits_reset_at"),
                 "status": sub.get("status", "active"),
                 "has_stripe": sub.get("has_stripe", False),
+                "plan_id": sub.get("plan_id", "free"),
+                "billing_interval": sub.get("billing_interval", "monthly"),
+                "trial_ends_at": sub.get("trial_ends_at"),
             }
     except Exception as e:
         logger.debug(f"Subscription lookup failed: {e}")
 
-    # Default free tier
     return {
         "tier": "free",
         "tier_name": "Free",
@@ -65,4 +77,209 @@ async def billing_status(request: Request, auth_user_id: str = Depends(require_a
         "credits_reset_at": None,
         "status": "active",
         "has_stripe": False,
+        "plan_id": "free",
+        "billing_interval": "monthly",
+        "trial_ends_at": None,
     }
+
+
+# =============================================================================
+# GET /billing/tiers
+# =============================================================================
+
+@router.get("/tiers")
+async def billing_tiers():
+    """Return available plan definitions with ILS prices and features."""
+    from services.stripe_service import PLANS
+    from services.credit_guard import CreditCost
+
+    tiers = []
+    for plan_id, plan in PLANS.items():
+        tiers.append({
+            "id": plan_id,
+            "name": plan["name"],
+            "nameHe": plan["name_he"],
+            "price": plan["price_monthly"],
+            "price_monthly": plan["price_monthly"],
+            "price_yearly": plan["price_yearly"],
+            "credits": plan["credits"],
+            "features": plan["features_list"],
+            "badge": plan.get("badge"),
+        })
+
+    return {
+        "tiers": tiers,
+        "credit_costs": {
+            "lead_snipe": CreditCost.LEAD_SNIPE,
+            "competitor_scan": CreditCost.COMPETITOR_SCAN,
+            "market_discovery": CreditCost.MARKET_DISCOVERY,
+            "ai_analysis": CreditCost.AI_ANALYSIS,
+            "pdf_report": CreditCost.PDF_REPORT,
+        },
+    }
+
+
+# =============================================================================
+# POST /billing/checkout
+# =============================================================================
+
+class CheckoutRequest(BaseModel):
+    tier: str
+    billing: str = "monthly"
+    success_url: str
+    cancel_url: str
+
+
+@router.post("/checkout")
+async def billing_checkout(
+    payload: CheckoutRequest,
+    request: Request,
+    auth_user_id: str = Depends(require_auth),
+):
+    """Create a Stripe Checkout Session for subscription."""
+    from services.stripe_service import (
+        PLANS, STRIPE_PRICE_MAP,
+        get_or_create_customer, create_checkout_session,
+    )
+
+    if payload.tier not in PLANS or payload.tier == "free":
+        raise HTTPException(status_code=400, detail="Invalid plan")
+
+    if payload.billing not in ("monthly", "yearly"):
+        raise HTTPException(status_code=400, detail="Invalid billing interval")
+
+    # Check if Stripe is configured
+    if not os.getenv("STRIPE_SECRET_KEY"):
+        raise HTTPException(status_code=503, detail="Stripe not configured")
+
+    price_key = f"{payload.tier}_{payload.billing}"
+    if not STRIPE_PRICE_MAP.get(price_key):
+        raise HTTPException(
+            status_code=503,
+            detail="Stripe prices not initialized. Run setup_stripe_products() first.",
+        )
+
+    # Get user email from Supabase
+    email = None
+    try:
+        supabase = _get_service_client()
+        if supabase:
+            user_resp = supabase.auth.admin.get_user_by_id(auth_user_id)
+            if user_resp and user_resp.user:
+                email = user_resp.user.email
+    except Exception:
+        pass
+    email = email or f"{auth_user_id}@quieteyes.app"
+
+    customer_id = get_or_create_customer(auth_user_id, email)
+    if not customer_id:
+        raise HTTPException(status_code=500, detail="Failed to create customer")
+
+    url = create_checkout_session(
+        customer_id=customer_id,
+        plan_id=payload.tier,
+        billing=payload.billing,
+        success_url=payload.success_url,
+        cancel_url=payload.cancel_url,
+        user_id=auth_user_id,
+    )
+
+    if not url:
+        raise HTTPException(status_code=500, detail="Failed to create checkout session")
+
+    return {"url": url, "message": "Checkout session created"}
+
+
+# =============================================================================
+# POST /billing/portal
+# =============================================================================
+
+class PortalRequest(BaseModel):
+    return_url: str
+
+
+@router.post("/portal")
+async def billing_portal(
+    payload: PortalRequest,
+    request: Request,
+    auth_user_id: str = Depends(require_auth),
+):
+    """Create a Stripe Billing Portal session for the authenticated user."""
+    from services.stripe_service import create_portal_session
+
+    supabase = _get_service_client() or get_supabase_client(request)
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    # Get customer ID
+    try:
+        result = (
+            supabase.table("subscriptions")
+            .select("stripe_customer_id")
+            .eq("user_id", auth_user_id)
+            .execute()
+        )
+        customer_id = (result.data[0] if result.data else {}).get("stripe_customer_id")
+    except Exception:
+        customer_id = None
+
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="No Stripe customer found")
+
+    url = create_portal_session(customer_id, payload.return_url)
+    if not url:
+        raise HTTPException(status_code=500, detail="Failed to create portal session")
+
+    return {"url": url, "message": "Portal session created"}
+
+
+# =============================================================================
+# POST /billing/webhook  (NO AUTH — Stripe signature verification only)
+# =============================================================================
+
+@router.post("/webhook")
+async def billing_webhook(request: Request):
+    """Handle Stripe webhook events. No JWT auth — uses Stripe signature."""
+    from services.stripe_service import handle_webhook_event
+
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    if not sig_header:
+        raise HTTPException(status_code=400, detail="Missing Stripe signature")
+
+    result = handle_webhook_event(payload, sig_header)
+
+    if result.get("status") == "error":
+        raise HTTPException(status_code=400, detail=result.get("message"))
+
+    return result
+
+
+# =============================================================================
+# GET /billing/usage
+# =============================================================================
+
+@router.get("/usage")
+async def billing_usage(
+    request: Request,
+    auth_user_id: str = Depends(require_auth),
+):
+    """Return credit usage history for the authenticated user."""
+    supabase = _get_service_client() or get_supabase_client(request)
+    if not supabase:
+        return {"usage": []}
+
+    try:
+        result = (
+            supabase.table("credit_logs")
+            .select("id, action, credits_used, endpoint, created_at")
+            .eq("user_id", auth_user_id)
+            .order("created_at", desc=True)
+            .limit(50)
+            .execute()
+        )
+        return {"usage": result.data or []}
+    except Exception:
+        # credit_logs table might not exist yet — return empty
+        return {"usage": []}

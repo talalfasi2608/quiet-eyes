@@ -14,15 +14,19 @@ import {
   BarChart3,
   ArrowUpRight,
   Sparkles,
+  Clock,
 } from 'lucide-react';
 import { apiFetch } from '../../services/api';
 
 interface TierInfo {
   id: string;
   name: string;
+  nameHe?: string;
   credits: number;
   price_monthly: number;
+  price_yearly?: number;
   features: string[];
+  badge?: string | null;
 }
 
 interface UsageRecord {
@@ -35,22 +39,28 @@ interface UsageRecord {
 
 const TIER_ICONS: Record<string, typeof Star> = {
   free: Shield,
+  starter: Zap,
   basic: Zap,
   pro: Star,
+  business: Crown,
   elite: Crown,
 };
 
 const TIER_GRADIENTS: Record<string, string> = {
   free: 'from-gray-600 to-gray-700',
+  starter: 'from-blue-600 to-blue-700',
   basic: 'from-blue-600 to-blue-700',
   pro: 'from-blue-600 to-cyan-500',
+  business: 'from-amber-500 to-amber-700',
   elite: 'from-amber-500 to-amber-700',
 };
 
 const TIER_BORDERS: Record<string, string> = {
   free: 'border-gray-600/30',
+  starter: 'border-blue-500/30',
   basic: 'border-blue-500/30',
-  pro: 'border-indigo-500/30',
+  pro: 'border-cyan-500/30',
+  business: 'border-amber-500/30',
   elite: 'border-amber-500/30',
 };
 
@@ -63,7 +73,11 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default function PlanManagement() {
-  const { tier, tierName, creditsRemaining, creditsLimit, hasStripe, refreshSubscription } = useSubscription();
+  const {
+    tier, tierName, creditsRemaining, creditsLimit,
+    hasStripe, refreshSubscription, billingInterval,
+    trialEndsAt, isTrial, planId,
+  } = useSubscription();
 
   const [tiers, setTiers] = useState<TierInfo[]>([]);
   const [creditCosts, setCreditCosts] = useState<Record<string, number>>({});
@@ -74,6 +88,7 @@ export default function PlanManagement() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [showUsage, setShowUsage] = useState(false);
   const [suggestedPlan, setSuggestedPlan] = useState<string | null>(null);
+  const [billingToggle, setBillingToggle] = useState<'monthly' | 'yearly'>('monthly');
 
   // Check if user came from landing page with a pre-selected plan
   useEffect(() => {
@@ -91,10 +106,10 @@ export default function PlanManagement() {
         const res = await apiFetch(`/billing/tiers`);
         if (res.ok) {
           const data = await res.json();
-          // Map API field 'price' to frontend field 'price_monthly'
           const mappedTiers = (data.tiers || []).map((t: Record<string, unknown>) => ({
             ...t,
             price_monthly: t.price ?? t.price_monthly ?? 0,
+            price_yearly: t.price_yearly ?? 0,
           }));
           setTiers(mappedTiers);
           setCreditCosts(data.credit_costs || {});
@@ -131,6 +146,7 @@ export default function PlanManagement() {
         method: 'POST',
         body: JSON.stringify({
           tier: tierId,
+          billing: billingToggle,
           success_url: `${window.location.origin}/dashboard/billing?upgraded=true`,
           cancel_url: `${window.location.origin}/dashboard/billing`,
         }),
@@ -141,7 +157,7 @@ export default function PlanManagement() {
         window.location.href = data.url;
         return;
       }
-      toast.error('שגיאה ביצירת הזמנה');
+      toast.error(data?.detail || 'שגיאה ביצירת הזמנה');
     } catch {
       toast.error('שגיאת רשת');
     } finally {
@@ -177,12 +193,23 @@ export default function PlanManagement() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('upgraded') === 'true') {
       refreshSubscription();
-      // Clean URL
+      toast.success('המנוי שודרג בהצלחה!');
       window.history.replaceState({}, '', '/dashboard/billing');
     }
   }, []);
 
   const creditsPercent = creditsLimit > 0 ? Math.min(100, (creditsRemaining / creditsLimit) * 100) : 100;
+
+  // Trial days remaining
+  const trialDaysLeft = (() => {
+    if (!trialEndsAt) return 0;
+    try {
+      const diff = new Date(trialEndsAt).getTime() - Date.now();
+      return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    } catch {
+      return 0;
+    }
+  })();
 
   if (isLoadingTiers) return <PageLoader message="טוען תוכניות..." />;
 
@@ -201,7 +228,7 @@ export default function PlanManagement() {
 
       {/* Current Plan Card */}
       <div className={`glass-card p-6 border ${TIER_BORDERS[tier] || 'border-gray-700/30'}`}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${TIER_GRADIENTS[tier] || TIER_GRADIENTS.free} flex items-center justify-center`}>
               {(() => {
@@ -210,9 +237,22 @@ export default function PlanManagement() {
               })()}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">תוכנית {tierName}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-white">תוכנית {tierName}</h2>
+                {isTrial && trialDaysLeft > 0 && (
+                  <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-400 text-xs font-medium border border-amber-500/30 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    ניסיון - {trialDaysLeft} ימים
+                  </span>
+                )}
+                {billingInterval === 'yearly' && tier !== 'free' && (
+                  <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-medium border border-emerald-500/30">
+                    שנתי
+                  </span>
+                )}
+              </div>
               <p className="text-gray-400 text-sm">
-                {tier === 'elite' ? 'קרדיטים ללא הגבלה' : `${creditsRemaining} / ${creditsLimit} קרדיטים נותרו`}
+                {tier === 'business' || tier === 'elite' ? 'קרדיטים ללא הגבלה' : `${creditsRemaining} / ${creditsLimit} קרדיטים נותרו`}
               </p>
             </div>
           </div>
@@ -230,7 +270,7 @@ export default function PlanManagement() {
         </div>
 
         {/* Credits Bar */}
-        {tier !== 'elite' && (
+        {tier !== 'business' && tier !== 'elite' && (
           <div className="mt-4">
             <div className="w-full h-3 rounded-full bg-gray-800 overflow-hidden">
               <div
@@ -266,9 +306,38 @@ export default function PlanManagement() {
         </div>
       )}
 
-      {/* Tier Cards */}
+      {/* Billing Toggle + Tier Cards */}
       <div>
-        <h3 className="text-lg font-semibold text-white mb-4">תוכניות זמינות</h3>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
+          <h3 className="text-lg font-semibold text-white">תוכניות זמינות</h3>
+
+          {/* Monthly / Yearly Toggle */}
+          <div className="flex items-center gap-3">
+            <span className={`text-sm ${billingToggle === 'monthly' ? 'text-white font-medium' : 'text-gray-400'}`}>
+              חודשי
+            </span>
+            <button
+              onClick={() => setBillingToggle(billingToggle === 'monthly' ? 'yearly' : 'monthly')}
+              className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${
+                billingToggle === 'yearly' ? 'bg-cyan-600' : 'bg-gray-700'
+              }`}
+            >
+              <div
+                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-300 ${
+                  billingToggle === 'yearly' ? 'right-0.5' : 'right-[calc(100%-1.375rem)]'
+                }`}
+              />
+            </button>
+            <span className={`text-sm ${billingToggle === 'yearly' ? 'text-white font-medium' : 'text-gray-400'}`}>
+              שנתי
+            </span>
+            {billingToggle === 'yearly' && (
+              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-medium border border-emerald-500/30">
+                חיסכון עד 17%
+              </span>
+            )}
+          </div>
+        </div>
 
         {isLoadingTiers ? (
           <div className="flex items-center justify-center py-12">
@@ -277,21 +346,37 @@ export default function PlanManagement() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {tiers.map((t) => {
-              const isCurrentTier = t.id === tier;
+              const isCurrentTier = t.id === tier || t.id === planId;
               const isSuggested = t.id === suggestedPlan && !isCurrentTier;
               const Icon = TIER_ICONS[t.id] || Shield;
               const gradient = TIER_GRADIENTS[t.id] || TIER_GRADIENTS.free;
               const isUpgrade = !isCurrentTier && t.id !== 'free';
-              const isDowngrade = !isCurrentTier && tiers.findIndex(x => x.id === t.id) < tiers.findIndex(x => x.id === tier);
+              const isPro = t.id === 'pro';
+              const price = billingToggle === 'yearly' && t.price_yearly
+                ? Math.round(t.price_yearly / 12)
+                : t.price_monthly;
+              const yearlySavings = t.price_monthly > 0 && t.price_yearly
+                ? t.price_monthly * 12 - t.price_yearly
+                : 0;
 
               return (
                 <div
                   key={t.id}
                   className={`glass-card p-6 relative overflow-hidden transition-all duration-300 ${
-                    isCurrentTier ? `border-2 ${TIER_BORDERS[t.id]}` : isSuggested ? `border-2 border-indigo-500/50 ring-2 ring-indigo-500/20` : 'hover:border-gray-600/50'
+                    isCurrentTier ? `border-2 ${TIER_BORDERS[t.id] || 'border-gray-600/30'}` :
+                    isPro ? 'border-2 border-cyan-500/30 ring-1 ring-cyan-500/10' :
+                    isSuggested ? 'border-2 border-indigo-500/50 ring-2 ring-indigo-500/20' :
+                    'hover:border-gray-600/50'
                   }`}
                 >
-                  {isSuggested && (
+                  {t.badge && !isCurrentTier && (
+                    <div className="absolute top-3 left-3">
+                      <span className="px-2 py-1 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-xs font-bold">
+                        {t.badge}
+                      </span>
+                    </div>
+                  )}
+                  {isSuggested && !t.badge && (
                     <div className="absolute top-3 left-3">
                       <span className="px-2 py-1 rounded-lg bg-indigo-500/20 text-indigo-400 text-xs font-medium border border-indigo-500/30 animate-pulse">
                         מומלץ עבורך
@@ -311,15 +396,22 @@ export default function PlanManagement() {
                       <Icon className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-white">{t.name}</h4>
+                      <h4 className="text-lg font-bold text-white">{t.nameHe || t.name}</h4>
                       <p className="text-gray-400 text-sm">
-                        {t.price_monthly === 0 ? 'חינם' : `₪${t.price_monthly}/חודש`}
+                        {price === 0 ? 'חינם' : `₪${price}/חודש`}
                       </p>
                     </div>
                   </div>
 
+                  {/* Yearly savings */}
+                  {billingToggle === 'yearly' && yearlySavings > 0 && (
+                    <p className="text-xs text-emerald-400 mb-3">
+                      ₪{t.price_yearly}/שנה (חיסכון ₪{yearlySavings})
+                    </p>
+                  )}
+
                   <p className="text-2xl font-bold text-white mb-4">
-                    {t.credits >= 999999 ? '∞' : t.credits}
+                    {t.credits >= 9999 ? '\u221E' : t.credits}
                     <span className="text-sm font-normal text-gray-400 mr-1">קרדיטים/חודש</span>
                   </p>
 
@@ -347,7 +439,7 @@ export default function PlanManagement() {
                       ) : (
                         <>
                           <ArrowUpRight className="w-4 h-4" />
-                          {isDowngrade ? 'שנה תוכנית' : 'שדרג עכשיו'}
+                          שדרג עכשיו
                         </>
                       )}
                     </button>

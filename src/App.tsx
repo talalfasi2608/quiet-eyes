@@ -26,6 +26,8 @@ const Staff = lazy(() => import('./pages/dashboard/Staff'));
 const PlanManagement = lazy(() => import('./pages/dashboard/PlanManagement'));
 const SuperAdmin = lazy(() => import('./pages/dashboard/SuperAdmin'));
 const Reports = lazy(() => import('./pages/dashboard/Reports'));
+const Automations = lazy(() => import('./pages/dashboard/Automations'));
+const Pricing = lazy(() => import('./pages/public/Pricing'));
 import RoleGate from './components/auth/RoleGate';
 
 // Loading screen component
@@ -82,8 +84,12 @@ function ProtectedRoutes() {
         <Route path="staff" element={<RoleGate minRole="admin"><Staff /></RoleGate>} />
         <Route path="billing" element={<PlanManagement />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="automations" element={<Automations />} />
         <Route path="super-admin" element={<SuperAdmin />} />
       </Route>
+
+      {/* Public pages accessible when logged in */}
+      <Route path="/pricing" element={<Pricing />} />
 
       {/* Redirect everything else to dashboard */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -108,11 +114,14 @@ function AppContent() {
   if (!user) {
     return (
       <BrowserRouter>
+        <Suspense fallback={<LoadingScreen message="טוען..." />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<AuthPage />} />
+          <Route path="/pricing" element={<Pricing />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     );
   }

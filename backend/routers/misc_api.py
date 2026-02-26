@@ -172,7 +172,7 @@ async def report_preview(business_id: str, request: Request, auth_user_id: str =
     THREAT_LABELS = {"high": "גבוה", "medium": "בינוני", "low": "נמוך"}
 
     try:
-        from services.pdf_generator import _gather_report_data
+        from services.pdf_generator import _gather_report_data, _generate_narratives
         data = _gather_report_data(business_id)
         if data:
             # Map competitor fields for frontend (threat_level → threat with Hebrew)
@@ -184,6 +184,10 @@ async def report_preview(business_id: str, request: Request, auth_user_id: str =
                     "rating": c.get("rating", "-"),
                     "threat": THREAT_LABELS.get(raw_threat, raw_threat) if raw_threat else "לא ידוע",
                 })
+
+            # Generate AI narratives for preview
+            narratives = _generate_narratives(data)
+            action_plan = narratives.get("action_plan", [])
 
             return {
                 "preview": {
@@ -197,8 +201,19 @@ async def report_preview(business_id: str, request: Request, auth_user_id: str =
                     "total_leads": data.get("lead_stats", {}).get("total", 0),
                     "events_count": len(data.get("events", [])),
                     "recent_events": data.get("events", [])[:5],
-                    "action_items_count": 0,
-                    "action_items": [],
+                    "action_items_count": len(action_plan),
+                    "action_items": [
+                        {"title": a.get("action", ""), "priority": a.get("priority", 0)}
+                        for a in action_plan
+                    ],
+                    "executive_summary": narratives.get("executive_summary", ""),
+                    "leads_narrative": narratives.get("leads_narrative", ""),
+                    "reputation_narrative": narratives.get("reputation_narrative", ""),
+                    "competitor_narrative": narratives.get("competitor_narrative", ""),
+                    "opportunity_of_week": narratives.get("opportunity_of_week", ""),
+                    "hot_leads": data.get("hot_leads", []),
+                    "market_position": data.get("market_position", 0),
+                    "current_rating": data.get("current_rating", 0),
                 }
             }
     except Exception as e:
@@ -218,6 +233,14 @@ async def report_preview(business_id: str, request: Request, auth_user_id: str =
             "recent_events": [],
             "action_items_count": 0,
             "action_items": [],
+            "executive_summary": "",
+            "leads_narrative": "",
+            "reputation_narrative": "",
+            "competitor_narrative": "",
+            "opportunity_of_week": "",
+            "hot_leads": [],
+            "market_position": 0,
+            "current_rating": 0,
         }
     }
 
@@ -931,45 +954,4 @@ async def domain_insight(user_id: str, request: Request, auth_user_id: str = Dep
     return {"insight": None}
 
 
-# ── Billing extras ──
-
-@router.get("/billing/tiers")
-async def billing_tiers():
-    return {
-        "tiers": [
-            {"id": "free", "name": "Free", "nameHe": "חינם", "price": 0, "credits": 10, "features": ["10 קרדיטים לחודש", "דשבורד בסיסי", "פרופיל עסק אחד", "סריקות שוק בסיסיות"]},
-            {"id": "pro", "name": "Pro", "nameHe": "מקצועי", "price": 399, "credits": 200, "features": ["200 קרדיטים לחודש", "צ'אט AI COO", "תדריך יומי", "סריקת מתחרים מעמיקה", "גילוי לידים", "תמיכה בעדיפות"]},
-            {"id": "elite", "name": "Elite", "nameHe": "עילית", "price": 899, "credits": 999999, "features": ["קרדיטים ללא הגבלה", "הכל ב-Pro", "ניהול צוות", "לוגים ובקרה", "אינטגרציות מותאמות", "מנהל לקוח ייעודי"]},
-        ],
-        "credit_costs": {
-            "lead_snipe": 2,
-            "competitor_scan": 3,
-            "market_discovery": 5,
-            "pdf_report": 1,
-        },
-    }
-
-
-@router.get("/billing/usage")
-async def billing_usage(auth_user_id: str = Depends(require_auth)):
-    return {"usage": []}
-
-
-class CheckoutRequest(BaseModel):
-    tier: str
-    success_url: str
-    cancel_url: str
-
-
-@router.post("/billing/checkout")
-async def billing_checkout(payload: CheckoutRequest, auth_user_id: str = Depends(require_auth)):
-    return {"url": None, "message": "Stripe not configured yet"}
-
-
-class PortalRequest(BaseModel):
-    return_url: str
-
-
-@router.post("/billing/portal")
-async def billing_portal(payload: PortalRequest, auth_user_id: str = Depends(require_auth)):
-    return {"url": None, "message": "Stripe not configured yet"}
+# ── Billing endpoints moved to routers/billing.py ──

@@ -11,11 +11,16 @@ interface SubscriptionState {
   status: string;
   hasStripe: boolean;
   isLoading: boolean;
+  planId: string;
+  billingInterval: 'monthly' | 'yearly';
+  trialEndsAt: string | null;
 }
 
 interface SubscriptionContextType extends SubscriptionState {
   isPaid: boolean;
   isElite: boolean;
+  isTrial: boolean;
+  isBusiness: boolean;
   refreshSubscription: () => Promise<void>;
 }
 
@@ -28,12 +33,17 @@ const defaultState: SubscriptionState = {
   status: 'active',
   hasStripe: false,
   isLoading: true,
+  planId: 'free',
+  billingInterval: 'monthly',
+  trialEndsAt: null,
 };
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   ...defaultState,
   isPaid: false,
   isElite: false,
+  isTrial: false,
+  isBusiness: false,
   refreshSubscription: async () => {},
 });
 
@@ -61,6 +71,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           status: data.status || 'active',
           hasStripe: data.has_stripe || false,
           isLoading: false,
+          planId: data.plan_id || data.tier || 'free',
+          billingInterval: data.billing_interval || 'monthly',
+          trialEndsAt: data.trial_ends_at || null,
         });
       } else {
         setState({ ...defaultState, isLoading: false });
@@ -75,7 +88,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [session?.access_token]);
 
   const isPaid = state.tier !== 'free';
-  const isElite = state.tier === 'elite';
+  const isElite = state.tier === 'elite' || state.tier === 'business';
+  const isBusiness = state.tier === 'business' || state.tier === 'elite';
+
+  // Check if currently in trial
+  const isTrial = (() => {
+    if (!state.trialEndsAt) return false;
+    try {
+      return new Date(state.trialEndsAt) > new Date();
+    } catch {
+      return false;
+    }
+  })();
 
   return (
     <SubscriptionContext.Provider
@@ -83,6 +107,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         ...state,
         isPaid,
         isElite,
+        isTrial,
+        isBusiness,
         refreshSubscription: fetchSubscription,
       }}
     >

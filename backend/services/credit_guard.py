@@ -45,6 +45,12 @@ class CreditCost:
     PATTERN_DETECTION = 1
     CRM_PUSH = 0       # Free — already paid for the lead
     WHATSAPP_ALERT = 0  # Free — notification only
+    # Phase 3: Automation Engine
+    REVIEW_RESPONSE = 1
+    LEAD_OUTREACH = 1
+    COMPETITOR_ALERT_AUTO = 0
+    MORNING_BRIEFING_SEND = 1
+    CAMPAIGN_GENERATE = 2
 
 
 # =============================================================================
@@ -53,9 +59,12 @@ class CreditCost:
 
 TIER_LIMITS = {
     "free": 10,
-    "basic": 100,
-    "pro": 500,
-    "elite": 5000,
+    "starter": 50,
+    "pro": 200,
+    "business": 9999,
+    # Backward compat aliases
+    "basic": 50,
+    "elite": 9999,
 }
 
 
