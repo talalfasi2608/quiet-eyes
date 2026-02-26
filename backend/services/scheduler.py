@@ -36,6 +36,16 @@ class JobType:
     WEEKLY_MEMORY_SNAPSHOT = "weekly_memory_snapshot"
     WEEKLY_PREDICTION = "weekly_prediction"
     MONTHLY_PATTERNS = "monthly_patterns"
+    # Phase 3: Automation Engine
+    REVIEW_MONITOR = "review_monitor"
+    COMPETITOR_ALERTS_AUTO = "competitor_alerts_auto"
+    MORNING_BRIEFING = "morning_briefing"
+    CAMPAIGN_TRIGGERS = "campaign_triggers"
+    # Phase 4: Expanded Data Sources
+    MEGA_SCAN = "mega_scan"
+    WEATHER_UPDATE = "weather_update"
+    JOBS_SCAN = "jobs_scan"
+    LICENSES_SCAN = "licenses_scan"
     # Aliases (legacy job types created by older onboarding code)
     INTEL_LEADS = "intel_leads"
     INTEL_COMPETITORS = "intel_competitors"
@@ -76,6 +86,40 @@ DEFAULT_JOBS = [
     {
         "job_type": JobType.MONTHLY_PATTERNS,
         "cron_expression": "0 4 1 * *",     # 1st of month 4am UTC
+    },
+    # Phase 3: Automation Engine
+    {
+        "job_type": JobType.REVIEW_MONITOR,
+        "cron_expression": "0 */1 * * *",   # hourly
+    },
+    {
+        "job_type": JobType.COMPETITOR_ALERTS_AUTO,
+        "cron_expression": "0 */3 * * *",   # every 3 hours
+    },
+    {
+        "job_type": JobType.MORNING_BRIEFING,
+        "cron_expression": "0 6 * * *",     # daily 6am UTC (8am Israel)
+    },
+    {
+        "job_type": JobType.CAMPAIGN_TRIGGERS,
+        "cron_expression": "0 7 * * *",     # daily 7am UTC (9am Israel)
+    },
+    # Phase 4: Expanded Data Sources
+    {
+        "job_type": JobType.MEGA_SCAN,
+        "cron_expression": "0 8 * * *",     # daily 8am UTC (10am Israel)
+    },
+    {
+        "job_type": JobType.WEATHER_UPDATE,
+        "cron_expression": "0 4 * * *",     # daily 4am UTC (6am Israel)
+    },
+    {
+        "job_type": JobType.JOBS_SCAN,
+        "cron_expression": "0 5 * * 1",     # Monday 5am UTC (7am Israel)
+    },
+    {
+        "job_type": JobType.LICENSES_SCAN,
+        "cron_expression": "0 5 * * 2",     # Tuesday 5am UTC (7am Israel)
     },
 ]
 
