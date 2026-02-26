@@ -5,6 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import { Users, UserPlus, Shield, Trash2, Loader2, AlertCircle, Check, Star, Target, MessageSquare, CheckCircle, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../../services/api';
+import PageLoader from '../../components/ui/PageLoader';
+import EmptyState from '../../components/ui/EmptyState';
 
 interface StaffMember {
   user_id: string | null;
@@ -329,15 +331,9 @@ export default function Staff() {
         </h2>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-          </div>
+          <PageLoader message="טוען צוות..." />
         ) : members.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-            <p className="text-gray-400">אין חברי צוות עדיין</p>
-            <p className="text-gray-500 text-sm mt-1">הזמן את הצוות שלך כדי להתחיל</p>
-          </div>
+          <EmptyState icon={Users} title="אין חברי צוות עדיין" description="הזמן את הצוות שלך כדי להתחיל" />
         ) : (
           <div className="space-y-3">
             {members.map((member) => {

@@ -24,6 +24,7 @@
 /* ═══ Base ═══ */
 html {
   direction: rtl;
+  overflow-x: hidden;
 }
 
 body {
@@ -35,6 +36,33 @@ body {
     radial-gradient(ellipse at 80% 20%, rgba(0, 102, 204, 0.03) 0%, transparent 50%);
   min-height: 100vh;
   color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+/* ═══ Dashboard Page Utilities ═══ */
+
+/* Full-viewport page grid — used by Dashboard, Focus, Landscape, Sniper, Intelligence */
+.page-grid {
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  padding: 16px;
+  gap: 12px;
+}
+
+/* Scrollable section inside a page-grid — only this part scrolls */
+.scrollable-section {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Compact glass card variant — less padding for dense layouts */
+.glass-card-compact {
+  @apply rounded-xl p-3;
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
 /* Text selection */

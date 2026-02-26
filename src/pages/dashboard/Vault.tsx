@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../../services/api';
+import PageLoader from '../../components/ui/PageLoader';
+import EmptyState from '../../components/ui/EmptyState';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // EVENT CONFIG
@@ -252,23 +254,12 @@ export default function Vault() {
 
       {/* ── Loading state ───────────────────────────────────────────────────── */}
       {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center space-y-4">
-            <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mx-auto" />
-            <p className="text-gray-400 text-sm">טוען ארכיון מודיעין...</p>
-          </div>
-        </div>
+        <PageLoader message="טוען ארכיון מודיעין..." />
       )}
 
       {/* ── Empty state ─────────────────────────────────────────────────────── */}
       {!loading && events.length === 0 && (
-        <div className="glass-card p-12 text-center">
-          <Archive className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">אין אירועים בכספת</h3>
-          <p className="text-gray-400 text-sm max-w-md mx-auto">
-            לא נמצאו אירועי מודיעין עבור הסינון שנבחר. נסה לשנות את טווח התאריכים או להסיר את הסינון.
-          </p>
-        </div>
+        <EmptyState icon={Archive} title="אין אירועים בכספת" description="לא נמצאו אירועי מודיעין עבור הסינון שנבחר. נסה לשנות את טווח התאריכים או להסיר את הסינון." />
       )}
 
       {/* ── Timeline ────────────────────────────────────────────────────────── */}

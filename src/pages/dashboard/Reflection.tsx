@@ -9,6 +9,8 @@ import {
 import toast from 'react-hot-toast';
 import { apiFetch } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import PageLoader from '../../components/ui/PageLoader';
+import EmptyState from '../../components/ui/EmptyState';
 
 interface Review {
   id: string;
@@ -133,10 +135,7 @@ export default function Reflection() {
   // Loading state
   if (!currentProfile) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-        <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
-        <p className="text-gray-400">טוען ביקורות...</p>
-      </div>
+      <PageLoader message="טוען ביקורות..." />
     );
   }
 
@@ -346,16 +345,7 @@ export default function Reflection() {
                 </div>
 
                 {sortedCompetitors.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Users className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-400 text-sm">אין מתחרים שנסרקו עדיין</p>
-                    <button
-                      onClick={() => navigate('/dashboard/landscape')}
-                      className="mt-3 px-4 py-2 bg-cyan-600/20 text-cyan-400 rounded-lg text-sm hover:bg-cyan-600/30 transition-colors"
-                    >
-                      הוסף מתחרים
-                    </button>
-                  </div>
+                  <EmptyState icon={Users} title="אין מתחרים שנסרקו עדיין" description="הוסף מתחרים כדי להשוות" actionLabel="הוסף מתחרים" onAction={() => navigate('/dashboard/landscape')} />
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -547,13 +537,7 @@ export default function Reflection() {
             </div>
 
             {(sourceFilter ? reviews.filter(r => r.source === sourceFilter) : reviews).length === 0 ? (
-              <div className="text-center py-12">
-                <MessageCircleOff className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400">
-                  {isLoading ? 'טוען ביקורות...' : 'אין ביקורות להצגה כרגע'}
-                </p>
-                <p className="text-gray-500 text-sm mt-2">ביקורות מ-Google יופיעו כאן בקרוב</p>
-              </div>
+              <EmptyState icon={MessageCircleOff} title="אין ביקורות להצגה" description="ביקורות מ-Google יופיעו כאן בקרוב" />
             ) : (
               <div className="space-y-4">
                 {(sourceFilter ? reviews.filter(r => r.source === sourceFilter) : reviews).map((review) => (

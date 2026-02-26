@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../../services/api';
+import PageLoader from '../../components/ui/PageLoader';
 
 // Types
 interface TrackedSite {
@@ -270,12 +271,7 @@ export default function KnowledgeBase() {
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">טוען בסיס ידע...</p>
-        </div>
-      </div>
+      <PageLoader message="טוען בסיס ידע..." />
     );
   }
 

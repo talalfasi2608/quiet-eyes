@@ -3,6 +3,8 @@ import { useSimulation } from '../../context/SimulationContext';
 import { Calendar, TrendingUp, Zap, Loader2, CalendarX, Sparkles, CheckCircle2, Clock, AlertTriangle, Flame, ArrowUpRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../../services/api';
+import PageLoader from '../../components/ui/PageLoader';
+import EmptyState from '../../components/ui/EmptyState';
 
 interface TrendItem {
   id: string;
@@ -115,10 +117,7 @@ export default function Horizon() {
   // Loading state
   if (!currentProfile) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
-        <p className="text-gray-400">טוען תחזיות...</p>
-      </div>
+      <PageLoader message="טוען תחזיות..." />
     );
   }
 
@@ -177,8 +176,8 @@ export default function Horizon() {
         <div className="lg:col-span-2">
           <div className="glass-card">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-indigo-400" />
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-cyan-400" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-white">אירועים קרובים</h2>
@@ -187,10 +186,7 @@ export default function Horizon() {
             </div>
 
             {loading ? (
-              <div className="text-center py-12">
-                <Loader2 className="w-10 h-10 text-indigo-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-400">מנתח אירועים והזדמנויות...</p>
-              </div>
+              <PageLoader message="מנתח אירועים..." />
             ) : error ? (
               <div className="text-center py-12">
                 <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-4" />
@@ -198,11 +194,7 @@ export default function Horizon() {
                 <p className="text-gray-500 text-sm mt-2">{error}</p>
               </div>
             ) : events.length === 0 ? (
-              <div className="text-center py-12">
-                <CalendarX className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400">אין אירועים מתוכננים כרגע</p>
-                <p className="text-gray-500 text-sm mt-2">אירועים יופיעו כאן כשנזהה הזדמנויות עסקיות</p>
-              </div>
+              <EmptyState icon={CalendarX} title="אין אירועים מתוכננים" description="אירועים יופיעו כאן כשנזהה הזדמנויות עסקיות" />
             ) : (
               <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
                 {events.map((event, index) => (
@@ -288,11 +280,7 @@ export default function Horizon() {
                 <p className="text-gray-400 text-sm">מייצר תובנות...</p>
               </div>
             ) : insights.length === 0 && events.length === 0 ? (
-              <div className="text-center py-8">
-                <Sparkles className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400 text-sm">אין תובנות חדשות כרגע</p>
-                <p className="text-gray-500 text-xs mt-1">תובנות יופיעו לאחר ניתוח אירועים קרובים</p>
-              </div>
+              <EmptyState icon={Sparkles} title="אין תובנות חדשות" description="תובנות יופיעו לאחר ניתוח אירועים קרובים" />
             ) : (
               <div className="space-y-4">
                 {/* AI General Insights */}
@@ -385,11 +373,7 @@ export default function Horizon() {
             <p className="text-gray-400">סורק מגמות...</p>
           </div>
         ) : trends.length === 0 ? (
-          <div className="text-center py-12">
-            <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">לא זוהו מגמות עדיין</p>
-            <p className="text-gray-500 text-sm mt-2">מגמות יופיעו לאחר סריקת רדאר הטרנדים</p>
-          </div>
+          <EmptyState icon={TrendingUp} title="לא זוהו מגמות עדיין" description="מגמות יופיעו לאחר סריקת רדאר הטרנדים" />
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

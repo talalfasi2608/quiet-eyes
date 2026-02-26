@@ -12,7 +12,7 @@ interface EmptyStateProps {
 
 export default function EmptyState({
   icon: Icon,
-  iconColor = 'text-indigo-400',
+  iconColor = 'text-cyan-400',
   title,
   description,
   actionLabel,
