@@ -707,126 +707,142 @@ export default function LeadSniperFeed() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="space-y-6 fade-in" dir="rtl">
-      {/* ── Header ────────────────────────────────────────────────────── */}
-      <header className="glass-card p-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-5">
-            <SniperScope isScanning={scanning} />
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>צלף לידים</h1>
-                <LiveBadge />
-                {scanning && (
-                  <span className="text-sm font-normal text-orange-400 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    סורק...
-                  </span>
-                )}
-              </div>
-              <p className="text-gray-400">
-                גילוי בזמן אמת של אנשים שמחפשים את השירותים שלך
-              </p>
-            </div>
+    <div dir="rtl" className="fade-in" style={{
+      display: 'grid',
+      height: 'calc(100vh - 60px)',
+      gridTemplateRows: 'auto auto auto 1fr',
+      gap: '8px',
+      padding: '16px',
+      overflow: 'hidden',
+    }}>
+      {/* ── Compact Header ─────────────────────────────────────────── */}
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/30">
+            <Crosshair className="w-5 h-5 text-white" />
           </div>
-
-          <div className="flex items-center gap-3">
-            {total > 0 && (
-              <button
-                onClick={() => {
-                  if (!currentProfile?.id) return;
-                  const a = document.createElement('a');
-                  a.href = `${API_BASE}/leads/${currentProfile.id}/export`;
-                  a.download = '';
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                }}
-                className="flex items-center gap-2 px-4 py-3 rounded-xl font-medium bg-gray-800/50 text-gray-300 border border-gray-700/50 hover:bg-gray-700/50 hover:text-white transition-all"
-              >
-                <Download className="w-5 h-5" />
-                <span>ייצוא CSV</span>
-              </button>
-            )}
-            <button
-              onClick={triggerMission}
-              disabled={scanning}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
-                scanning
-                  ? 'bg-orange-600/30 text-orange-300 cursor-wait'
-                  : 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:shadow-lg hover:shadow-red-500/30 active:scale-95'
-              }`}
-            >
-              {scanning ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>משימה פעילה...</span>
-                </>
-              ) : (
-                <>
-                  <Crosshair className="w-5 h-5" />
-                  <span>התחל משימה</span>
-                </>
-              )}
-            </button>
-          </div>
+          <h1 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>צלף לידים</h1>
+          <LiveBadge />
+          {scanning && (
+            <span className="text-xs font-normal text-orange-400 flex items-center gap-1.5">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              סורק...
+            </span>
+          )}
         </div>
 
-        {/* ── Stats Bar ────────────────────────────────────────────── */}
-        <div className="mt-6 pt-6 border-t border-gray-700/50 grid grid-cols-4 gap-4">
-          {[
-            { key: 'all' as const, label: 'סה״כ לידים', count: total, icon: Radio, activeColor: 'indigo' },
-            { key: 'new' as const, label: 'לידים חדשים', count: counts.new, icon: Zap, activeColor: 'red' },
-            { key: 'sniped' as const, label: 'נתפסו', count: counts.sniped, icon: CheckCircle2, activeColor: 'emerald' },
-            { key: 'dismissed' as const, label: 'נדחו', count: counts.dismissed, icon: X, activeColor: 'gray' },
-          ].map(({ key, label, count, icon: Icon, activeColor }) => (
+        <div className="flex items-center gap-2">
+          {total > 0 && (
             <button
-              key={key}
-              onClick={() => setActiveFilter(key)}
-              className={`p-4 rounded-xl border transition-all ${
-                activeFilter === key
-                  ? `bg-${activeColor}-500/20 border-${activeColor}-500/50`
-                  : 'bg-gray-800/30 border-gray-700/50 hover:border-gray-600'
-              }`}
+              onClick={() => {
+                if (!currentProfile?.id) return;
+                const a = document.createElement('a');
+                a.href = `${API_BASE}/leads/${currentProfile.id}/export`;
+                a.download = '';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-800/50 text-gray-300 border border-gray-700/50 hover:bg-gray-700/50 hover:text-white transition-all"
             >
-              <div className="flex items-center justify-between mb-1">
-                <Icon
-                  className={`w-5 h-5 ${
-                    activeFilter === key ? `text-${activeColor}-400` : 'text-gray-500'
-                  }`}
-                />
-                <span
-                  className={`text-2xl font-bold ${
-                    activeFilter === key ? `text-${activeColor}-400` : 'text-white'
-                  }`}
-                  style={{ fontFamily: "var(--font-mono)" }}
-                >
-                  {count}
-                </span>
-              </div>
-              <span className="text-sm text-gray-400">{label}</span>
+              <Download className="w-4 h-4" />
+              <span>ייצוא CSV</span>
             </button>
-          ))}
+          )}
+          <button
+            onClick={triggerMission}
+            disabled={scanning}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              scanning
+                ? 'bg-orange-600/30 text-orange-300 cursor-wait'
+                : 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:shadow-lg hover:shadow-red-500/30 active:scale-95'
+            }`}
+          >
+            {scanning ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>משימה פעילה...</span>
+              </>
+            ) : (
+              <>
+                <Crosshair className="w-4 h-4" />
+                <span>התחל משימה</span>
+              </>
+            )}
+          </button>
         </div>
       </header>
 
-      {/* ── Feedback Stats ─────────────────────────────────────────── */}
-      <FeedbackStatsBar stats={feedbackStats} />
+      {/* ── Compact Stats Bar ──────────────────────────────────────── */}
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { key: 'all' as const, label: 'סה״כ לידים', count: total, icon: Radio, activeColor: 'indigo' },
+          { key: 'new' as const, label: 'לידים חדשים', count: counts.new, icon: Zap, activeColor: 'red' },
+          { key: 'sniped' as const, label: 'נתפסו', count: counts.sniped, icon: CheckCircle2, activeColor: 'emerald' },
+          { key: 'dismissed' as const, label: 'נדחו', count: counts.dismissed, icon: X, activeColor: 'gray' },
+        ].map(({ key, label, count, icon: Icon, activeColor }) => (
+          <button
+            key={key}
+            onClick={() => setActiveFilter(key)}
+            className={`p-2 rounded-lg border transition-all ${
+              activeFilter === key
+                ? `bg-${activeColor}-500/20 border-${activeColor}-500/50`
+                : 'bg-gray-800/30 border-gray-700/50 hover:border-gray-600'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <Icon
+                className={`w-4 h-4 ${
+                  activeFilter === key ? `text-${activeColor}-400` : 'text-gray-500'
+                }`}
+              />
+              <span
+                className={`text-lg font-bold ${
+                  activeFilter === key ? `text-${activeColor}-400` : 'text-white'
+                }`}
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                {count}
+              </span>
+            </div>
+            <span className="text-xs text-gray-400">{label}</span>
+          </button>
+        ))}
+      </div>
 
-      {/* ── Intent Category Filter ────────────────────────────────── */}
-      {!loading && leads.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {INTENT_CATEGORIES.map(({ key, label, icon: Icon, color }) => (
+      {/* ── Compact Feedback Stats + Intent Filter Row ──────────── */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Inline Feedback Stats */}
+        {feedbackStats && feedbackStats.total_feedback > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gray-800/40 border border-gray-700/40 text-xs">
+            <BarChart3 className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="text-gray-400">דירוג:</span>
+            <span className={`font-bold ${Math.round((feedbackStats.approval_rate || 0) * 100) >= 70 ? 'text-emerald-400' : Math.round((feedbackStats.approval_rate || 0) * 100) >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+              {Math.round((feedbackStats.approval_rate || 0) * 100)}%
+            </span>
+            <span className="text-emerald-400">{feedbackStats.approvals}<ThumbsUp className="w-2.5 h-2.5 inline mr-0.5" /></span>
+            <span className="text-red-400">{feedbackStats.rejections}<ThumbsDown className="w-2.5 h-2.5 inline mr-0.5" /></span>
+          </div>
+        )}
+
+        {/* Separator */}
+        {feedbackStats && feedbackStats.total_feedback > 0 && !loading && leads.length > 0 && (
+          <div className="w-px h-5 bg-gray-700/50" />
+        )}
+
+        {/* Intent Category Filter */}
+        {!loading && leads.length > 0 && (
+          INTENT_CATEGORIES.map(({ key, label, icon: Icon, color }) => (
             <button
               key={key}
               onClick={() => setIntentFilter(key)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
                 intentFilter === key
                   ? color + ' ring-1 ring-offset-1 ring-offset-gray-900'
                   : 'text-gray-500 bg-gray-800/30 border-gray-700/50 hover:text-gray-300 hover:border-gray-600'
               }`}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-3 h-3" />
               {label}
               {key !== 'all' && (
                 <span className="opacity-60">
@@ -834,140 +850,147 @@ export default function LeadSniperFeed() {
                 </span>
               )}
             </button>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
-      {/* ── Loading State ─────────────────────────────────────────── */}
-      {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <CardSkeleton key={i} />
-          ))}
-        </div>
-      )}
+      {/* ── Scrollable Content Area ──────────────────────────────── */}
+      <div style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
 
-      {/* ── Error State ───────────────────────────────────────────── */}
-      {error && !loading && (
-        <div className="glass-card p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">שגיאה בטעינת לידים</h3>
-          <p className="text-gray-400 mb-4">{error}</p>
-          <button
-            onClick={fetchLeads}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
-          >
-            נסה שוב
-          </button>
-        </div>
-      )}
-
-      {/* ── Empty State / Smart Searching ─────────────────────────── */}
-      {!loading && !error && leads.length === 0 && (
-        <div className="glass-card p-12 text-center">
-          {isSearching && activeFilter === 'all' ? (
-            <>
-              <div className="relative w-24 h-24 mx-auto mb-6">
-                <div className="absolute inset-0 rounded-full border-2 border-red-500/30 animate-ping" style={{ animationDuration: '2s' }} />
-                <div className="absolute inset-3 rounded-full border-2 border-orange-500/40 animate-ping" style={{ animationDuration: '3s' }} />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/30 animate-pulse">
-                    <Eye className="w-7 h-7 text-white" />
-                  </div>
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">
-                מחפש לידים רלוונטיים לעסק שלך...
-              </h3>
-              <p className="text-gray-400 mb-4 max-w-md mx-auto">
-                הבינה המלאכותית סורקת פורומים, רשתות חברתיות ואתרי המלצות כדי למצוא לקוחות פוטנציאליים.
-              </p>
-              <div className="flex items-center justify-center gap-2 text-sm text-orange-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                מתרענן אוטומטית כל 15 שניות
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
-                <Crosshair className="w-10 h-10 text-red-400" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">
-                {activeFilter === 'all' ? 'עדיין לא נמצאו לידים' : `אין ${filterLabels[activeFilter]}`}
-              </h3>
-              <p className="text-gray-400 mb-6 max-w-md mx-auto">
-                {activeFilter === 'all'
-                  ? 'הרדאר סורק כעת את השוק. הפעל משימת ציד כדי למצוא אנשים שמחפשים את השירותים שלך עכשיו.'
-                  : 'נסה לשנות את הסינון או להפעיל משימה חדשה.'}
-              </p>
-              {activeFilter === 'all' && (
-                <button
-                  onClick={triggerMission}
-                  disabled={scanning}
-                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-500/30 transition-all"
-                >
-                  <Crosshair className="w-5 h-5 inline ml-2" />
-                  הפעל משימה ראשונה
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ── Leads Grid ────────────────────────────────────────────── */}
-      {!loading && !error && leads.length > 0 && (() => {
-        const filteredLeads = intentFilter === 'all'
-          ? leads
-          : leads.filter(l => l.intent_signals?.intent_category === intentFilter);
-
-        return (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Filter className="w-5 h-5 text-gray-400" />
-                {filterLabels[activeFilter]}
-                <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs">
-                  {filteredLeads.length}
-                </span>
-              </h2>
-              <button
-                onClick={fetchLeads}
-                className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-                רענן
-              </button>
-            </div>
-
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${highlightNew ? 'animate-pulse ring-2 ring-emerald-500/30 rounded-2xl p-1' : ''}`}>
-              {filteredLeads.map((lead) => (
-                <LeadFlashCard
-                  key={lead.id}
-                  lead={lead}
-                  onApprove={(id) => submitFeedback(id, 'approve')}
-                  onReject={(id, reason) => submitFeedback(id, 'reject', reason)}
-                  onDismiss={(id) => submitFeedback(id, 'dismiss')}
-                  onPushCRM={crmConfigured ? handlePushCRM : undefined}
-                  onView={handleViewLead}
-                />
+          {/* ── Loading State ─────────────────────────────────────── */}
+          {loading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <CardSkeleton key={i} />
               ))}
             </div>
+          )}
 
-            {filteredLeads.length === 0 && intentFilter !== 'all' && (
-              <div className="glass-card p-8 text-center">
-                <p className="text-gray-400">אין לידים בקטגוריה זו</p>
-                <button
-                  onClick={() => setIntentFilter('all')}
-                  className="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
-                >
-                  הצג את כל הלידים
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+          {/* ── Error State ───────────────────────────────────────── */}
+          {error && !loading && (
+            <div className="glass-card p-8 text-center">
+              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">שגיאה בטעינת לידים</h3>
+              <p className="text-gray-400 mb-4">{error}</p>
+              <button
+                onClick={fetchLeads}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
+              >
+                נסה שוב
+              </button>
+            </div>
+          )}
+
+          {/* ── Empty State / Smart Searching ─────────────────────── */}
+          {!loading && !error && leads.length === 0 && (
+            <div className="glass-card p-12 text-center">
+              {isSearching && activeFilter === 'all' ? (
+                <>
+                  <div className="relative w-24 h-24 mx-auto mb-6">
+                    <div className="absolute inset-0 rounded-full border-2 border-red-500/30 animate-ping" style={{ animationDuration: '2s' }} />
+                    <div className="absolute inset-3 rounded-full border-2 border-orange-500/40 animate-ping" style={{ animationDuration: '3s' }} />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/30 animate-pulse">
+                        <Eye className="w-7 h-7 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    מחפש לידים רלוונטיים לעסק שלך...
+                  </h3>
+                  <p className="text-gray-400 mb-4 max-w-md mx-auto">
+                    הבינה המלאכותית סורקת פורומים, רשתות חברתיות ואתרי המלצות כדי למצוא לקוחות פוטנציאליים.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-orange-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    מתרענן אוטומטית כל 15 שניות
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
+                    <Crosshair className="w-10 h-10 text-red-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    {activeFilter === 'all' ? 'עדיין לא נמצאו לידים' : `אין ${filterLabels[activeFilter]}`}
+                  </h3>
+                  <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                    {activeFilter === 'all'
+                      ? 'הרדאר סורק כעת את השוק. הפעל משימת ציד כדי למצוא אנשים שמחפשים את השירותים שלך עכשיו.'
+                      : 'נסה לשנות את הסינון או להפעיל משימה חדשה.'}
+                  </p>
+                  {activeFilter === 'all' && (
+                    <button
+                      onClick={triggerMission}
+                      disabled={scanning}
+                      className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-500/30 transition-all"
+                    >
+                      <Crosshair className="w-5 h-5 inline ml-2" />
+                      הפעל משימה ראשונה
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── Leads Grid ────────────────────────────────────────── */}
+          {!loading && !error && leads.length > 0 && (() => {
+            const filteredLeads = intentFilter === 'all'
+              ? leads
+              : leads.filter(l => l.intent_signals?.intent_category === intentFilter);
+
+            return (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-gray-400" />
+                    {filterLabels[activeFilter]}
+                    <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs">
+                      {filteredLeads.length}
+                    </span>
+                  </h2>
+                  <button
+                    onClick={fetchLeads}
+                    className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    רענן
+                  </button>
+                </div>
+
+                <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pb-2 ${highlightNew ? 'animate-pulse ring-2 ring-emerald-500/30 rounded-2xl p-1' : ''}`}>
+                  {filteredLeads.map((lead) => (
+                    <LeadFlashCard
+                      key={lead.id}
+                      lead={lead}
+                      onApprove={(id) => submitFeedback(id, 'approve')}
+                      onReject={(id, reason) => submitFeedback(id, 'reject', reason)}
+                      onDismiss={(id) => submitFeedback(id, 'dismiss')}
+                      onPushCRM={crmConfigured ? handlePushCRM : undefined}
+                      onView={handleViewLead}
+                    />
+                  ))}
+                </div>
+
+                {filteredLeads.length === 0 && intentFilter !== 'all' && (
+                  <div className="glass-card p-8 text-center">
+                    <p className="text-gray-400">אין לידים בקטגוריה זו</p>
+                    <button
+                      onClick={() => setIntentFilter('all')}
+                      className="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
+                    >
+                      הצג את כל הלידים
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+
+        </div>
+      </div>
 
       {/* ── Lead Detail Modal ──────────────────────────────────────── */}
       {modalLead && (
