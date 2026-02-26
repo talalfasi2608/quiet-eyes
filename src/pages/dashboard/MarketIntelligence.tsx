@@ -275,7 +275,8 @@ export default function MarketIntelligence() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   const { urgentItems, importantItems, monitoringItems } = useMemo(() => {
-    const seen = new Set<string>();
+    const seenIds = new Set<string>();
+    const seenContent = new Set<string>();
     const tagged: { item: IntelItem; category: string }[] = [];
 
     for (const [category, items] of [
@@ -285,10 +286,12 @@ export default function MarketIntelligence() {
       ['other_alerts', feed?.other_alerts],
     ] as const) {
       for (const item of items || []) {
-        if (!seen.has(item.id)) {
-          seen.add(item.id);
-          tagged.push({ item, category });
-        }
+        // Deduplicate by both ID and content (title+description)
+        const contentKey = `${item.title}::${item.description}`;
+        if (seenIds.has(item.id) || seenContent.has(contentKey)) continue;
+        seenIds.add(item.id);
+        seenContent.add(contentKey);
+        tagged.push({ item, category });
       }
     }
 

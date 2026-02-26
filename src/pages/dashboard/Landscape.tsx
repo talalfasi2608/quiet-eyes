@@ -357,8 +357,8 @@ export default function Landscape() {
       </div>
 
       {/* ═══ COMPACT TABLE - BOTTOM ═══ */}
-      <div style={{ gridArea: 'table' }} className="glass-card p-3 overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between mb-2 flex-shrink-0">
+      <div style={{ gridArea: 'table', padding: '12px' }} className="glass-card overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between mb-1 flex-shrink-0">
           <h3 className="text-sm font-semibold text-white">כל המתחרים</h3>
           <span className="text-xs text-gray-500">{competitors.length} תוצאות</span>
         </div>
@@ -366,12 +366,12 @@ export default function Landscape() {
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-gray-900/95 backdrop-blur-sm">
               <tr className="text-gray-500 text-xs border-b border-gray-700/50">
-                <th className="text-right py-1.5 pr-2 font-medium">שם</th>
-                <th className="text-center py-1.5 font-medium">דירוג</th>
-                <th className="text-center py-1.5 font-medium">ביקורות</th>
-                <th className="text-center py-1.5 font-medium">מרחק</th>
-                <th className="text-center py-1.5 font-medium">איום</th>
-                <th className="text-center py-1.5 font-medium">חולשה</th>
+                <th className="text-right py-1 pr-2 font-medium">שם</th>
+                <th className="text-center py-1 font-medium">דירוג</th>
+                <th className="text-center py-1 font-medium">ביקורות</th>
+                <th className="text-center py-1 font-medium">מרחק</th>
+                <th className="text-center py-1 font-medium">איום</th>
+                <th className="text-center py-1 font-medium">חולשה</th>
               </tr>
             </thead>
             <tbody>
@@ -384,7 +384,7 @@ export default function Landscape() {
                     className={`border-b border-gray-800/50 cursor-pointer transition-colors ${
                       highlightedId === comp.id ? 'bg-cyan-500/10' : 'hover:bg-gray-800/30'
                     }`}
-                    style={{ height: '36px' }}
+                    style={{ height: '32px' }}
                   >
                     <td className="pr-2 text-white text-xs font-medium truncate max-w-[160px]">{comp.name}</td>
                     <td className="text-center">

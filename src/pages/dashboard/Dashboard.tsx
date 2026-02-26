@@ -294,8 +294,8 @@ export default function Dashboard() {
         <div className="mt-3 text-center">
           <div className="flex items-center justify-center gap-1 text-sm">
             <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-            <span className="text-white font-bold">{market_stats.your_rating ? market_stats.your_rating.toFixed(1) : '—'}</span>
-            <span className="text-gray-500 text-xs">מול {(market_stats.avg_market_rating || 0).toFixed(1)} שוק</span>
+            <span className="text-white font-bold">{market_stats.your_rating > 0 ? market_stats.your_rating.toFixed(1) : '—'}</span>
+            <span className="text-gray-500 text-xs">מול {market_stats.avg_market_rating > 0 ? market_stats.avg_market_rating.toFixed(1) : '—'} שוק</span>
           </div>
           <div className="text-xs text-gray-500 mt-1">
             #{market_stats.high_threat_competitors || 0} איומים מתוך {market_stats.total_competitors || 0}
@@ -410,7 +410,7 @@ export default function Dashboard() {
           { label: 'לידים', value: leadsCount, link: '/dashboard/sniper', icon: '🎯', color: 'text-cyan-400' },
           { label: 'מתחרים', value: market_stats.total_competitors || 0, link: '/dashboard/landscape', icon: '👁️', color: 'text-blue-400' },
           { label: 'אירועים', value: eventsCount, link: '/dashboard/intelligence', icon: '⚡', color: 'text-amber-400' },
-          { label: 'דירוג', value: market_stats.your_rating ? market_stats.your_rating.toFixed(1) : '—', link: '/dashboard/reflection', icon: '⭐', color: 'text-emerald-400' },
+          { label: 'דירוג', value: market_stats.your_rating > 0 ? market_stats.your_rating.toFixed(1) : '—', link: '/dashboard/reflection', icon: '⭐', color: 'text-emerald-400' },
         ].map(kpi => (
           <div
             key={kpi.label}

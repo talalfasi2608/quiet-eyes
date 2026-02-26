@@ -175,10 +175,10 @@ function RelevanceBar({ score }: { score: number }) {
   const color = pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-amber-500' : 'bg-red-500';
   return (
     <div className="flex items-center gap-2" dir="ltr">
-      <div className="flex-1 h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
+      <div className="flex-1 h-1 bg-gray-700/50 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs text-gray-500 w-8 text-left">{pct}%</span>
+      <span className="text-[10px] text-gray-500 w-7 text-left">{pct}%</span>
     </div>
   );
 }
@@ -366,23 +366,23 @@ function LeadFlashCard({
       )}
 
       {/* Card Header */}
-      <div className="p-3 pb-2">
-        <div className="flex items-start justify-between mb-2">
+      <div className="px-3 py-2">
+        <div className="flex items-center justify-between mb-1.5">
           <PlatformBadge platform={lead.platform} />
           <div className="flex items-center gap-1.5">
             {lead.status === 'new' && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] animate-pulse">
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] animate-pulse">
                 <Zap className="w-2.5 h-2.5" />
                 חדש
               </span>
             )}
             {isSniped && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px]">
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px]">
                 <CheckCircle2 className="w-2.5 h-2.5" />
                 אושר
               </span>
             )}
-            <span className="text-[10px] text-gray-500 flex items-center gap-1" title={lead.published_date ? `פורסם: ${lead.published_date}` : `נמצא: ${lead.created_at}`}>
+            <span className="text-[10px] text-gray-500 flex items-center gap-0.5">
               <Clock className="w-2.5 h-2.5" />
               {lead.published_date ? timeAgo(lead.published_date) : timeAgo(lead.created_at)}
             </span>
@@ -390,7 +390,7 @@ function LeadFlashCard({
         </div>
 
         {/* Summary */}
-        <p className="text-white text-xs font-medium leading-snug mb-1.5 line-clamp-2">
+        <p className="text-white text-xs font-medium leading-snug mb-1 line-clamp-2">
           {lead.summary}
         </p>
 
@@ -398,68 +398,77 @@ function LeadFlashCard({
         <IntentBadges signals={lead.intent_signals} />
 
         {/* Relevance */}
-        <div className="mb-1.5">
+        <div className="mb-1">
           <RelevanceBar score={lead.relevance_score} />
         </div>
 
         {/* Expandable original text */}
-        {lead.original_text && (
+        {lead.original_text && !expanded && (
           <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1 mb-1"
+            onClick={() => setExpanded(true)}
+            className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1"
           >
             <Eye className="w-2.5 h-2.5" />
-            {expanded ? 'הסתר טקסט מקורי' : 'הצג טקסט מקורי'}
+            הצג טקסט מקורי
           </button>
         )}
         {expanded && lead.original_text && (
-          <div className="p-2 bg-gray-800/50 rounded-lg text-[10px] text-gray-400 leading-relaxed mb-2 max-h-24 overflow-y-auto">
-            {lead.original_text}
-          </div>
+          <>
+            <div className="p-1.5 bg-gray-800/50 rounded-lg text-[10px] text-gray-400 leading-relaxed mb-1 max-h-20 overflow-y-auto">
+              {lead.original_text}
+            </div>
+            <button
+              onClick={() => setExpanded(false)}
+              className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1"
+            >
+              <Eye className="w-2.5 h-2.5" />
+              הסתר
+            </button>
+          </>
         )}
       </div>
 
       {/* Card Actions — RLHF Feedback */}
       {!isDismissed && (
-        <div className="px-3 py-2 border-t border-gray-700/30 flex items-center justify-between bg-gray-800/20">
+        <div className="px-3 py-1.5 border-t border-gray-700/30 flex items-center justify-between bg-gray-800/20">
           {!isSniped ? (
             <>
               <button
                 onClick={() => setShowRejectPicker(true)}
-                className="flex items-center gap-1.5 text-xs text-red-400/70 hover:text-red-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-500/10"
+                className="flex items-center gap-1 text-[11px] text-red-400/70 hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
               >
-                <ThumbsDown className="w-3.5 h-3.5" />
+                <ThumbsDown className="w-3 h-3" />
                 לא רלוונטי
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => onView(lead)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-700/40 text-cyan-400 text-sm font-medium border border-gray-600/50 hover:bg-gray-700/60 hover:border-cyan-500/30 transition-all"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-700/40 text-cyan-400 text-xs font-medium border border-gray-600/50 hover:bg-gray-700/60 hover:border-cyan-500/30 transition-all"
                 >
-                  <Eye className="w-3.5 h-3.5" />
+                  <Eye className="w-3 h-3" />
                   צפה
                 </button>
                 <button
                   onClick={() => onApprove(lead.id)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all active:scale-95"
                 >
-                  <ThumbsUp className="w-4 h-4" />
+                  <ThumbsUp className="w-3.5 h-3.5" />
                   ליד טוב
                 </button>
               </div>
             </>
           ) : (
             <div className="w-full flex items-center justify-between">
-              <span className="flex items-center gap-2 text-emerald-400 text-sm">
-                <ThumbsUp className="w-4 h-4" />
+              <span className="flex items-center gap-1.5 text-emerald-400 text-xs">
+                <ThumbsUp className="w-3.5 h-3.5" />
                 ליד אושר
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => onView(lead)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-700/40 text-cyan-400 text-xs font-medium border border-gray-600/50 hover:bg-gray-700/60 hover:border-cyan-500/30 transition-all"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-700/40 text-cyan-400 text-[11px] font-medium border border-gray-600/50 hover:bg-gray-700/60 hover:border-cyan-500/30 transition-all"
                 >
-                  <Eye className="w-3.5 h-3.5" />
+                  <Eye className="w-3 h-3" />
                   צפה
                 </button>
                 {onPushCRM && (
@@ -468,10 +477,10 @@ function LeadFlashCard({
                       e.stopPropagation();
                       onPushCRM(lead.id);
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-medium hover:bg-blue-500/30 border border-blue-500/30 transition-all"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-400 text-[11px] font-medium hover:bg-blue-500/30 border border-blue-500/30 transition-all"
                   >
-                    <Send className="w-3.5 h-3.5" />
-                    שלח ל-CRM
+                    <Send className="w-3 h-3" />
+                    CRM
                   </button>
                 )}
               </div>

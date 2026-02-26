@@ -58,64 +58,79 @@ export default function Horizon() {
   // Safety timeout: resets each time loading becomes true
   useEffect(() => {
     if (!loading) return;
-    const timeout = setTimeout(() => setLoading(false), 15000);
+    const timeout = setTimeout(() => setLoading(false), 10000);
     return () => clearTimeout(timeout);
   }, [loading]);
 
   useEffect(() => {
     if (!trendsLoading) return;
-    const timeout = setTimeout(() => setTrendsLoading(false), 15000);
+    const timeout = setTimeout(() => setTrendsLoading(false), 10000);
     return () => clearTimeout(timeout);
   }, [trendsLoading]);
 
   useEffect(() => {
     if (!currentProfile?.id) return;
+    let cancelled = false;
 
     const fetchPredictions = async () => {
       setLoading(true);
       setError(null);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
       try {
         const response = await apiFetch(
-          `/predictions/upcoming/${currentProfile.id}?days_ahead=90`
+          `/predictions/upcoming/${currentProfile.id}?days_ahead=90`,
+          { signal: controller.signal }
         );
+        clearTimeout(timeout);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
         const data = await response.json();
-        setPredictions(data);
+        if (!cancelled) setPredictions(data);
       } catch (err: any) {
-        toast.error('שגיאה בטעינת תחזיות');
-        setError(err.message || 'שגיאה בטעינת תחזיות');
+        clearTimeout(timeout);
+        if (!cancelled) {
+          const msg = err.name === 'AbortError' ? 'הזמן הקצוב חלף' : (err.message || 'שגיאה בטעינת תחזיות');
+          setError(msg);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchPredictions();
+    return () => { cancelled = true; };
   }, [currentProfile?.id]);
 
   // Fetch live trends from Trend Radar API
   useEffect(() => {
     if (!currentProfile?.id) return;
+    let cancelled = false;
 
     const fetchTrends = async () => {
       setTrendsLoading(true);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
       try {
         const response = await apiFetch(
-          `/trends/current/${currentProfile.id}?limit=10`
+          `/trends/current/${currentProfile.id}?limit=10`,
+          { signal: controller.signal }
         );
+        clearTimeout(timeout);
         if (response.ok) {
           const data = await response.json();
-          setTrends(data.trends || []);
+          if (!cancelled) setTrends(data.trends || []);
         }
-      } catch (err) {
-        toast.error('שגיאה בטעינת טרנדים');
+      } catch {
+        clearTimeout(timeout);
       } finally {
-        setTrendsLoading(false);
+        if (!cancelled) setTrendsLoading(false);
       }
     };
 
     fetchTrends();
+    return () => { cancelled = true; };
   }, [currentProfile?.id]);
 
   // Loading state
@@ -190,7 +205,10 @@ export default function Horizon() {
             </div>
 
             {loading ? (
-              <PageLoader message="מנתח אירועים..." />
+              <div className="text-center py-12">
+                <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
+                <p className="text-gray-400">מנתח אירועים...</p>
+              </div>
             ) : error ? (
               <div className="text-center py-12">
                 <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-4" />
@@ -279,7 +297,15 @@ export default function Horizon() {
             </div>
 
             {loading ? (
-              <PageLoader message="מייצר תובנות..." />
+              <div className="text-center py-12">
+                <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
+                <p className="text-gray-400">מייצר תובנות...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-3" />
+                <p className="text-gray-400 text-sm">הפעל סריקה לקבלת תובנות</p>
+              </div>
             ) : insights.length === 0 && events.length === 0 ? (
               <EmptyState icon={Sparkles} title="אין תובנות חדשות" description="תובנות יופיעו לאחר ניתוח אירועים קרובים" />
             ) : (
