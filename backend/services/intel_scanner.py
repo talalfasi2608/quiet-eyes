@@ -189,7 +189,7 @@ class IntelScannerService:
     # =========================================================================
 
     def _scan_business_registry(
-        self, industry: str, city: str
+        self, industry: str, city: str, serp_location: str = "Israel"
     ) -> list[IntelResult]:
         """
         Search for new business registrations via data.gov.il CKAN API.
@@ -213,7 +213,7 @@ class IntelScannerService:
         ]
 
         for query in queries:
-            data = self._serpapi_search(query, num=5, tbs="qdr:m")
+            data = self._serpapi_search(query, num=5, tbs="qdr:m", location=serp_location)
             for item in data.get("organic_results", [])[:3]:
                 title = item.get("title", "")
                 snippet = item.get("snippet", "")
@@ -335,7 +335,7 @@ class IntelScannerService:
     # =========================================================================
 
     def _scan_yad2_commercial(
-        self, industry: str, city: str
+        self, industry: str, city: str, serp_location: str = "Israel"
     ) -> list[IntelResult]:
         """
         Search for commercial real estate listings on Yad2 that may indicate
@@ -353,7 +353,7 @@ class IntelScannerService:
         ]
 
         for query in queries:
-            data = self._serpapi_search(query, num=5, tbs="qdr:m")
+            data = self._serpapi_search(query, num=5, tbs="qdr:m", location=serp_location)
             for item in data.get("organic_results", [])[:3]:
                 title = item.get("title", "")
                 snippet = item.get("snippet", "")
@@ -534,7 +534,7 @@ class IntelScannerService:
     # =========================================================================
 
     def _scan_israeli_news(
-        self, industry: str, city: str
+        self, industry: str, city: str, city_config: dict = None
     ) -> list[IntelResult]:
         """
         Search for recent Israeli news about the industry using SerpAPI
@@ -555,6 +555,12 @@ class IntelScannerService:
             "ynet.co.il", "mako.co.il", "walla.co.il",
             "globes.co.il", "calcalist.co.il", "themarker.com",
         ]
+
+        # Add city-specific local news sources
+        if city_config:
+            for local_site in city_config.get("local_news", []):
+                if local_site not in israeli_news_sites:
+                    israeli_news_sites.append(local_site)
 
         for query in queries:
             try:
@@ -667,9 +673,14 @@ class IntelScannerService:
             report.errors.append("Business has no industry set")
             return report
 
+        # Resolve city-specific SERP location
+        from data.cities import get_serp_location, get_city_config
+        serp_location = get_serp_location(city)
+        city_config = get_city_config(city)
+
         logger.info(
             f"[IntelScanner] Starting full scan for {business_id}: "
-            f"industry={industry}, city={city}"
+            f"industry={industry}, city={city}, serp_location={serp_location}"
         )
 
         # Step 2: Run all 5 sources sequentially
@@ -687,7 +698,7 @@ class IntelScannerService:
 
         # Source 2: Business Registry
         try:
-            reg_events = self._scan_business_registry(industry, city)
+            reg_events = self._scan_business_registry(industry, city, serp_location=serp_location)
             all_events.extend(reg_events)
             report.events_by_source["business_registry"] = len(reg_events)
         except Exception as e:
@@ -696,7 +707,7 @@ class IntelScannerService:
 
         # Source 3: Yad2 Commercial
         try:
-            yad2_events = self._scan_yad2_commercial(industry, city)
+            yad2_events = self._scan_yad2_commercial(industry, city, serp_location=serp_location)
             all_events.extend(yad2_events)
             report.events_by_source["yad2_commercial"] = len(yad2_events)
         except Exception as e:
@@ -715,7 +726,7 @@ class IntelScannerService:
 
         # Source 5: Israeli News
         try:
-            news_events = self._scan_israeli_news(industry, city)
+            news_events = self._scan_israeli_news(industry, city, city_config=city_config)
             all_events.extend(news_events)
             report.events_by_source["israeli_news"] = len(news_events)
         except Exception as e:

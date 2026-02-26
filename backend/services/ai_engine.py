@@ -112,6 +112,7 @@ The insights should be:
 3. Relevant to the {archetype} archetype
 4. Include realistic scenarios
 {knowledge_context}
+{city_context}
 Respond with ONLY valid JSON array:
 [
     {{
@@ -204,6 +205,7 @@ async def generate_insights(
     business_type: str,
     count: int = 3,
     business_id: str = None,
+    location: str = None,
 ) -> list[ActionCard]:
     """
     Generate actionable insight cards for a business.
@@ -213,6 +215,7 @@ async def generate_insights(
         business_type: Specific business type in Hebrew
         count: Number of cards to generate
         business_id: Optional business ID for knowledge context injection
+        location: Optional city/location for city-specific context
 
     Returns:
         List of ActionCard objects
@@ -221,6 +224,34 @@ async def generate_insights(
         anthropic.APIError: If API call fails
     """
     knowledge_context = _build_knowledge_context(business_id)
+
+    # Build city context
+    city_context_text = ""
+    resolved_location = location
+    if not resolved_location and business_id:
+        try:
+            from config import supabase
+            if supabase:
+                biz = (
+                    supabase.table("businesses")
+                    .select("location")
+                    .eq("id", business_id)
+                    .maybe_single()
+                    .execute()
+                )
+                if biz.data:
+                    resolved_location = biz.data.get("location", "")
+        except Exception:
+            pass
+
+    if resolved_location:
+        try:
+            from data.cities import get_city_context
+            ctx = get_city_context(resolved_location)
+            if ctx:
+                city_context_text = f"\nCITY CONTEXT (use this for locally relevant insights):\n{ctx}\n"
+        except Exception:
+            pass
 
     try:
         content = claude_client.chat(
@@ -231,6 +262,7 @@ async def generate_insights(
                         archetype=archetype,
                         business_type=business_type,
                         knowledge_context=knowledge_context,
+                        city_context=city_context_text,
                     )
                 }
             ],

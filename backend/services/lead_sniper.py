@@ -198,7 +198,7 @@ class LeadSniperService:
     # SOURCE 1: SerpAPI — Google Search (Hebrew, last month)
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _search_serpapi(self, query: str, num: int = 10) -> list[RawResult]:
+    def _search_serpapi(self, query: str, num: int = 10, serp_location: str = "Israel") -> list[RawResult]:
         if not self.serpapi_key:
             return []
         try:
@@ -212,7 +212,7 @@ class LeadSniperService:
                     "num": num,
                     "gl": "il",
                     "hl": "iw",
-                    "location": "Israel",
+                    "location": serp_location,
                 },
                 timeout=15.0,
             )
@@ -239,7 +239,7 @@ class LeadSniperService:
     # SOURCE 2: SerpAPI — Facebook-specific
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _search_facebook(self, business_type: str, city: str) -> list[RawResult]:
+    def _search_facebook(self, business_type: str, city: str, serp_location: str = "Israel") -> list[RawResult]:
         if not self.serpapi_key:
             return []
         queries = [
@@ -261,6 +261,7 @@ class LeadSniperService:
                         "num": 10,
                         "gl": "il",
                         "hl": "iw",
+                        "location": serp_location,
                     },
                     timeout=15.0,
                 )
@@ -284,7 +285,7 @@ class LeadSniperService:
     # SOURCE 3: SerpAPI — Israeli Forums
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _search_israeli_forums(self, business_type: str, city: str) -> list[RawResult]:
+    def _search_israeli_forums(self, business_type: str, city: str, serp_location: str = "Israel") -> list[RawResult]:
         if not self.serpapi_key:
             return []
         forum_sites = [
@@ -307,6 +308,7 @@ class LeadSniperService:
                         "num": 5,
                         "gl": "il",
                         "hl": "iw",
+                        "location": serp_location,
                     },
                     timeout=15.0,
                 )
@@ -442,9 +444,11 @@ class LeadSniperService:
     # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _score_results(results: list[RawResult], business_type: str, city: str) -> list[RawResult]:
+    def _score_results(results: list[RawResult], business_type: str, city: str, districts: list[str] = None) -> list[RawResult]:
         location_terms = [city.lower()] if city else []
         location_terms.extend(["קרוב", "באזור", "ליד"])
+        if districts:
+            location_terms.extend(d.lower() for d in districts)
 
         for r in results:
             text = (r.title + " " + r.content).lower()
@@ -683,6 +687,12 @@ class LeadSniperService:
         location = raw_location or raw_address
         biz_name = biz.data.get("business_name", "")
 
+        # Resolve city config for city-aware searches
+        from data.cities import get_city_config
+        city_config = get_city_config(location)
+        serp_location = city_config.get("serp_location", "Israel")
+        districts = city_config.get("districts", [])
+
         # Parse blueprint for negative_prompts
         blueprint = None
         raw_bp = biz.data.get("industry_blueprint")
@@ -745,17 +755,25 @@ class LeadSniperService:
         ]
         for q in google_queries:
             report.queries_executed.append(q)
-            results = self._search_serpapi(q)
+            results = self._search_serpapi(q, serp_location=serp_location)
             report.source_counts["serpapi_google"] = report.source_counts.get("serpapi_google", 0) + len(results)
             all_raw.extend(results)
 
+        # SOURCE 1b: District-level queries (hyperlocal leads)
+        for district in districts[:4]:
+            dq = f"מחפש {industry} {district}"
+            report.queries_executed.append(dq)
+            d_results = self._search_serpapi(dq, num=5, serp_location=serp_location)
+            report.source_counts["serpapi_google"] = report.source_counts.get("serpapi_google", 0) + len(d_results)
+            all_raw.extend(d_results)
+
         # SOURCE 2: SerpAPI — Facebook
-        fb_results = self._search_facebook(industry, location)
+        fb_results = self._search_facebook(industry, location, serp_location=serp_location)
         report.source_counts["facebook"] = len(fb_results)
         all_raw.extend(fb_results)
 
         # SOURCE 3: SerpAPI — Israeli Forums
-        forum_results = self._search_israeli_forums(industry, location)
+        forum_results = self._search_israeli_forums(industry, location, serp_location=serp_location)
         report.source_counts["forums"] = len(forum_results)
         all_raw.extend(forum_results)
 
@@ -786,7 +804,7 @@ class LeadSniperService:
         all_raw = _filter_recent(all_raw, max_age_days=30)
 
         # ── Step 6: Score ──────────────────────────────────────────────
-        all_raw = self._score_results(all_raw, industry, location)
+        all_raw = self._score_results(all_raw, industry, location, districts=districts)
 
         # Sort by score descending, take top 40 for AI
         all_raw.sort(key=lambda r: r.raw_score, reverse=True)

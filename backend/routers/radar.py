@@ -93,6 +93,11 @@ def _discover_competitors(business_id: str, supabase) -> int:
     biz_name = business.get("business_name", "")
     industry = business.get("industry", "")
     location = business.get("address") or business.get("location", "")
+
+    # Resolve city config for city-aware radius and district search
+    from data.cities import get_city_config
+    city_config = get_city_config(business.get("location", "") or location)
+    search_radius = city_config["radius_km"] * 1000
     lat = business.get("latitude") or 0
     lng = business.get("longitude") or 0
 
@@ -138,7 +143,7 @@ def _discover_competitors(business_id: str, supabase) -> int:
                 "https://maps.googleapis.com/maps/api/place/nearbysearch/json",
                 params={
                     "location": f"{lat},{lng}",
-                    "radius": 3000,
+                    "radius": search_radius,
                     "type": place_type,
                     "keyword": industry,
                     "key": api_key,
@@ -205,6 +210,60 @@ def _discover_competitors(business_id: str, supabase) -> int:
             existing_names.add(name.lower().strip())
         except Exception as e:
             logger.debug(f"Failed to save competitor '{name}': {e}")
+
+    # District-level text search for hyperlocal competitor discovery
+    city_name = business.get("location", "") or location
+    for district in city_config.get("districts", [])[:3]:
+        try:
+            with httpx.Client(timeout=15) as client:
+                text_resp = client.get(
+                    "https://maps.googleapis.com/maps/api/place/textsearch/json",
+                    params={
+                        "query": f"{industry} {district} {city_name}",
+                        "key": api_key,
+                        "language": "he",
+                    },
+                )
+                text_data = text_resp.json()
+            for place in (text_data.get("results", []) or [])[:10]:
+                name = place.get("name", "")
+                place_id = place.get("place_id", "")
+                if not name or not place_id:
+                    continue
+                if name.lower().strip() == biz_name.lower().strip():
+                    continue
+                if place_id in existing_place_ids or name.lower().strip() in existing_names:
+                    continue
+
+                place_loc = place.get("geometry", {}).get("location", {})
+                rating = place.get("rating", 0)
+                reviews_count = place.get("user_ratings_total", 0)
+                threat = "Low"
+                if rating >= 4.5 and reviews_count >= 50:
+                    threat = "High"
+                elif rating >= 4.0 and reviews_count >= 20:
+                    threat = "Medium"
+
+                try:
+                    supabase.table("competitors").insert({
+                        "business_id": business_id,
+                        "name": name,
+                        "place_id": place_id,
+                        "latitude": place_loc.get("lat"),
+                        "longitude": place_loc.get("lng"),
+                        "google_rating": rating,
+                        "google_reviews_count": reviews_count,
+                        "perceived_threat_level": threat,
+                        "address": place.get("formatted_address", ""),
+                        "website": None,
+                    }).execute()
+                    saved += 1
+                    existing_place_ids.add(place_id)
+                    existing_names.add(name.lower().strip())
+                except Exception as e:
+                    logger.debug(f"Failed to save district competitor '{name}': {e}")
+        except Exception as e:
+            logger.debug(f"District text search error for '{district}': {e}")
 
     logger.info(f"Radar sync for {business_id}: found {len(results)}, saved {saved} new competitors")
     return saved
