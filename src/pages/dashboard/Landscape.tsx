@@ -253,7 +253,7 @@ export default function Landscape() {
         "map threats"
         "table table"
       `,
-      gridTemplateRows: '46px 55% 1fr',
+      gridTemplateRows: '46px 1fr 220px',
       gridTemplateColumns: '1fr 260px',
       gap: '12px',
       padding: '16px',

@@ -275,12 +275,22 @@ export default function MarketIntelligence() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   const { urgentItems, importantItems, monitoringItems } = useMemo(() => {
-    const tagged: { item: IntelItem; category: string }[] = [
-      ...(feed?.opportunities || []).map(i => ({ item: i, category: 'opportunities' })),
-      ...(feed?.price_alerts || []).map(i => ({ item: i, category: 'price_alerts' })),
-      ...(feed?.ad_insights || []).map(i => ({ item: i, category: 'ad_insights' })),
-      ...(feed?.other_alerts || []).map(i => ({ item: i, category: 'other_alerts' })),
-    ];
+    const seen = new Set<string>();
+    const tagged: { item: IntelItem; category: string }[] = [];
+
+    for (const [category, items] of [
+      ['opportunities', feed?.opportunities],
+      ['price_alerts', feed?.price_alerts],
+      ['ad_insights', feed?.ad_insights],
+      ['other_alerts', feed?.other_alerts],
+    ] as const) {
+      for (const item of items || []) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          tagged.push({ item, category });
+        }
+      }
+    }
 
     return {
       urgentItems: tagged.filter(t => t.item.priority === 'high'),

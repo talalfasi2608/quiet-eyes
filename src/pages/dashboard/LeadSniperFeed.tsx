@@ -366,31 +366,31 @@ function LeadFlashCard({
       )}
 
       {/* Card Header */}
-      <div className="p-4 pb-3">
-        <div className="flex items-start justify-between mb-3">
+      <div className="p-3 pb-2">
+        <div className="flex items-start justify-between mb-2">
           <PlatformBadge platform={lead.platform} />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {lead.status === 'new' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs animate-pulse">
-                <Zap className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] animate-pulse">
+                <Zap className="w-2.5 h-2.5" />
                 חדש
               </span>
             )}
             {isSniped && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">
-                <CheckCircle2 className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px]">
+                <CheckCircle2 className="w-2.5 h-2.5" />
                 אושר
               </span>
             )}
-            <span className="text-xs text-gray-500 flex items-center gap-1" title={lead.published_date ? `פורסם: ${lead.published_date}` : `נמצא: ${lead.created_at}`}>
-              <Clock className="w-3 h-3" />
-              {lead.published_date ? `פורסם ${timeAgo(lead.published_date)}` : timeAgo(lead.created_at)}
+            <span className="text-[10px] text-gray-500 flex items-center gap-1" title={lead.published_date ? `פורסם: ${lead.published_date}` : `נמצא: ${lead.created_at}`}>
+              <Clock className="w-2.5 h-2.5" />
+              {lead.published_date ? timeAgo(lead.published_date) : timeAgo(lead.created_at)}
             </span>
           </div>
         </div>
 
         {/* Summary */}
-        <p className="text-white text-sm font-medium leading-relaxed mb-2">
+        <p className="text-white text-xs font-medium leading-snug mb-1.5 line-clamp-2">
           {lead.summary}
         </p>
 
@@ -398,7 +398,7 @@ function LeadFlashCard({
         <IntentBadges signals={lead.intent_signals} />
 
         {/* Relevance */}
-        <div className="mb-3">
+        <div className="mb-1.5">
           <RelevanceBar score={lead.relevance_score} />
         </div>
 
@@ -406,14 +406,14 @@ function LeadFlashCard({
         {lead.original_text && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-xs text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1 mb-2"
+            className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1 mb-1"
           >
-            <Eye className="w-3 h-3" />
+            <Eye className="w-2.5 h-2.5" />
             {expanded ? 'הסתר טקסט מקורי' : 'הצג טקסט מקורי'}
           </button>
         )}
         {expanded && lead.original_text && (
-          <div className="p-3 bg-gray-800/50 rounded-lg text-xs text-gray-400 leading-relaxed mb-3 max-h-32 overflow-y-auto">
+          <div className="p-2 bg-gray-800/50 rounded-lg text-[10px] text-gray-400 leading-relaxed mb-2 max-h-24 overflow-y-auto">
             {lead.original_text}
           </div>
         )}
@@ -421,7 +421,7 @@ function LeadFlashCard({
 
       {/* Card Actions — RLHF Feedback */}
       {!isDismissed && (
-        <div className="px-4 py-3 border-t border-gray-700/30 flex items-center justify-between bg-gray-800/20">
+        <div className="px-3 py-2 border-t border-gray-700/30 flex items-center justify-between bg-gray-800/20">
           {!isSniped ? (
             <>
               <button

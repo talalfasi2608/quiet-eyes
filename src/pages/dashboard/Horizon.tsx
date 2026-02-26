@@ -50,19 +50,23 @@ interface PredictionsData {
 export default function Horizon() {
   const { currentProfile } = useSimulation();
   const [predictions, setPredictions] = useState<PredictionsData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [trends, setTrends] = useState<TrendItem[]>([]);
-  const [trendsLoading, setTrendsLoading] = useState(false);
+  const [trendsLoading, setTrendsLoading] = useState(true);
 
-  // Safety timeout: never spin forever
+  // Safety timeout: resets each time loading becomes true
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setLoading(false);
-      setTrendsLoading(false);
-    }, 10000);
+    if (!loading) return;
+    const timeout = setTimeout(() => setLoading(false), 15000);
     return () => clearTimeout(timeout);
-  }, []);
+  }, [loading]);
+
+  useEffect(() => {
+    if (!trendsLoading) return;
+    const timeout = setTimeout(() => setTrendsLoading(false), 15000);
+    return () => clearTimeout(timeout);
+  }, [trendsLoading]);
 
   useEffect(() => {
     if (!currentProfile?.id) return;
@@ -275,10 +279,7 @@ export default function Horizon() {
             </div>
 
             {loading ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
-                <p className="text-gray-400 text-sm">מייצר תובנות...</p>
-              </div>
+              <PageLoader message="מייצר תובנות..." />
             ) : insights.length === 0 && events.length === 0 ? (
               <EmptyState icon={Sparkles} title="אין תובנות חדשות" description="תובנות יופיעו לאחר ניתוח אירועים קרובים" />
             ) : (
