@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, Request, Query, Depends
 from routers._auth_helper import require_auth, get_supabase_client
+from services.permission_engine import require_feature
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/intelligence", tags=["Intelligence"])
@@ -277,7 +278,7 @@ def _empty_feed() -> dict:
 
 
 @router.post("/scan/{user_id}")
-async def trigger_scan(user_id: str, request: Request, auth_user_id: str = Depends(require_auth)):
+async def trigger_scan(user_id: str, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("intelligence_scan_per_month"))):
     sb = _get_service_client() or get_supabase_client(request)
     if sb:
         business_id = _resolve_business_id(sb, user_id, auth_user_id)

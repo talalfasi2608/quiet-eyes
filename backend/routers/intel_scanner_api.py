@@ -6,6 +6,7 @@ import os
 import logging
 from fastapi import APIRouter, HTTPException, Request, Query, Depends
 from routers._auth_helper import require_auth, get_supabase_client
+from services.permission_engine import require_feature
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/intel-scanner", tags=["Intel Scanner"])
@@ -49,6 +50,7 @@ async def trigger_full_scan(
     business_id: str,
     request: Request,
     auth_user_id: str = Depends(require_auth),
+    _perm=Depends(require_feature("intelligence_scan_per_month")),
 ):
     """
     Trigger a full multi-source intelligence scan for a business.

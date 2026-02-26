@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Request, Depends
 from pydantic import BaseModel
 from routers._auth_helper import require_auth, get_supabase_client
+from services.permission_engine import require_feature
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/leads", tags=["Leads"])
@@ -88,7 +89,7 @@ async def list_leads(business_id: str, request: Request, auth_user_id: str = Dep
 
 
 @router.post("/snipe/{business_id}")
-async def snipe_leads(business_id: str, request: Request, auth_user_id: str = Depends(require_auth)):
+async def snipe_leads(business_id: str, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("leads_scans_per_month"))):
     supabase = _get_service_client() or get_supabase_client(request)
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")

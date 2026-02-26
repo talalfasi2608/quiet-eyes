@@ -17,6 +17,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { apiFetch } from '../../services/api';
+import UsageBar from '../../components/ui/UsageBar';
 
 interface TierInfo {
   id: string;
@@ -286,6 +287,20 @@ export default function PlanManagement() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Monthly Usage Section */}
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-cyan-400" />
+          שימוש חודשי
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <UsageBar feature="leads_scans_per_month" label="סריקות לידים" />
+          <UsageBar feature="ai_chat_messages_per_month" label="הודעות AI" />
+          <UsageBar feature="competitors_tracked" label="מתחרים עקובים" />
+          <UsageBar feature="intelligence_scan_per_month" label="סריקות מודיעין" />
+        </div>
       </div>
 
       {/* Credit Costs Info */}

@@ -2,12 +2,13 @@
 Billing Router.
 
 Endpoints:
-  GET  /billing/status   — subscription tier, credits, plan details
-  GET  /billing/tiers    — available plans with ILS prices
-  POST /billing/checkout — create Stripe checkout session
-  POST /billing/portal   — create Stripe billing portal session
-  POST /billing/webhook  — Stripe webhook handler (no auth)
-  GET  /billing/usage    — credit usage history
+  GET  /billing/status      — subscription tier, credits, plan details
+  GET  /billing/tiers       — available plans with ILS prices
+  GET  /billing/permissions  — user's plan limits + current usage (for frontend usePlan hook)
+  POST /billing/checkout    — create Stripe checkout session
+  POST /billing/portal      — create Stripe billing portal session
+  POST /billing/webhook     — Stripe webhook handler (no auth)
+  GET  /billing/usage       — credit usage history
 """
 
 import logging
@@ -16,6 +17,7 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
 from routers._auth_helper import require_auth, get_supabase_client
+from config.plans import PLANS, PLAN_ORDER
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["Billing"])
@@ -90,11 +92,11 @@ async def billing_status(request: Request, auth_user_id: str = Depends(require_a
 @router.get("/tiers")
 async def billing_tiers():
     """Return available plan definitions with ILS prices and features."""
-    from services.stripe_service import PLANS
     from services.credit_guard import CreditCost
 
     tiers = []
-    for plan_id, plan in PLANS.items():
+    for plan_id in PLAN_ORDER:
+        plan = PLANS[plan_id]
         tiers.append({
             "id": plan_id,
             "name": plan["name"],
@@ -103,7 +105,7 @@ async def billing_tiers():
             "price_monthly": plan["price_monthly"],
             "price_yearly": plan["price_yearly"],
             "credits": plan["credits"],
-            "features": plan["features_list"],
+            "features": plan.get("features_list", []),
             "badge": plan.get("badge"),
         })
 
@@ -116,6 +118,28 @@ async def billing_tiers():
             "ai_analysis": CreditCost.AI_ANALYSIS,
             "pdf_report": CreditCost.PDF_REPORT,
         },
+    }
+
+
+# =============================================================================
+# GET /billing/permissions
+# =============================================================================
+
+@router.get("/permissions")
+async def billing_permissions(request: Request, auth_user_id: str = Depends(require_auth)):
+    """Return user's plan limits + current usage counts for all features (for frontend usePlan hook)."""
+    from services.permission_engine import permissions
+
+    plan = permissions.get_user_plan(auth_user_id)
+    plan_id = permissions._get_plan_id(auth_user_id)
+    limits = plan.get("limits", {})
+    usage = permissions.get_all_usage(auth_user_id)
+
+    return {
+        "plan_id": plan_id,
+        "plan_name": plan.get("name_he", ""),
+        "limits": limits,
+        "usage": usage,
     }
 
 
@@ -138,7 +162,7 @@ async def billing_checkout(
 ):
     """Create a Stripe Checkout Session for subscription."""
     from services.stripe_service import (
-        PLANS, STRIPE_PRICE_MAP,
+        STRIPE_PRICE_MAP,
         get_or_create_customer, create_checkout_session,
     )
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Star, Zap, Crown, Shield, ArrowLeft } from 'lucide-react';
+import { FEATURES_TABLE } from '../../lib/planFeatures';
 
 const PLANS = [
   {
@@ -8,7 +9,7 @@ const PLANS = [
     name: 'סטארטר',
     icon: Zap,
     priceMonthly: 149,
-    priceYearly: 1490,
+    priceYearly: 1190,
     credits: 50,
     badge: null,
     gradient: 'from-blue-600 to-blue-700',
@@ -27,7 +28,7 @@ const PLANS = [
     name: 'מקצועי',
     icon: Star,
     priceMonthly: 299,
-    priceYearly: 2990,
+    priceYearly: 2390,
     credits: 200,
     badge: 'הכי פופולרי',
     gradient: 'from-blue-600 to-cyan-500',
@@ -48,8 +49,8 @@ const PLANS = [
     name: 'עסקי',
     icon: Crown,
     priceMonthly: 599,
-    priceYearly: 5990,
-    credits: 9999,
+    priceYearly: 4790,
+    credits: -1,
     badge: null,
     gradient: 'from-amber-500 to-amber-700',
     border: 'border-amber-500/30',
@@ -64,20 +65,6 @@ const PLANS = [
       'מנהל לקוח ייעודי',
     ],
   },
-];
-
-const COMPARISON_FEATURES = [
-  { name: 'קרדיטים לחודש', free: '10', starter: '50', pro: '200', business: 'ללא הגבלה' },
-  { name: 'מתחרים', free: '1', starter: '3', pro: '10', business: 'ללא הגבלה' },
-  { name: 'סריקות לידים', free: '5', starter: '30', pro: '200', business: 'ללא הגבלה' },
-  { name: 'ערים', free: '1', starter: '1', pro: '3', business: 'ללא הגבלה' },
-  { name: 'דוחות AI', free: false, starter: true, pro: true, business: true },
-  { name: 'צ\'אט AI COO', free: false, starter: true, pro: true, business: true },
-  { name: 'התראות WhatsApp', free: false, starter: false, pro: true, business: true },
-  { name: 'אוטומציות', free: false, starter: false, pro: true, business: true },
-  { name: 'חברי צוות', free: '1', starter: '1', pro: '3', business: 'ללא הגבלה' },
-  { name: 'גישת API', free: false, starter: false, pro: false, business: true },
-  { name: 'מנהל לקוח ייעודי', free: false, starter: false, pro: false, business: true },
 ];
 
 export default function Pricing() {
@@ -206,7 +193,7 @@ export default function Pricing() {
                       : `bg-gradient-to-r ${plan.gradient} text-white hover:opacity-90`
                   }`}
                 >
-                  {'\u05D4\u05EA\u05D7\u05DC \u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D9\u05E0\u05DD 14 \u05D9\u05D5\u05DD'}
+                  התחל ניסיון חינם 14 יום
                 </button>
               </div>
             );
@@ -228,7 +215,7 @@ export default function Pricing() {
           </div>
         </div>
 
-        {/* Feature Comparison Table */}
+        {/* Categorized Feature Comparison Table */}
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl font-bold text-white text-center mb-8">
             השוואת תוכניות מפורטת
@@ -248,26 +235,37 @@ export default function Pricing() {
                 </tr>
               </thead>
               <tbody>
-                {COMPARISON_FEATURES.map((row, idx) => (
-                  <tr key={idx} className={idx < COMPARISON_FEATURES.length - 1 ? 'border-b border-gray-800/50' : ''}>
-                    <td className="px-6 py-3 text-sm text-gray-300">{row.name}</td>
-                    {(['free', 'starter', 'pro', 'business'] as const).map((tier) => {
-                      const val = row[tier];
-                      return (
-                        <td key={tier} className="px-4 py-3 text-center">
-                          {typeof val === 'boolean' ? (
-                            val ? (
-                              <Check className="w-4 h-4 text-emerald-400 mx-auto" />
-                            ) : (
-                              <span className="text-gray-600">—</span>
-                            )
-                          ) : (
-                            <span className="text-sm text-gray-300">{val}</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
+                {FEATURES_TABLE.map((cat) => (
+                  <>
+                    {/* Category header row */}
+                    <tr key={`cat-${cat.category}`} className="border-b border-gray-700/30 bg-gray-800/30">
+                      <td colSpan={5} className="px-6 py-2 text-sm font-semibold text-cyan-400">
+                        {cat.category}
+                      </td>
+                    </tr>
+                    {/* Feature rows */}
+                    {cat.features.map((row, idx) => (
+                      <tr key={row.key} className={idx < cat.features.length - 1 ? 'border-b border-gray-800/50' : 'border-b border-gray-700/30'}>
+                        <td className="px-6 py-3 text-sm text-gray-300">{row.name}</td>
+                        {(['free', 'starter', 'pro', 'business'] as const).map((tier) => {
+                          const val = row[tier];
+                          return (
+                            <td key={tier} className="px-4 py-3 text-center">
+                              {typeof val === 'boolean' ? (
+                                val ? (
+                                  <Check className="w-4 h-4 text-emerald-400 mx-auto" />
+                                ) : (
+                                  <span className="text-gray-600">&mdash;</span>
+                                )
+                              ) : (
+                                <span className="text-sm text-gray-300">{val}</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </>
                 ))}
               </tbody>
             </table>

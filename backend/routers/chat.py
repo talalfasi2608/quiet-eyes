@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Request, Depends
 from pydantic import BaseModel
 from routers._auth_helper import require_auth, get_supabase_client
+from services.permission_engine import require_feature
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Chat"])
@@ -78,7 +79,7 @@ class ChatRequest(BaseModel):
 
 
 @router.post("/chat")
-async def chat(payload: ChatRequest, request: Request, auth_user_id: str = Depends(require_auth)):
+async def chat(payload: ChatRequest, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("ai_chat_messages_per_month"))):
     """AI COO chat endpoint — uses Claude with business context."""
     if payload.user_id != auth_user_id:
         raise HTTPException(status_code=403, detail="Access denied")

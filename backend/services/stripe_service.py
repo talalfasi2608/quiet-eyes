@@ -12,125 +12,13 @@ from typing import Optional
 
 import stripe
 
+from config.plans import PLANS
+
 logger = logging.getLogger(__name__)
 
 # ── Stripe config ──
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-
-
-# =============================================================================
-# PLAN DEFINITIONS
-# =============================================================================
-
-PLANS = {
-    "free": {
-        "name": "Free",
-        "name_he": "חינם",
-        "price_monthly": 0,
-        "price_yearly": 0,
-        "credits": 10,
-        "features": {
-            "max_competitors": 1,
-            "lead_scans_per_month": 5,
-            "cities": 1,
-            "ai_reports": False,
-            "whatsapp_alerts": False,
-            "team_members": 1,
-            "automation": False,
-            "api_access": False,
-        },
-        "features_list": [
-            "10 קרדיטים לחודש",
-            "דשבורד בסיסי",
-            "פרופיל עסק אחד",
-            "מתחרה אחד",
-            "סריקות שוק בסיסיות",
-        ],
-    },
-    "starter": {
-        "name": "Starter",
-        "name_he": "סטארטר",
-        "price_monthly": 149,
-        "price_yearly": 1490,
-        "credits": 50,
-        "badge": None,
-        "features": {
-            "max_competitors": 3,
-            "lead_scans_per_month": 30,
-            "cities": 1,
-            "ai_reports": True,
-            "whatsapp_alerts": False,
-            "team_members": 1,
-            "automation": False,
-            "api_access": False,
-        },
-        "features_list": [
-            "50 קרדיטים לחודש",
-            "עד 3 מתחרים",
-            "30 סריקות לידים",
-            "דוחות AI",
-            "צ'אט AI COO",
-            "תדריך יומי",
-        ],
-    },
-    "pro": {
-        "name": "Pro",
-        "name_he": "מקצועי",
-        "price_monthly": 299,
-        "price_yearly": 2990,
-        "credits": 200,
-        "badge": "הכי פופולרי",
-        "features": {
-            "max_competitors": 10,
-            "lead_scans_per_month": 200,
-            "cities": 3,
-            "ai_reports": True,
-            "whatsapp_alerts": True,
-            "team_members": 3,
-            "automation": True,
-            "api_access": False,
-        },
-        "features_list": [
-            "200 קרדיטים לחודש",
-            "עד 10 מתחרים",
-            "200 סריקות לידים",
-            "דוחות AI",
-            "התראות WhatsApp",
-            "עד 3 ערים",
-            "אוטומציות",
-            "עד 3 חברי צוות",
-        ],
-    },
-    "business": {
-        "name": "Business",
-        "name_he": "עסקי",
-        "price_monthly": 599,
-        "price_yearly": 5990,
-        "credits": 9999,
-        "badge": None,
-        "features": {
-            "max_competitors": 999,
-            "lead_scans_per_month": 9999,
-            "cities": 999,
-            "ai_reports": True,
-            "whatsapp_alerts": True,
-            "team_members": 999,
-            "automation": True,
-            "api_access": True,
-        },
-        "features_list": [
-            "קרדיטים ללא הגבלה",
-            "מתחרים ללא הגבלה",
-            "סריקות ללא הגבלה",
-            "הכל ב-Pro",
-            "גישת API",
-            "ניהול צוות",
-            "לוגים ובקרה",
-            "מנהל לקוח ייעודי",
-        ],
-    },
-}
 
 # Maps plan_id + billing_interval → Stripe Price ID.
 # Populated by setup_stripe_products() or set manually.

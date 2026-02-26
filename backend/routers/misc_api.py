@@ -10,6 +10,7 @@ from collections import defaultdict
 from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from pydantic import BaseModel
 from routers._auth_helper import require_auth, get_supabase_client, resolve_business_id
+from services.permission_engine import require_feature
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Misc"])
@@ -163,7 +164,7 @@ def _verify_business_owner(supabase, business_id: str, auth_user_id: str):
 
 
 @router.get("/reports/weekly-brief/{business_id}/preview")
-async def report_preview(business_id: str, request: Request, auth_user_id: str = Depends(require_auth)):
+async def report_preview(business_id: str, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("weekly_report"))):
     sb = _get_service_client() or get_supabase_client(request)
     if not sb:
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -246,7 +247,7 @@ async def report_preview(business_id: str, request: Request, auth_user_id: str =
 
 
 @router.get("/reports/weekly-brief/{business_id}")
-async def report_pdf(business_id: str, request: Request, auth_user_id: str = Depends(require_auth)):
+async def report_pdf(business_id: str, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("weekly_report"))):
     sb = _get_service_client() or get_supabase_client(request)
     if not sb:
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -378,7 +379,7 @@ class InviteRequest(BaseModel):
 
 
 @router.post("/staff/invite")
-async def staff_invite(payload: InviteRequest, request: Request, auth_user_id: str = Depends(require_auth)):
+async def staff_invite(payload: InviteRequest, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("team_members"))):
     try:
         sb = _get_service_client() or get_supabase_client(request)
         if not sb:

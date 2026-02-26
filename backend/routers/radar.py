@@ -7,6 +7,7 @@ import os
 import httpx
 from fastapi import APIRouter, HTTPException, Depends, Request
 from routers._auth_helper import require_auth, get_supabase_client
+from services.permission_engine import require_feature
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/radar", tags=["Radar"])
@@ -270,7 +271,7 @@ def _discover_competitors(business_id: str, supabase) -> int:
 
 
 @router.post("/sync/{business_id}")
-async def radar_sync(business_id: str, request: Request, auth_user_id: str = Depends(require_auth)):
+async def radar_sync(business_id: str, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("competitors_tracked"))):
     """Trigger a competitor discovery scan for a business."""
     sb = _get_service_client() or get_supabase_client(request)
     if not sb:
