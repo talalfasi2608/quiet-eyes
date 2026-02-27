@@ -7,7 +7,6 @@ import { SubscriptionProvider } from './context/SubscriptionContext';
 import DashboardLayout from './components/layout/DashboardLayout';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import AuthPage from './pages/AuthPage';
-import LandingPage from './pages/public/LandingPage';
 import { Loader2 } from 'lucide-react';
 
 // Lazy-loaded pages (code-split for faster initial load)
@@ -27,10 +26,17 @@ const PlanManagement = lazy(() => import('./pages/dashboard/PlanManagement'));
 const SuperAdmin = lazy(() => import('./pages/dashboard/SuperAdmin'));
 const Reports = lazy(() => import('./pages/dashboard/Reports'));
 const Automations = lazy(() => import('./pages/dashboard/Automations'));
-const Pricing = lazy(() => import('./pages/public/Pricing'));
 const BetaLanding = lazy(() => import('./pages/public/BetaLanding'));
 const BetaOnboarding = lazy(() => import('./pages/auth/BetaOnboarding'));
 import RoleGate from './components/auth/RoleGate';
+
+// Marketing pages
+const MarketingLayout = lazy(() => import('./pages/marketing/MarketingLayout'));
+const MarketingHome = lazy(() => import('./pages/marketing/Home'));
+const MarketingFeatures = lazy(() => import('./pages/marketing/Features'));
+const MarketingPricing = lazy(() => import('./pages/marketing/Pricing'));
+const MarketingAbout = lazy(() => import('./pages/marketing/About'));
+const MarketingBlog = lazy(() => import('./pages/marketing/Blog'));
 
 // Loading screen component
 function LoadingScreen({ message = 'טוען...' }: { message?: string }) {
@@ -65,11 +71,20 @@ function ProtectedRoutes() {
     );
   }
 
-  // User has completed onboarding - show dashboard
+  // User has completed onboarding - show dashboard + marketing pages
   return (
     <ErrorBoundary>
     <Suspense fallback={<LoadingScreen message="טוען..." />}>
     <Routes>
+      {/* Marketing pages (accessible when logged in) */}
+      <Route element={<MarketingLayout />}>
+        <Route path="/" element={<MarketingHome />} />
+        <Route path="/features" element={<MarketingFeatures />} />
+        <Route path="/pricing" element={<MarketingPricing />} />
+        <Route path="/about" element={<MarketingAbout />} />
+        <Route path="/blog" element={<MarketingBlog />} />
+      </Route>
+
       {/* Dashboard Routes */}
       <Route path="/dashboard" element={<DashboardLayout />}>
         <Route index element={<Dashboard />} />
@@ -90,13 +105,11 @@ function ProtectedRoutes() {
         <Route path="super-admin" element={<SuperAdmin />} />
       </Route>
 
-      {/* Public pages accessible when logged in */}
-      <Route path="/pricing" element={<Pricing />} />
+      {/* Aliases */}
+      <Route path="/app" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route path="/beta" element={<BetaLanding />} />
       <Route path="/beta-onboarding" element={<BetaOnboarding />} />
-
-      {/* Redirect everything else to dashboard */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
@@ -114,15 +127,21 @@ function AppContent() {
     return <LoadingScreen message="מתחבר..." />;
   }
 
-  // If not logged in, show landing page with routing
+  // If not logged in, show marketing pages with routing
   if (!user) {
     return (
       <BrowserRouter>
         <Suspense fallback={<LoadingScreen message="טוען..." />}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          {/* Marketing pages */}
+          <Route element={<MarketingLayout />}>
+            <Route path="/" element={<MarketingHome />} />
+            <Route path="/features" element={<MarketingFeatures />} />
+            <Route path="/pricing" element={<MarketingPricing />} />
+            <Route path="/about" element={<MarketingAbout />} />
+            <Route path="/blog" element={<MarketingBlog />} />
+          </Route>
           <Route path="/login" element={<AuthPage />} />
-          <Route path="/pricing" element={<Pricing />} />
           <Route path="/beta" element={<BetaLanding />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
