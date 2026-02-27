@@ -140,7 +140,7 @@ function SectionSaveButton({
     <button
       onClick={onClick}
       disabled={isSaving}
-      className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-all ${
+      className={`w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 md:py-2.5 rounded-xl font-medium transition-all min-h-[48px] ${
         saved
           ? 'bg-emerald-500 text-white'
           : 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:from-blue-500 hover:to-cyan-400'
@@ -1403,33 +1403,34 @@ export default function Settings() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="space-y-6 fade-in">
+    <div className="space-y-4 md:space-y-6 fade-in" dir="rtl">
       <header>
         <h1
-          className="text-3xl font-bold text-white mb-2"
+          className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           הגדרות
         </h1>
-        <p className="text-[var(--text-secondary)]">
+        <p className="text-sm md:text-base text-[var(--text-secondary)]">
           נהל את פרופיל העסק, פרטים אישיים והעדפות
         </p>
       </header>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 border-b border-gray-700/50 overflow-x-auto">
+      {/* Tab bar - scrollable on mobile */}
+      <div className="flex gap-1 border-b border-gray-700/50 overflow-x-auto pb-px" style={{ WebkitOverflowScrolling: 'touch' }}>
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+            className={`flex items-center gap-2 px-3 md:px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 min-h-[44px] flex-shrink-0 ${
               activeTab === tab.id
                 ? 'text-[#00d4ff] border-[#00d4ff]'
                 : 'text-gray-400 hover:text-gray-200 border-transparent'
             }`}
           >
             <tab.icon className="w-4 h-4" />
-            {tab.label}
+            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
           </button>
         ))}
       </div>

@@ -716,21 +716,28 @@ export default function LeadSniperFeed() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div dir="rtl" className="fade-in" style={{
+    <div dir="rtl" className="fade-in sniper-grid" style={{
       display: 'grid',
-      height: 'calc(100vh - 60px)',
       gridTemplateRows: 'auto auto auto 1fr',
       gap: '8px',
-      padding: '16px',
-      overflow: 'hidden',
+      padding: '12px 12px',
     }}>
+      {/* On desktop: fixed viewport height. On mobile: natural flow */}
+      <style>{`
+        @media (min-width: 768px) {
+          .sniper-grid { height: calc(100vh - 60px); overflow: hidden; padding: 16px !important; }
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+
       {/* ── Compact Header ─────────────────────────────────────────── */}
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/30">
+      <header className="flex flex-wrap items-center justify-between gap-2 md:gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/30 flex-shrink-0">
             <Crosshair className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>צלף לידים</h1>
+          <h1 className="text-base md:text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>צלף לידים</h1>
           <LiveBadge />
           {scanning && (
             <span className="text-xs font-normal text-orange-400 flex items-center gap-1.5">
@@ -752,7 +759,7 @@ export default function LeadSniperFeed() {
                 a.click();
                 document.body.removeChild(a);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-800/50 text-gray-300 border border-gray-700/50 hover:bg-gray-700/50 hover:text-white transition-all"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-800/50 text-gray-300 border border-gray-700/50 hover:bg-gray-700/50 hover:text-white transition-all"
             >
               <Download className="w-4 h-4" />
               <span>ייצוא CSV</span>
@@ -761,7 +768,7 @@ export default function LeadSniperFeed() {
           <button
             onClick={triggerMission}
             disabled={scanning}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-1.5 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
               scanning
                 ? 'bg-orange-600/30 text-orange-300 cursor-wait'
                 : 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:shadow-lg hover:shadow-red-500/30 active:scale-95'
@@ -770,12 +777,14 @@ export default function LeadSniperFeed() {
             {scanning ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>משימה פעילה...</span>
+                <span className="hidden md:inline">משימה פעילה...</span>
+                <span className="md:hidden">סורק...</span>
               </>
             ) : (
               <>
                 <Crosshair className="w-4 h-4" />
-                <span>התחל משימה</span>
+                <span className="hidden md:inline">התחל משימה</span>
+                <span className="md:hidden">משימה</span>
               </>
             )}
           </button>
@@ -783,7 +792,7 @@ export default function LeadSniperFeed() {
       </header>
 
       {/* ── Compact Stats Bar ──────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {[
           { key: 'all' as const, label: 'סה״כ לידים', count: total, icon: Radio, activeColor: 'indigo' },
           { key: 'new' as const, label: 'לידים חדשים', count: counts.new, icon: Zap, activeColor: 'red' },
@@ -820,7 +829,7 @@ export default function LeadSniperFeed() {
       </div>
 
       {/* ── Compact Feedback Stats + Intent Filter Row ──────────── */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0 md:flex-wrap scrollbar-hide">
         {/* Inline Feedback Stats */}
         {feedbackStats && feedbackStats.total_feedback > 0 && (
           <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gray-800/40 border border-gray-700/40 text-xs">
@@ -845,7 +854,7 @@ export default function LeadSniperFeed() {
             <button
               key={key}
               onClick={() => setIntentFilter(key)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all whitespace-nowrap flex-shrink-0 min-h-[36px] ${
                 intentFilter === key
                   ? color + ' ring-1 ring-offset-1 ring-offset-gray-900'
                   : 'text-gray-500 bg-gray-800/30 border-gray-700/50 hover:text-gray-300 hover:border-gray-600'

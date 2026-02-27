@@ -67,6 +67,48 @@ body {
   gap: 12px;
 }
 
+/* Mobile: page grids become scrollable single-column */
+@media (max-width: 767px) {
+  .page-grid,
+  .cockpit-grid {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+
+  /* Safe area for bottom nav */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Ensure minimum touch targets */
+  button, a, [role="button"], input, select, textarea {
+    min-height: 44px;
+  }
+
+  /* Minimum font size for readability */
+  body {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Prevent horizontal scroll */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Inputs should be at least 48px */
+  input, select, textarea {
+    min-height: 48px;
+    font-size: 16px; /* prevents iOS zoom */
+  }
+}
+
 /* Scrollable section inside a page-grid — only this part scrolls */
 .scrollable-section {
   overflow-y: auto;

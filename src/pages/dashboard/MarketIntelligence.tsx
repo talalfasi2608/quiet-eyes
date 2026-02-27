@@ -63,30 +63,6 @@ interface TimelineEvent {
 // SMALL COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function RadarPulse({ isScanning }: { isScanning: boolean }) {
-  return (
-    <div className="relative w-20 h-20">
-      <div className={`absolute inset-0 rounded-full border-2 border-cyan-500/30 ${isScanning ? 'animate-ping' : ''}`} style={{ animationDuration: '2s' }} />
-      <div className={`absolute inset-2 rounded-full border-2 border-cyan-500/40 ${isScanning ? 'animate-ping' : ''}`} style={{ animationDuration: '2.5s' }} />
-      <div className={`absolute inset-4 rounded-full border-2 border-cyan-500/50 ${isScanning ? 'animate-pulse' : ''}`} />
-      {isScanning && (
-        <div
-          className="absolute inset-0 rounded-full overflow-hidden animate-spin"
-          style={{
-            background: 'conic-gradient(from 0deg, transparent 0deg, rgba(6, 182, 212, 0.5) 60deg, transparent 120deg)',
-            animationDuration: '2s'
-          }}
-        />
-      )}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg ${isScanning ? 'animate-pulse' : ''}`}>
-          <Shield className="w-5 h-5 text-white" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function FreshBadge() {
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs border border-emerald-500/30 animate-pulse">
@@ -118,7 +94,7 @@ function SourceIcon({ source }: { source: string }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INTEL CARD COMPONENTS
+// INTEL CARD
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function IntelCard({ item, borderColor, iconBg, icon: Icon, actionPath, actionText }: {
@@ -131,7 +107,7 @@ function IntelCard({ item, borderColor, iconBg, icon: Icon, actionPath, actionTe
 }) {
   const navigate = useNavigate();
   return (
-    <div className={`glass-card p-4 border-r-4 ${borderColor} hover:bg-gray-800/50 transition-all cursor-pointer group`}
+    <div className={`glass-card p-4 border-r-4 ${borderColor} hover:bg-gray-800/50 active:bg-gray-800/50 transition-all cursor-pointer group`}
       onClick={() => navigate(actionPath)}
     >
       <div className="flex items-start justify-between mb-2">
@@ -211,6 +187,7 @@ export default function MarketIntelligence() {
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<'urgent' | 'important' | 'monitoring'>('urgent');
 
   // Safety timeout
   useEffect(() => {
@@ -270,10 +247,7 @@ export default function MarketIntelligence() {
     fetchFeed();
   }, [fetchFeed]);
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Sort ALL items from all categories into 3 severity columns
-  // ═══════════════════════════════════════════════════════════════════════════
-
+  // Sort ALL items into 3 severity columns
   const { urgentItems, importantItems, monitoringItems } = useMemo(() => {
     const seenIds = new Set<string>();
     const seenContent = new Set<string>();
@@ -286,7 +260,6 @@ export default function MarketIntelligence() {
       ['other_alerts', feed?.other_alerts],
     ] as const) {
       for (const item of items || []) {
-        // Deduplicate by both ID and content (title+description)
         const contentKey = `${item.title}::${item.description}`;
         if (seenIds.has(item.id) || seenContent.has(contentKey)) continue;
         seenIds.add(item.id);
@@ -314,7 +287,7 @@ export default function MarketIntelligence() {
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER — Loading / Error / Empty states
+  // Loading / Error / Empty states
   // ═══════════════════════════════════════════════════════════════════════════
 
   if (loading) {
@@ -327,7 +300,7 @@ export default function MarketIntelligence() {
 
   if (error && !feed) {
     return (
-      <div dir="rtl" style={{ height: 'calc(100vh - 60px)', overflow: 'hidden' }} className="flex items-center justify-center">
+      <div dir="rtl" className="flex items-center justify-center min-h-[50vh]">
         <EmptyState
           icon={AlertTriangle}
           iconColor="text-red-400"
@@ -343,7 +316,7 @@ export default function MarketIntelligence() {
 
   if (!feed || feed.total_count === 0) {
     return (
-      <div dir="rtl" style={{ height: 'calc(100vh - 60px)', overflow: 'hidden' }} className="flex items-center justify-center">
+      <div dir="rtl" className="flex items-center justify-center min-h-[50vh]">
         <EmptyState
           icon={Radar}
           iconColor="text-red-400"
@@ -357,242 +330,274 @@ export default function MarketIntelligence() {
     );
   }
 
+  // Helper to get items for mobile tab
+  const getMobileTabItems = () => {
+    switch (mobileTab) {
+      case 'urgent': return urgentItems;
+      case 'important': return importantItems;
+      case 'monitoring': return monitoringItems;
+    }
+  };
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER — Main 3-column severity layout (single screen, no page scroll)
+  // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div
-      dir="rtl"
-      className="fade-in"
-      style={{
-        display: 'grid',
-        height: 'calc(100vh - 60px)',
-        overflow: 'hidden',
-        gridTemplateAreas: `
-          "header header header"
-          "urgent important monitoring"
-        `,
-        gridTemplateRows: '46px 1fr',
-        gridTemplateColumns: '1fr 1fr 1fr',
-        gap: 0,
-      }}
-    >
-      {/* ══════════════════════════════════════════════════════════════════════
-          HEADER ROW (46px compact)
-         ══════════════════════════════════════════════════════════════════════ */}
-      <header
-        style={{ gridArea: 'header' }}
-        className="flex items-center justify-between px-4 bg-gray-900/80 backdrop-blur border-b border-gray-700/50"
+    <>
+      {/* ═══ DESKTOP: 3-column severity layout ═══ */}
+      <div
+        dir="rtl"
+        className="fade-in hidden md:grid"
+        style={{
+          height: 'calc(100vh - 60px)',
+          overflow: 'hidden',
+          gridTemplateAreas: `
+            "header header header"
+            "urgent important monitoring"
+          `,
+          gridTemplateRows: '46px 1fr',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          gap: 0,
+        }}
       >
-        {/* Right side: radar icon + title + scanning indicator + competitors banner */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-md flex-shrink-0">
-            <Shield className="w-4 h-4 text-white" />
-          </div>
-          <h1 className="text-lg font-bold text-white whitespace-nowrap">מי מאיים עליי?</h1>
-          {scanning && (
-            <span className="text-xs font-normal text-cyan-400 flex items-center gap-1 flex-shrink-0">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              סורק...
-            </span>
-          )}
-
-          {/* High-threat competitors compact banner (1 line) */}
-          {highThreatCompetitors.length > 0 && (
-            <div className="flex items-center gap-2 mr-4 px-3 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 min-w-0">
-              <Flame className="w-3 h-3 text-orange-400 flex-shrink-0" />
-              <span className="text-xs text-orange-300 whitespace-nowrap truncate">
-                {highThreatCompetitors.length} מתחרים מסוכנים: {highThreatCompetitors.map(c => c.name).join(', ')}
-              </span>
-              <button
-                onClick={() => navigate('/dashboard/landscape')}
-                className="text-cyan-400 text-xs flex items-center hover:text-cyan-300 flex-shrink-0"
-              >
-                <ChevronLeft className="w-3 h-3" />
-              </button>
+        {/* HEADER */}
+        <header
+          style={{ gridArea: 'header' }}
+          className="flex items-center justify-between px-4 bg-gray-900/80 backdrop-blur border-b border-gray-700/50"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-md flex-shrink-0">
+              <Shield className="w-4 h-4 text-white" />
             </div>
-          )}
+            <h1 className="text-lg font-bold text-white whitespace-nowrap">מי מאיים עליי?</h1>
+            {scanning && (
+              <span className="text-xs font-normal text-cyan-400 flex items-center gap-1 flex-shrink-0">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                סורק...
+              </span>
+            )}
+            {highThreatCompetitors.length > 0 && (
+              <div className="flex items-center gap-2 mr-4 px-3 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 min-w-0">
+                <Flame className="w-3 h-3 text-orange-400 flex-shrink-0" />
+                <span className="text-xs text-orange-300 whitespace-nowrap truncate">
+                  {highThreatCompetitors.length} מתחרים מסוכנים: {highThreatCompetitors.map(c => c.name).join(', ')}
+                </span>
+                <button
+                  onClick={() => navigate('/dashboard/landscape')}
+                  className="text-cyan-400 text-xs flex items-center hover:text-cyan-300 flex-shrink-0"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-xs text-red-400">
+                <AlertTriangle className="w-3 h-3" />
+                {totals.urgent}
+              </span>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-xs text-amber-400">
+                <AlertCircle className="w-3 h-3" />
+                {totals.important}
+              </span>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-xs text-blue-400">
+                <Eye className="w-3 h-3" />
+                {totals.monitoring}
+              </span>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-500/15 border border-gray-500/30 text-xs text-gray-400">
+                <Activity className="w-3 h-3" />
+                {totals.all}
+              </span>
+            </div>
+            <button
+              onClick={triggerScan}
+              disabled={scanning}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                scanning
+                  ? 'bg-gray-600/50 text-gray-300 cursor-wait'
+                  : 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:shadow-lg hover:shadow-red-500/30'
+              }`}
+            >
+              {scanning ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  סורק...
+                </>
+              ) : (
+                <>
+                  <Radar className="w-4 h-4" />
+                  סריקה מלאה
+                </>
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* URGENT COLUMN */}
+        <div style={{ gridArea: 'urgent' }} className="flex flex-col min-h-0 border-l border-gray-700/30">
+          <div className="flex items-center justify-between px-3 py-2 bg-red-500/10 border-b-2 border-red-500/60 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400" />
+              <span className="text-sm font-bold text-red-400">דחוף</span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-semibold">{totals.urgent}</span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {urgentItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                <CheckCircle2 className="w-8 h-8 mb-2 text-gray-600" />
+                <span className="text-sm">אין התראות דחופות</span>
+              </div>
+            ) : (
+              urgentItems.map(({ item, category }) => {
+                const props = cardPropsForCategory(category);
+                return <IntelCard key={item.id} item={item} {...props} />;
+              })
+            )}
+          </div>
         </div>
 
-        {/* Left side: stat badges + scan button */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          {/* Stat badges inline */}
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-xs text-red-400">
-              <AlertTriangle className="w-3 h-3" />
-              {totals.urgent}
-            </span>
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-xs text-amber-400">
-              <AlertCircle className="w-3 h-3" />
-              {totals.important}
-            </span>
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-xs text-blue-400">
-              <Eye className="w-3 h-3" />
-              {totals.monitoring}
-            </span>
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-500/15 border border-gray-500/30 text-xs text-gray-400">
-              <Activity className="w-3 h-3" />
-              {totals.all}
-            </span>
+        {/* IMPORTANT COLUMN */}
+        <div style={{ gridArea: 'important' }} className="flex flex-col min-h-0 border-l border-gray-700/30">
+          <div className="flex items-center justify-between px-3 py-2 bg-amber-500/10 border-b-2 border-amber-500/60 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400" />
+              <span className="text-sm font-bold text-amber-400">חשוב</span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-semibold">{totals.important}</span>
           </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {importantItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                <CheckCircle2 className="w-8 h-8 mb-2 text-gray-600" />
+                <span className="text-sm">אין פריטים חשובים</span>
+              </div>
+            ) : (
+              importantItems.map(({ item, category }) => {
+                const props = cardPropsForCategory(category);
+                return <IntelCard key={item.id} item={item} {...props} />;
+              })
+            )}
+          </div>
+        </div>
 
-          {/* Scan button */}
+        {/* MONITORING COLUMN */}
+        <div style={{ gridArea: 'monitoring' }} className="flex flex-col min-h-0">
+          <div className="flex items-center justify-between px-3 py-2 bg-blue-500/10 border-b-2 border-blue-500/60 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-bold text-blue-400">מעקב</span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs font-semibold">{totals.monitoring}</span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {monitoringItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                <CheckCircle2 className="w-8 h-8 mb-2 text-gray-600" />
+                <span className="text-sm">אין פריטים למעקב</span>
+              </div>
+            ) : (
+              monitoringItems.map(({ item, category }) => {
+                const props = cardPropsForCategory(category);
+                return <IntelCard key={item.id} item={item} {...props} />;
+              })
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ MOBILE: Tab-based layout ═══ */}
+      <div dir="rtl" className="md:hidden fade-in flex flex-col gap-3 p-3">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-md">
+              <Shield className="w-4 h-4 text-white" />
+            </div>
+            <h1 className="text-base font-bold text-white">מודיעין שוק</h1>
+            {scanning && (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+            )}
+          </div>
           <button
             onClick={triggerScan}
             disabled={scanning}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
               scanning
-                ? 'bg-gray-600/50 text-gray-300 cursor-wait'
-                : 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:shadow-lg hover:shadow-red-500/30'
+                ? 'bg-gray-600/50 text-gray-300'
+                : 'bg-gradient-to-r from-red-600 to-orange-600 text-white'
             }`}
           >
-            {scanning ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                סורק...
-              </>
-            ) : (
-              <>
-                <Radar className="w-4 h-4" />
-                סריקה מלאה
-              </>
-            )}
+            {scanning ? 'סורק...' : 'סריקה'}
           </button>
         </div>
-      </header>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          COLUMN 1 — URGENT (red)
-         ══════════════════════════════════════════════════════════════════════ */}
-      <div
-        style={{ gridArea: 'urgent' }}
-        className="flex flex-col min-h-0 border-l border-gray-700/30"
-      >
-        {/* Column header strip */}
-        <div className="flex items-center justify-between px-3 py-2 bg-red-500/10 border-b-2 border-red-500/60 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-400" />
-            <span className="text-sm font-bold text-red-400">דחוף</span>
+        {/* High threat banner */}
+        {highThreatCompetitors.length > 0 && (
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20 cursor-pointer"
+            onClick={() => navigate('/dashboard/landscape')}
+          >
+            <Flame className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+            <span className="text-xs text-orange-300 truncate flex-1">
+              {highThreatCompetitors.length} מתחרים מסוכנים
+            </span>
+            <ChevronLeft className="w-3 h-3 text-cyan-400 flex-shrink-0" />
           </div>
-          <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-semibold">
-            {totals.urgent}
-          </span>
+        )}
+
+        {/* Tab Selector */}
+        <div className="flex rounded-lg overflow-hidden border border-gray-700/50">
+          <button
+            onClick={() => setMobileTab('urgent')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
+              mobileTab === 'urgent' ? 'bg-red-500/15 text-red-400 border-b-2 border-red-500' : 'bg-gray-800/50 text-gray-400'
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            דחוף ({totals.urgent})
+          </button>
+          <button
+            onClick={() => setMobileTab('important')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
+              mobileTab === 'important' ? 'bg-amber-500/15 text-amber-400 border-b-2 border-amber-500' : 'bg-gray-800/50 text-gray-400'
+            }`}
+          >
+            <AlertCircle className="w-3.5 h-3.5" />
+            חשוב ({totals.important})
+          </button>
+          <button
+            onClick={() => setMobileTab('monitoring')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
+              mobileTab === 'monitoring' ? 'bg-blue-500/15 text-blue-400 border-b-2 border-blue-500' : 'bg-gray-800/50 text-gray-400'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            מעקב ({totals.monitoring})
+          </button>
         </div>
 
-        {/* Column body — ONLY scrollable area */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {urgentItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-              <CheckCircle2 className="w-8 h-8 mb-2 text-gray-600" />
-              <span className="text-sm">אין התראות דחופות</span>
+        {/* Tab Content */}
+        <div className="space-y-3">
+          {getMobileTabItems().length === 0 ? (
+            <div className="glass-card p-8 text-center text-gray-500">
+              <CheckCircle2 className="w-8 h-8 mb-2 mx-auto text-gray-600" />
+              <span className="text-sm">
+                {mobileTab === 'urgent' ? 'אין התראות דחופות' :
+                 mobileTab === 'important' ? 'אין פריטים חשובים' :
+                 'אין פריטים למעקב'}
+              </span>
             </div>
           ) : (
-            urgentItems.map(({ item, category }) => {
+            getMobileTabItems().map(({ item, category }) => {
               const props = cardPropsForCategory(category);
-              return (
-                <IntelCard
-                  key={item.id}
-                  item={item}
-                  borderColor={props.borderColor}
-                  iconBg={props.iconBg}
-                  icon={props.icon}
-                  actionPath={props.actionPath}
-                  actionText={props.actionText}
-                />
-              );
+              return <IntelCard key={item.id} item={item} {...props} />;
             })
           )}
         </div>
       </div>
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          COLUMN 2 — IMPORTANT (amber)
-         ══════════════════════════════════════════════════════════════════════ */}
-      <div
-        style={{ gridArea: 'important' }}
-        className="flex flex-col min-h-0 border-l border-gray-700/30"
-      >
-        {/* Column header strip */}
-        <div className="flex items-center justify-between px-3 py-2 bg-amber-500/10 border-b-2 border-amber-500/60 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-bold text-amber-400">חשוב</span>
-          </div>
-          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-semibold">
-            {totals.important}
-          </span>
-        </div>
-
-        {/* Column body — ONLY scrollable area */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {importantItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-              <CheckCircle2 className="w-8 h-8 mb-2 text-gray-600" />
-              <span className="text-sm">אין פריטים חשובים</span>
-            </div>
-          ) : (
-            importantItems.map(({ item, category }) => {
-              const props = cardPropsForCategory(category);
-              return (
-                <IntelCard
-                  key={item.id}
-                  item={item}
-                  borderColor={props.borderColor}
-                  iconBg={props.iconBg}
-                  icon={props.icon}
-                  actionPath={props.actionPath}
-                  actionText={props.actionText}
-                />
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          COLUMN 3 — MONITORING (blue/gray)
-         ══════════════════════════════════════════════════════════════════════ */}
-      <div
-        style={{ gridArea: 'monitoring' }}
-        className="flex flex-col min-h-0"
-      >
-        {/* Column header strip */}
-        <div className="flex items-center justify-between px-3 py-2 bg-blue-500/10 border-b-2 border-blue-500/60 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Eye className="w-4 h-4 text-blue-400" />
-            <span className="text-sm font-bold text-blue-400">מעקב</span>
-          </div>
-          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs font-semibold">
-            {totals.monitoring}
-          </span>
-        </div>
-
-        {/* Column body — ONLY scrollable area */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {monitoringItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-              <CheckCircle2 className="w-8 h-8 mb-2 text-gray-600" />
-              <span className="text-sm">אין פריטים למעקב</span>
-            </div>
-          ) : (
-            monitoringItems.map(({ item, category }) => {
-              const props = cardPropsForCategory(category);
-              return (
-                <IntelCard
-                  key={item.id}
-                  item={item}
-                  borderColor={props.borderColor}
-                  iconBg={props.iconBg}
-                  icon={props.icon}
-                  actionPath={props.actionPath}
-                  actionText={props.actionText}
-                />
-              );
-            })
-          )}
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

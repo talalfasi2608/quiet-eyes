@@ -17,14 +17,27 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar - Fixed on Right (RTL) */}
+      {/* Sidebar - Fixed on Right (RTL), hidden on mobile (bottom nav replaces it) */}
       <Sidebar />
 
-      {/* Main Content - Offset for sidebar */}
-      <main className="flex-1 md:mr-72 pt-16 md:pt-6 p-4 md:p-6 overflow-y-auto">
+      {/* Mobile Top Header */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-[#0a1628]/95 backdrop-blur-xl border-b border-gray-700/50 flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <img src="/logo-icon-only.svg" alt="Quieteyes" className="w-8 h-8" />
+          <span className="text-lg font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Quiet<span className="text-[#00d4ff]">eyes</span>
+          </span>
+        </div>
+      </header>
+
+      {/* Main Content
+          Desktop: offset for sidebar (mr-72), small top padding
+          Mobile: offset for top header (pt-14), offset for bottom nav (pb-20)
+      */}
+      <main className="flex-1 md:mr-72 pt-14 md:pt-6 pb-20 md:pb-0 p-4 md:p-6 overflow-y-auto">
         {/* Trial urgency banner */}
         {showBanner && (
-          <div className={`mb-4 p-4 rounded-2xl border flex items-center justify-between gap-4 ${
+          <div className={`mb-4 p-3 md:p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 ${
             isTrialExpired
               ? 'bg-red-500/10 border-red-500/30'
               : 'bg-amber-500/10 border-amber-500/30'
@@ -39,7 +52,7 @@ export default function DashboardLayout() {
                 }`}>
                   {isTrialExpired
                     ? 'הניסיון החינמי שלך הסתיים'
-                    : `⚠️ נותרו ${trialDaysRemaining} ימים בניסיון החינמי שלך`
+                    : `נותרו ${trialDaysRemaining} ימים בניסיון החינמי שלך`
                   }
                 </p>
                 <p className="text-gray-400 text-xs mt-0.5">
@@ -50,17 +63,17 @@ export default function DashboardLayout() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
               <NavLink
                 to="/dashboard/billing"
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-sm font-medium transition-all"
+                className="flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-sm font-medium transition-all min-h-[44px] flex items-center justify-center"
               >
                 {isTrialExpired ? 'שדרג עכשיו' : `שדרג עכשיו — ₪149/חודש`}
               </NavLink>
               {!isTrialExpired && (
                 <button
                   onClick={() => setBannerDismissed(true)}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors"
+                  className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -74,8 +87,10 @@ export default function DashboardLayout() {
         </div>
       </main>
 
-      {/* Floating AI Assistant */}
-      <AiAssistant />
+      {/* Floating AI Assistant - hidden on mobile to avoid overlap with bottom nav */}
+      <div className="hidden md:block">
+        <AiAssistant />
+      </div>
 
       {/* Toast Notifications */}
       <Toaster

@@ -1,10 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useSimulation } from '../../context/SimulationContext';
 import { apiFetch } from '../../services/api';
-import { FileDown, Loader2, BarChart3, Users, Zap, Target } from 'lucide-react';
+import {
+  FileDown, Loader2, BarChart3, Users, Zap, Target,
+  Star, Shield, TrendingUp, Crosshair, MessageSquare,
+  ChevronDown, ChevronUp,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import PageLoader from '../../components/ui/PageLoader';
 import EmptyState from '../../components/ui/EmptyState';
+
+interface HotLead {
+  name: string;
+  platform: string;
+  score: number;
+  status: string;
+}
+
+interface ActionItem {
+  title: string;
+  priority: number;
+  reason?: string;
+  expected_result?: string;
+  time_required?: string;
+}
 
 interface ReportPreview {
   business_name: string;
@@ -13,12 +32,20 @@ interface ReportPreview {
   health_score: number;
   competitors_count: number;
   top_competitors: Array<{ name: string; rating: number; threat: string }>;
-  lead_stats: { new: number; approved: number; rejected: number; dismissed: number };
+  lead_stats: { new: number; approved: number; rejected: number; dismissed?: number };
   total_leads: number;
   events_count: number;
-  recent_events: Array<{ title: string; type: string; severity: string }>;
+  recent_events: Array<{ title: string; type?: string; event_type?: string; severity: string }>;
   action_items_count: number;
-  action_items: Array<{ title: string; priority: number }>;
+  action_items: ActionItem[];
+  executive_summary?: string;
+  leads_narrative?: string;
+  reputation_narrative?: string;
+  competitor_narrative?: string;
+  opportunity_of_week?: string;
+  hot_leads?: HotLead[];
+  market_position?: number;
+  current_rating?: number;
 }
 
 export default function Reports() {
@@ -27,6 +54,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedSection, setExpandedSection] = useState<string | null>('summary');
 
   useEffect(() => {
     if (currentProfile?.id) {
@@ -43,7 +71,7 @@ export default function Reports() {
       if (!res.ok) throw new Error('Failed to load preview');
       const data = await res.json();
       setPreview(data.preview);
-    } catch (err) {
+    } catch {
       toast.error('שגיאה בטעינת דו"ח');
       setError('שגיאה בטעינת דו"ח');
     } finally {
@@ -65,12 +93,13 @@ export default function Reports() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `strategic-brief-${currentProfile.id.slice(0, 8)}.pdf`;
+      a.download = `war-room-report-${currentProfile.id.slice(0, 8)}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (err) {
+      toast.success('הדו"ח הורד בהצלחה!');
+    } catch {
       toast.error('שגיאה בהורדת PDF');
     } finally {
       setDownloading(false);
@@ -83,37 +112,48 @@ export default function Reports() {
     return 'text-red-400';
   };
 
+  const healthBg = (score: number) => {
+    if (score >= 70) return 'from-green-500/20 to-green-500/5';
+    if (score >= 40) return 'from-amber-500/20 to-amber-500/5';
+    return 'from-red-500/20 to-red-500/5';
+  };
+
+  const toggleSection = (section: string) => {
+    setExpandedSection(prev => prev === section ? null : section);
+  };
+
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6 animate-fade-in" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">דו"חות</h1>
-          <p className="text-gray-400 text-sm mt-1">דו"חות אסטרטגיים שבועיים</p>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            <FileDown className="w-7 h-7 text-cyan-400" />
+            דוח מודיעין שבועי
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">War Room Report — ניתוח שוק ותוכנית פעולה</p>
         </div>
         <button
           onClick={handleDownload}
           disabled={downloading || !currentProfile?.id}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-500 text-white font-medium transition-all duration-300 disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium transition-all duration-300 disabled:opacity-50 shadow-lg shadow-cyan-500/20"
         >
           {downloading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>מייצר...</span>
+              <span>מייצר PDF...</span>
             </>
           ) : (
             <>
               <FileDown className="w-5 h-5" />
-              <span>הורד דו"ח השבוע</span>
+              <span>הורד דוח PDF</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Loading State */}
-      {loading && <PageLoader message='טוען דו"חות...' />}
+      {loading && <PageLoader message='טוען דו"ח מודיעין...' />}
 
-      {/* Error */}
       {error && (
         <div className="glass-card p-4 border border-red-500/30 text-red-400 text-center">
           {error}
@@ -128,86 +168,165 @@ export default function Reports() {
         />
       )}
 
-      {/* Preview Cards */}
       {preview && !loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Health Score */}
-          <div className="glass-card p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-indigo-400" />
+        <>
+          {/* KPI Cards Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {/* Health Score */}
+            <div className={`glass-card p-5 bg-gradient-to-b ${healthBg(preview.health_score)}`}>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-10 h-10 rounded-lg bg-gray-800/60 flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">ציון בריאות</p>
+                  <p className={`text-3xl font-bold ${healthColor(preview.health_score)}`}>
+                    {preview.health_score}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-400">ציון בריאות</p>
-                <p className={`text-2xl font-bold ${healthColor(preview.health_score)}`}>
-                  {preview.health_score}
-                </p>
+            </div>
+
+            {/* Rating */}
+            <div className="glass-card p-5">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <Star className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">דירוג גוגל</p>
+                  <p className="text-3xl font-bold text-white">
+                    {preview.current_rating || '-'}
+                  </p>
+                </div>
+              </div>
+              {preview.market_position ? (
+                <p className="text-xs text-cyan-400 mt-1">מיקום #{preview.market_position} בשוק</p>
+              ) : null}
+            </div>
+
+            {/* Leads */}
+            <div className="glass-card p-5">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">לידים השבוע</p>
+                  <p className="text-3xl font-bold text-white">{preview.total_leads}</p>
+                </div>
+              </div>
+              <div className="flex gap-3 text-xs mt-1">
+                <span className="text-blue-400">חדשים: {preview.lead_stats.new}</span>
+                <span className="text-green-400">אושרו: {preview.lead_stats.approved}</span>
+              </div>
+            </div>
+
+            {/* Events */}
+            <div className="glass-card p-5">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">אירועי מודיעין</p>
+                  <p className="text-3xl font-bold text-white">{preview.events_count}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Competitors */}
-          <div className="glass-card p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                <Target className="w-5 h-5 text-amber-400" />
+          {/* Executive Summary */}
+          {preview.executive_summary && (
+            <CollapsibleSection
+              title="תקציר מנהלים"
+              icon={<BarChart3 className="w-5 h-5 text-cyan-400" />}
+              tag="01"
+              isOpen={expandedSection === 'summary'}
+              onToggle={() => toggleSection('summary')}
+            >
+              <div className="bg-gradient-to-r from-cyan-500/5 to-blue-500/5 border border-cyan-500/20 rounded-xl p-5">
+                <p className="text-gray-200 leading-relaxed whitespace-pre-wrap">{preview.executive_summary}</p>
               </div>
-              <div>
-                <p className="text-xs text-gray-400">מתחרים במעקב</p>
-                <p className="text-2xl font-bold text-white">{preview.competitors_count}</p>
-              </div>
-            </div>
-          </div>
+              {preview.opportunity_of_week && (
+                <div className="mt-4 bg-gradient-to-r from-green-500/5 to-cyan-500/5 border border-green-500/20 rounded-xl p-5">
+                  <p className="text-green-400 font-semibold text-sm mb-2">הזדמנות השבוע</p>
+                  <p className="text-gray-200">{preview.opportunity_of_week}</p>
+                </div>
+              )}
+            </CollapsibleSection>
+          )}
 
-          {/* Leads */}
-          <div className="glass-card p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                <Users className="w-5 h-5 text-green-400" />
+          {/* Leads Section */}
+          <CollapsibleSection
+            title="דוח לידים"
+            icon={<Crosshair className="w-5 h-5 text-emerald-400" />}
+            tag="02"
+            isOpen={expandedSection === 'leads'}
+            onToggle={() => toggleSection('leads')}
+          >
+            {preview.leads_narrative && (
+              <div className="glass-card p-4 mb-4">
+                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{preview.leads_narrative}</p>
               </div>
+            )}
+            {preview.hot_leads && preview.hot_leads.length > 0 && (
               <div>
-                <p className="text-xs text-gray-400">סה"כ לידים</p>
-                <p className="text-2xl font-bold text-white">{preview.total_leads}</p>
+                <p className="text-sm font-semibold text-white mb-3">לידים חמים מובילים</p>
+                <div className="space-y-2">
+                  {preview.hot_leads.map((lead, i) => (
+                    <div key={i} className="glass-card p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Target className="w-4 h-4 text-emerald-400" />
+                        <span className="text-gray-200 text-sm">{lead.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400">{lead.platform}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+                          {lead.score}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="flex gap-2 text-xs">
-              <span className="text-blue-400">חדשים: {preview.lead_stats.new}</span>
-              <span className="text-green-400">אושרו: {preview.lead_stats.approved}</span>
-            </div>
-          </div>
+            )}
+          </CollapsibleSection>
 
-          {/* Events */}
-          <div className="glass-card p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-cyan-400" />
+          {/* Reputation Section */}
+          {preview.reputation_narrative && (
+            <CollapsibleSection
+              title="דוח מוניטין"
+              icon={<MessageSquare className="w-5 h-5 text-amber-400" />}
+              tag="03"
+              isOpen={expandedSection === 'reputation'}
+              onToggle={() => toggleSection('reputation')}
+            >
+              <div className="glass-card p-4">
+                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{preview.reputation_narrative}</p>
               </div>
-              <div>
-                <p className="text-xs text-gray-400">אירועי מודיעין</p>
-                <p className="text-2xl font-bold text-white">{preview.events_count}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </CollapsibleSection>
+          )}
 
-      {/* Details */}
-      {preview && !loading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Top Competitors */}
-          <div className="glass-card p-5">
-            <h3 className="text-lg font-semibold text-white mb-4">מתחרים מובילים</h3>
+          {/* Competitors Section */}
+          <CollapsibleSection
+            title="ניתוח מתחרים"
+            icon={<Shield className="w-5 h-5 text-red-400" />}
+            tag="04"
+            isOpen={expandedSection === 'competitors'}
+            onToggle={() => toggleSection('competitors')}
+          >
             {preview.top_competitors.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2 mb-4">
                 {preview.top_competitors.map((c, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <span className="text-gray-300">{c.name}</span>
+                  <div key={i} className="glass-card p-3 flex items-center justify-between">
+                    <span className="text-gray-200 text-sm">{c.name}</span>
                     <div className="flex items-center gap-3">
                       <span className="text-amber-400 text-sm">{c.rating || '-'}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${
-                        c.threat === 'high' ? 'bg-red-500/20 text-red-400' :
-                        c.threat === 'medium' ? 'bg-amber-500/20 text-amber-400' :
-                        'bg-green-500/20 text-green-400'
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        c.threat === 'גבוה' ? 'bg-red-500/15 text-red-400' :
+                        c.threat === 'בינוני' ? 'bg-amber-500/15 text-amber-400' :
+                        'bg-green-500/15 text-green-400'
                       }`}>
                         {c.threat || 'N/A'}
                       </span>
@@ -218,36 +337,92 @@ export default function Reports() {
             ) : (
               <p className="text-gray-500 text-sm">אין מתחרים במעקב</p>
             )}
-          </div>
+            {preview.competitor_narrative && (
+              <div className="glass-card p-4">
+                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{preview.competitor_narrative}</p>
+              </div>
+            )}
+          </CollapsibleSection>
 
-          {/* Action Items */}
-          <div className="glass-card p-5">
-            <h3 className="text-lg font-semibold text-white mb-4">פעולות מומלצות ({preview.action_items_count})</h3>
-            {preview.action_items.length > 0 ? (
+          {/* Action Plan */}
+          {preview.action_items.length > 0 && (
+            <CollapsibleSection
+              title="תוכנית פעולה לשבוע הבא"
+              icon={<TrendingUp className="w-5 h-5 text-purple-400" />}
+              tag="05"
+              isOpen={expandedSection === 'actions'}
+              onToggle={() => toggleSection('actions')}
+            >
               <div className="space-y-3">
                 {preview.action_items.map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <span className="text-indigo-400 font-bold text-sm mt-0.5">{i + 1}.</span>
-                    <div>
-                      <p className="text-gray-300 text-sm">{item.title}</p>
-                      <p className="text-gray-500 text-xs">עדיפות: {item.priority}</p>
+                  <div key={i} className="glass-card p-4 flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center text-gray-900 font-bold text-sm shrink-0">
+                      {item.priority || i + 1}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-medium text-sm">{item.title}</p>
+                      {item.reason && (
+                        <p className="text-gray-400 text-xs mt-1">{item.reason}</p>
+                      )}
+                      <div className="flex gap-4 mt-2">
+                        {item.time_required && (
+                          <span className="text-xs text-cyan-400">⏱ {item.time_required}</span>
+                        )}
+                        {item.expected_result && (
+                          <span className="text-xs text-cyan-400">🎯 {item.expected_result}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500 text-sm">אין המלצות פעילות</p>
-            )}
-          </div>
-        </div>
-      )}
+            </CollapsibleSection>
+          )}
 
-      {/* Report Info */}
-      {preview && !loading && (
-        <div className="glass-card p-4 text-center text-sm text-gray-500">
-          {preview.business_name} | {preview.industry} | {preview.date_range}
-        </div>
+          {/* Report Footer */}
+          <div className="glass-card p-4 text-center text-sm text-gray-500">
+            {preview.business_name} | {preview.industry} | {preview.date_range}
+          </div>
+        </>
       )}
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COLLAPSIBLE SECTION COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function CollapsibleSection({
+  title, icon, tag, isOpen, onToggle, children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  tag: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="glass-card overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full p-5 flex items-center gap-3 text-right hover:bg-gray-800/30 transition-colors"
+      >
+        <span className="text-xs text-cyan-400 font-mono font-bold">{tag}</span>
+        {icon}
+        <span className="flex-1 text-lg font-semibold text-white">{title}</span>
+        {isOpen ? (
+          <ChevronUp className="w-5 h-5 text-gray-400" />
+        ) : (
+          <ChevronDown className="w-5 h-5 text-gray-400" />
+        )}
+      </button>
+      {isOpen && (
+        <div className="p-5 pt-0 border-t border-gray-700/30">
+          {children}
+        </div>
+      )}
+    </section>
   );
 }

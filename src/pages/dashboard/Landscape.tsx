@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { useSimulation } from '../../context/SimulationContext';
 import { loadGoogleMaps } from '../../lib/googleMaps';
 import { apiFetch } from '../../services/api';
-import { MapPin, Star, Search, Loader2, AlertTriangle, Crosshair, Zap, Radio, Shield, Target } from 'lucide-react';
+import { MapPin, Star, Search, Loader2, AlertTriangle, List } from 'lucide-react';
 import CompetitorDrawer from '../../components/ui/CompetitorDrawer';
 
 const darkMapStyle = [
@@ -43,6 +43,14 @@ export default function Landscape() {
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCompetitorId, setSelectedCompetitorId] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<'map' | 'list'>('map');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
@@ -132,9 +140,17 @@ export default function Landscape() {
 
   const mappableCompetitors = competitors.filter(c => c.latitude && c.longitude);
 
-  // Map init/update
+  // Map init/update — re-run when isMobile changes to re-attach to new container
   useEffect(() => {
     if (!mapsReady || !mapCenter || !mapContainerRef.current || !window.google?.maps) return;
+
+    // If container changed (mobile↔desktop switch), destroy old map
+    if (mapInstanceRef.current) {
+      const existingContainer = mapInstanceRef.current.getDiv();
+      if (existingContainer !== mapContainerRef.current) {
+        mapInstanceRef.current = null;
+      }
+    }
 
     if (!mapInstanceRef.current) {
       mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
@@ -207,7 +223,7 @@ export default function Landscape() {
       });
       markersRef.current.push(marker);
     });
-  }, [mapsReady, mapCenter, mappableCompetitors, currentProfile?.latitude, currentProfile?.longitude, getMarkerColor]);
+  }, [mapsReady, mapCenter, mappableCompetitors, currentProfile?.latitude, currentProfile?.longitude, getMarkerColor, isMobile]);
 
   if (loading) {
     return (
@@ -244,179 +260,347 @@ export default function Landscape() {
     return '🟢';
   };
 
+  const getThreatLabel = (level: string) => {
+    if (level === 'High') return 'גבוה';
+    if (level === 'Medium') return 'בינוני';
+    return 'נמוך';
+  };
+
   return (
-    <div dir="rtl" style={{
-      display: 'grid',
-      height: 'calc(100vh - 60px)',
-      gridTemplateAreas: `
-        "stats stats"
-        "map threats"
-        "table table"
-      `,
-      gridTemplateRows: '46px 1fr 220px',
-      gridTemplateColumns: '1fr 260px',
-      gap: '12px',
-      padding: '16px',
-      overflow: 'hidden',
-    }} className="fade-in">
-
-      {/* ═══ STATS BAR ═══ */}
-      <div style={{ gridArea: 'stats' }} className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-sm">
-          <span className="text-white font-bold text-lg">{competitors.length} מתחרים</span>
-          <span className="text-gray-500">·</span>
-          <span className="text-gray-400">ממוצע שוק ⭐ {avgRating}</span>
-          <span className="text-gray-500">·</span>
-          <span className="text-red-400">{highThreats} איומים גבוהים</span>
-        </div>
-        <button
-          onClick={handleScan}
-          disabled={scanning}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 hover:bg-cyan-500/20 text-sm transition-colors"
-        >
-          {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-          {scanning ? 'סורק...' : 'סרוק מתחרים'}
-        </button>
-      </div>
-
-      {/* ═══ MAP - HERO ═══ */}
-      <div style={{ gridArea: 'map' }} className="rounded-xl overflow-hidden border border-gray-700/50 relative">
-        {mapCenter ? (
-          <>
-            <div ref={mapContainerRef} className="w-full h-full" />
-            {!mapsReady && (
-              <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-                <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
-              </div>
-            )}
-            {/* Legend */}
-            <div className="absolute bottom-3 left-3 bg-gray-900/90 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700 space-y-1.5">
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span className="text-gray-300">אתה</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                <span className="text-gray-300">איום גבוה</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                <span className="text-gray-300">בינוני</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-2.5 h-2.5 rounded-full bg-gray-500" />
-                <span className="text-gray-300">נמוך</span>
-              </div>
-            </div>
-            <div className="absolute top-3 left-3 bg-gray-900/90 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-gray-700">
-              <span className="text-cyan-400 font-bold text-sm">{mappableCompetitors.length}</span>
-              <span className="text-gray-400 text-xs mr-1">על המפה</span>
-            </div>
-          </>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-900/50">
-            <MapPin className="w-10 h-10 text-cyan-400 animate-pulse" />
+    <>
+      {/* ═══ DESKTOP LAYOUT ═══ */}
+      <div dir="rtl" className="fade-in hidden md:grid" style={{
+        height: 'calc(100vh - 60px)',
+        gridTemplateAreas: `
+          "stats stats"
+          "map threats"
+          "table table"
+        `,
+        gridTemplateRows: '46px 1fr 220px',
+        gridTemplateColumns: '1fr 260px',
+        gap: '12px',
+        padding: '16px',
+        overflow: 'hidden',
+      }}>
+        {/* STATS BAR */}
+        <div style={{ gridArea: 'stats' }} className="flex items-center justify-between">
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-white font-bold text-lg">{competitors.length} מתחרים</span>
+            <span className="text-gray-500">·</span>
+            <span className="text-gray-400">ממוצע שוק ⭐ {avgRating}</span>
+            <span className="text-gray-500">·</span>
+            <span className="text-red-400">{highThreats} איומים גבוהים</span>
           </div>
-        )}
-      </div>
+          <button
+            onClick={handleScan}
+            disabled={scanning}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 hover:bg-cyan-500/20 text-sm transition-colors"
+          >
+            {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            {scanning ? 'סורק...' : 'סרוק מתחרים'}
+          </button>
+        </div>
 
-      {/* ═══ TOP THREATS PANEL - RIGHT ═══ */}
-      <div style={{ gridArea: 'threats' }} className="glass-card p-3 flex flex-col overflow-hidden">
-        <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2 flex-shrink-0">
-          <AlertTriangle className="w-4 h-4 text-red-400" />
-          איומים מובילים
-        </h3>
-        <div className="space-y-1.5 flex-1 overflow-y-auto min-h-0">
-          {topThreats.map(comp => (
-            <div
-              key={comp.id}
-              onClick={() => setSelectedCompetitorId(comp.id)}
-              className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all text-sm ${
-                highlightedId === comp.id ? 'bg-cyan-500/10 border border-cyan-500/30' : 'hover:bg-gray-800/50'
-              }`}
-            >
-              <span className="flex-shrink-0">{getThreatIcon(comp.perceived_threat_level)}</span>
-              <div className="flex-1 min-w-0">
-                <div className="text-white text-xs font-medium truncate">{comp.name}</div>
-                <div className="text-[10px] text-gray-500 flex items-center gap-1">
-                  {comp.google_rating && (
-                    <>
-                      <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-                      {comp.google_rating}
-                    </>
-                  )}
-                  {comp.google_reviews_count ? ` (${comp.google_reviews_count})` : ''}
+        {/* MAP */}
+        <div style={{ gridArea: 'map' }} className="rounded-xl overflow-hidden border border-gray-700/50 relative">
+          {mapCenter ? (
+            <>
+              <div ref={!isMobile ? mapContainerRef : undefined} className="w-full h-full" />
+              {!mapsReady && (
+                <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+                  <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
+                </div>
+              )}
+              <div className="absolute bottom-3 left-3 bg-gray-900/90 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700 space-y-1.5">
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span className="text-gray-300">אתה</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                  <span className="text-gray-300">איום גבוה</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <span className="text-gray-300">בינוני</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-2.5 h-2.5 rounded-full bg-gray-500" />
+                  <span className="text-gray-300">נמוך</span>
                 </div>
               </div>
+              <div className="absolute top-3 left-3 bg-gray-900/90 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-gray-700">
+                <span className="text-cyan-400 font-bold text-sm">{mappableCompetitors.length}</span>
+                <span className="text-gray-400 text-xs mr-1">על המפה</span>
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-900/50">
+              <MapPin className="w-10 h-10 text-cyan-400 animate-pulse" />
             </div>
-          ))}
-          {topThreats.length === 0 && (
-            <div className="text-gray-500 text-xs text-center py-4">לא נמצאו מתחרים</div>
           )}
+        </div>
+
+        {/* TOP THREATS */}
+        <div style={{ gridArea: 'threats' }} className="glass-card p-3 flex flex-col overflow-hidden">
+          <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2 flex-shrink-0">
+            <AlertTriangle className="w-4 h-4 text-red-400" />
+            איומים מובילים
+          </h3>
+          <div className="space-y-1.5 flex-1 overflow-y-auto min-h-0">
+            {topThreats.map(comp => (
+              <div
+                key={comp.id}
+                onClick={() => setSelectedCompetitorId(comp.id)}
+                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all text-sm ${
+                  highlightedId === comp.id ? 'bg-cyan-500/10 border border-cyan-500/30' : 'hover:bg-gray-800/50'
+                }`}
+              >
+                <span className="flex-shrink-0">{getThreatIcon(comp.perceived_threat_level)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white text-xs font-medium truncate">{comp.name}</div>
+                  <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                    {comp.google_rating && (
+                      <>
+                        <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
+                        {comp.google_rating}
+                      </>
+                    )}
+                    {comp.google_reviews_count ? ` (${comp.google_reviews_count})` : ''}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {topThreats.length === 0 && (
+              <div className="text-gray-500 text-xs text-center py-4">לא נמצאו מתחרים</div>
+            )}
+          </div>
+        </div>
+
+        {/* COMPACT TABLE */}
+        <div style={{ gridArea: 'table', padding: '12px' }} className="glass-card overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-1 flex-shrink-0">
+            <h3 className="text-sm font-semibold text-white">כל המתחרים</h3>
+            <span className="text-xs text-gray-500">{competitors.length} תוצאות</span>
+          </div>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-gray-900/95 backdrop-blur-sm">
+                <tr className="text-gray-500 text-xs border-b border-gray-700/50">
+                  <th className="text-right py-1 pr-2 font-medium">שם</th>
+                  <th className="text-center py-1 font-medium">דירוג</th>
+                  <th className="text-center py-1 font-medium">ביקורות</th>
+                  <th className="text-center py-1 font-medium">מרחק</th>
+                  <th className="text-center py-1 font-medium">איום</th>
+                  <th className="text-center py-1 font-medium">חולשה</th>
+                </tr>
+              </thead>
+              <tbody>
+                {competitors.map(comp => {
+                  const dist = getDistanceKm(comp);
+                  return (
+                    <tr
+                      key={comp.id}
+                      onClick={() => setSelectedCompetitorId(comp.id)}
+                      className={`border-b border-gray-800/50 cursor-pointer transition-colors ${
+                        highlightedId === comp.id ? 'bg-cyan-500/10' : 'hover:bg-gray-800/30'
+                      }`}
+                      style={{ height: '32px' }}
+                    >
+                      <td className="pr-2 text-white text-xs font-medium truncate max-w-[160px]">{comp.name}</td>
+                      <td className="text-center">
+                        {comp.google_rating ? (
+                          <span className="text-xs text-amber-400">{comp.google_rating}</span>
+                        ) : <span className="text-gray-600 text-xs">—</span>}
+                      </td>
+                      <td className="text-center text-xs text-gray-400">{comp.google_reviews_count || '—'}</td>
+                      <td className="text-center text-xs text-gray-400">
+                        {dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}מ` : `${dist.toFixed(1)}ק"מ`) : '—'}
+                      </td>
+                      <td className="text-center">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          comp.perceived_threat_level === 'High' ? 'bg-red-500/20 text-red-400' :
+                          comp.perceived_threat_level === 'Medium' ? 'bg-amber-500/20 text-amber-400' :
+                          'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {getThreatLabel(comp.perceived_threat_level)}
+                        </span>
+                      </td>
+                      <td className="text-center text-[10px] text-gray-500 truncate max-w-[100px]">{comp.identified_weakness || '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {competitors.length === 0 && (
+              <div className="text-center py-8">
+                <AlertTriangle className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">לא נמצאו מתחרים. לחץ "סרוק מתחרים"</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ═══ COMPACT TABLE - BOTTOM ═══ */}
-      <div style={{ gridArea: 'table', padding: '12px' }} className="glass-card overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between mb-1 flex-shrink-0">
-          <h3 className="text-sm font-semibold text-white">כל המתחרים</h3>
-          <span className="text-xs text-gray-500">{competitors.length} תוצאות</span>
+      {/* ═══ MOBILE LAYOUT ═══ */}
+      <div dir="rtl" className="md:hidden fade-in flex flex-col gap-3 p-3">
+        {/* Stats + Scan */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-white font-bold">{competitors.length} מתחרים</span>
+            <span className="text-gray-500">·</span>
+            <span className="text-red-400 text-xs">{highThreats} איומים</span>
+          </div>
+          <button
+            onClick={handleScan}
+            disabled={scanning}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 text-xs"
+          >
+            {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            {scanning ? 'סורק...' : 'סרוק'}
+          </button>
         </div>
-        <div className="flex-1 overflow-y-auto min-h-0">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-gray-900/95 backdrop-blur-sm">
-              <tr className="text-gray-500 text-xs border-b border-gray-700/50">
-                <th className="text-right py-1 pr-2 font-medium">שם</th>
-                <th className="text-center py-1 font-medium">דירוג</th>
-                <th className="text-center py-1 font-medium">ביקורות</th>
-                <th className="text-center py-1 font-medium">מרחק</th>
-                <th className="text-center py-1 font-medium">איום</th>
-                <th className="text-center py-1 font-medium">חולשה</th>
-              </tr>
-            </thead>
-            <tbody>
-              {competitors.map(comp => {
+
+        {/* Map/List Toggle */}
+        <div className="flex rounded-lg overflow-hidden border border-gray-700/50">
+          <button
+            onClick={() => setMobileView('map')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+              mobileView === 'map' ? 'bg-cyan-500/15 text-cyan-400' : 'bg-gray-800/50 text-gray-400'
+            }`}
+          >
+            <MapPin className="w-4 h-4" />
+            מפה
+          </button>
+          <button
+            onClick={() => setMobileView('list')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+              mobileView === 'list' ? 'bg-cyan-500/15 text-cyan-400' : 'bg-gray-800/50 text-gray-400'
+            }`}
+          >
+            <List className="w-4 h-4" />
+            רשימה
+          </button>
+        </div>
+
+        {/* Map View */}
+        {mobileView === 'map' && (
+          <div className="rounded-xl overflow-hidden border border-gray-700/50 relative" style={{ height: '50vh' }}>
+            {mapCenter ? (
+              <>
+                <div ref={isMobile ? mapContainerRef : undefined} className="w-full h-full" />
+                {!mapsReady && (
+                  <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+                    <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
+                  </div>
+                )}
+                {/* Compact legend */}
+                <div className="absolute bottom-2 left-2 bg-gray-900/90 backdrop-blur-sm rounded-lg px-2 py-1.5 border border-gray-700 flex items-center gap-3">
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-gray-400">אתה</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-gray-400">גבוה</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-gray-400">בינוני</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-900/50">
+                <MapPin className="w-10 h-10 text-cyan-400 animate-pulse" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* List View — Competitor cards */}
+        {mobileView === 'list' && (
+          <div className="space-y-2">
+            {competitors.length === 0 ? (
+              <div className="glass-card p-6 text-center">
+                <AlertTriangle className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">לא נמצאו מתחרים. לחץ "סרוק"</p>
+              </div>
+            ) : (
+              competitors.map(comp => {
                 const dist = getDistanceKm(comp);
                 return (
-                  <tr
+                  <div
                     key={comp.id}
                     onClick={() => setSelectedCompetitorId(comp.id)}
-                    className={`border-b border-gray-800/50 cursor-pointer transition-colors ${
-                      highlightedId === comp.id ? 'bg-cyan-500/10' : 'hover:bg-gray-800/30'
-                    }`}
-                    style={{ height: '32px' }}
+                    className="glass-card p-3 active:bg-gray-800/50 cursor-pointer transition-colors"
                   >
-                    <td className="pr-2 text-white text-xs font-medium truncate max-w-[160px]">{comp.name}</td>
-                    <td className="text-center">
-                      {comp.google_rating ? (
-                        <span className="text-xs text-amber-400">{comp.google_rating}</span>
-                      ) : <span className="text-gray-600 text-xs">—</span>}
-                    </td>
-                    <td className="text-center text-xs text-gray-400">{comp.google_reviews_count || '—'}</td>
-                    <td className="text-center text-xs text-gray-400">
-                      {dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}מ` : `${dist.toFixed(1)}ק"מ`) : '—'}
-                    </td>
-                    <td className="text-center">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="flex-shrink-0">{getThreatIcon(comp.perceived_threat_level)}</span>
+                        <h4 className="text-white text-sm font-medium truncate">{comp.name}</h4>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${
                         comp.perceived_threat_level === 'High' ? 'bg-red-500/20 text-red-400' :
                         comp.perceived_threat_level === 'Medium' ? 'bg-amber-500/20 text-amber-400' :
                         'bg-gray-500/20 text-gray-400'
                       }`}>
-                        {comp.perceived_threat_level === 'High' ? 'גבוה' : comp.perceived_threat_level === 'Medium' ? 'בינוני' : 'נמוך'}
+                        {getThreatLabel(comp.perceived_threat_level)}
                       </span>
-                    </td>
-                    <td className="text-center text-[10px] text-gray-500 truncate max-w-[100px]">{comp.identified_weakness || '—'}</td>
-                  </tr>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      {comp.google_rating && (
+                        <span className="flex items-center gap-1">
+                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                          {comp.google_rating} ({comp.google_reviews_count || 0})
+                        </span>
+                      )}
+                      {dist !== null && (
+                        <span>{dist < 1 ? `${Math.round(dist * 1000)}מ` : `${dist.toFixed(1)}ק"מ`}</span>
+                      )}
+                    </div>
+                    {comp.identified_weakness && (
+                      <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">חולשה: {comp.identified_weakness}</p>
+                    )}
+                  </div>
                 );
-              })}
-            </tbody>
-          </table>
-          {competitors.length === 0 && (
-            <div className="text-center py-8">
-              <AlertTriangle className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-              <p className="text-gray-500 text-sm">לא נמצאו מתחרים. לחץ "סרוק מתחרים"</p>
-            </div>
-          )}
+              })
+            )}
+          </div>
+        )}
+
+        {/* Top Threats section always visible on mobile */}
+        <div className="glass-card p-3">
+          <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-400" />
+            איומים מובילים
+          </h3>
+          <div className="space-y-1.5">
+            {topThreats.slice(0, 5).map(comp => (
+              <div
+                key={comp.id}
+                onClick={() => setSelectedCompetitorId(comp.id)}
+                className="flex items-center gap-2 p-2 rounded-lg active:bg-gray-800/50 cursor-pointer text-sm min-h-[44px]"
+              >
+                <span className="flex-shrink-0">{getThreatIcon(comp.perceived_threat_level)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white text-xs font-medium truncate">{comp.name}</div>
+                  <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                    {comp.google_rating && (
+                      <>
+                        <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
+                        {comp.google_rating}
+                      </>
+                    )}
+                    {comp.google_reviews_count ? ` (${comp.google_reviews_count})` : ''}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {topThreats.length === 0 && (
+              <div className="text-gray-500 text-xs text-center py-4">לא נמצאו מתחרים</div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -427,6 +611,6 @@ export default function Landscape() {
           onClose={() => setSelectedCompetitorId(null)}
         />
       )}
-    </div>
+    </>
   );
 }

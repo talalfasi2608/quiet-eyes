@@ -142,7 +142,7 @@ export default function Pricing() {
       {/* Plans */}
       <section className="pb-24">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {plans.map((plan, i) => {
               const price = annual ? Math.round(plan.monthlyPrice * 0.8) : plan.monthlyPrice;
               return (
