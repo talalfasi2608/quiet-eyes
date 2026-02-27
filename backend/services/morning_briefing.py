@@ -73,14 +73,17 @@ class MorningBriefing:
                 biz_info, overnight_data, memory_context, prediction_text
             )
 
-            # Format and send
+            # Format and send using template
             leads_count = overnight_data.get("new_leads", 0)
             events_count = overnight_data.get("new_events", 0)
+            competitor_count = len(overnight_data.get("competitor_changes", []))
 
-            message = (
-                f"☀️ בוקר טוב, {biz_info.get('business_name', '')}!\n\n"
-                f"{briefing}\n\n"
-                f"🎯 {leads_count} לידים חדשים | 📊 {events_count} אירועי מודיעין"
+            from services.whatsapp_templates import morning_summary
+            message = morning_summary(
+                business_name=biz_info.get("business_name", ""),
+                hot_leads=leads_count,
+                competitor_changes=competitor_count,
+                recommended_action=briefing.split("\n")[0] if briefing else "",
             )
 
             from services.whatsapp import send_whatsapp_message
@@ -117,8 +120,8 @@ class MorningBriefing:
 
     def send_for_all_businesses(self, supabase) -> int:
         """
-        Send morning briefings to all businesses that have it enabled
-        and whose daily_update_time matches the current hour.
+        Send morning briefings to all businesses that have it enabled,
+        notification_whatsapp is on, and whose morning_alert_time matches.
         Returns count of briefings sent.
         """
         from services.automation_helpers import is_automation_enabled
@@ -127,27 +130,32 @@ class MorningBriefing:
         count = 0
 
         try:
-            # Get all businesses
+            # Get all businesses with their notification preferences
             result = (
                 supabase.table("businesses")
-                .select("id, daily_update_time")
+                .select("id, morning_alert_time, notification_whatsapp")
                 .execute()
             )
             businesses = result.data or []
 
             for biz in businesses:
                 biz_id = biz["id"]
-                update_time = biz.get("daily_update_time")
 
-                # Check if the update hour matches (default: 6 UTC = 8am Israel)
-                target_hour = 6
-                if update_time:
-                    try:
-                        target_hour = int(str(update_time).split(":")[0])
-                    except (ValueError, IndexError):
-                        pass
+                # Skip if user disabled WhatsApp notifications
+                if not biz.get("notification_whatsapp", True):
+                    continue
 
-                if current_hour != target_hour:
+                # Check morning_alert_time (stored as HH:MM Israel time)
+                # Convert Israel time to UTC: Israel is UTC+2 (or +3 in DST)
+                alert_time = biz.get("morning_alert_time") or "09:00"
+                try:
+                    alert_hour_local = int(str(alert_time).split(":")[0])
+                    # Approximate: Israel is UTC+2 standard, UTC+3 DST
+                    target_hour_utc = alert_hour_local - 2  # conservative
+                except (ValueError, IndexError):
+                    target_hour_utc = 7  # default 09:00 Israel = 07:00 UTC
+
+                if current_hour != target_hour_utc:
                     continue
 
                 if self.send_morning_briefing(biz_id, supabase):

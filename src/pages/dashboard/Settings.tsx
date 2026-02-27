@@ -25,6 +25,7 @@ import {
   Instagram,
   Facebook,
   ChevronDown,
+  Smartphone,
 } from 'lucide-react';
 import { apiFetch } from '../../services/api';
 import { supabase } from '../../lib/supabaseClient';
@@ -303,6 +304,8 @@ export default function Settings() {
   });
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifSaved, setNotifSaved] = useState(false);
+  const [testWhatsappLoading, setTestWhatsappLoading] = useState(false);
+  const [testWhatsappResult, setTestWhatsappResult] = useState<string | null>(null);
 
   // ─── Scheduled Jobs ────────────────────────────────────────────────────────
   const [jobs, setJobs] = useState<ScheduledJob[]>([]);
@@ -546,6 +549,31 @@ export default function Settings() {
       setNotifSaving,
       setNotifSaved
     );
+  };
+
+  const handleTestWhatsapp = async () => {
+    if (!resolvedBusinessId) return;
+    setTestWhatsappLoading(true);
+    setTestWhatsappResult(null);
+    try {
+      const res = await apiFetch('/notifications/test-whatsapp', {
+        method: 'POST',
+        body: JSON.stringify({ business_id: resolvedBusinessId, message_type: 'test' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestWhatsappResult(`✓ הודעת בדיקה נשלחה ל-${data.phone || personalData.phone}`);
+        toast.success('הודעת בדיקה נשלחה בהצלחה!');
+      } else {
+        setTestWhatsappResult(null);
+        toast.error(data.error || data.detail || 'שגיאה בשליחת הודעת בדיקה');
+      }
+    } catch {
+      setTestWhatsappResult(null);
+      toast.error('שגיאה בשליחת הודעת בדיקה');
+    } finally {
+      setTestWhatsappLoading(false);
+    }
   };
 
   const handleSavePersonal = () => {
@@ -963,6 +991,27 @@ export default function Settings() {
                 }
               />
             </div>
+
+            {/* Test WhatsApp Button */}
+            {notifData.notification_whatsapp && personalData.phone && (
+              <div className="flex items-center gap-3 px-4">
+                <button
+                  onClick={handleTestWhatsapp}
+                  disabled={testWhatsappLoading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-green-600/40 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-wait"
+                >
+                  {testWhatsappLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Smartphone className="w-4 h-4" />
+                  )}
+                  שלח הודעת בדיקה לוואטסאפ
+                </button>
+                {testWhatsappResult && (
+                  <span className="text-green-400 text-sm">{testWhatsappResult}</span>
+                )}
+              </div>
+            )}
 
             {/* Email Toggle */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800/50">

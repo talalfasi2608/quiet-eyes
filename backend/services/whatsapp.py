@@ -34,7 +34,8 @@ def send_whatsapp_message(phone: str, message: str) -> bool:
     Send a WhatsApp message via Twilio.
 
     Args:
-        phone: Recipient phone number (E.164 format, e.g. "+972501234567")
+        phone: Recipient phone number in any Israeli format
+               (05X-XXXXXXX, 972XXXXXXXXX, +972XXXXXXXXX, etc.)
         message: Message body text
 
     Returns:
@@ -44,8 +45,11 @@ def send_whatsapp_message(phone: str, message: str) -> bool:
         logger.warning("WhatsApp send skipped: missing phone or message")
         return False
 
-    # Normalize phone format
-    to_number = phone.strip()
+    # Normalize to E.164 format (+972XXXXXXXXX) via phone utility
+    from utils.phone import format_for_whatsapp
+    formatted = format_for_whatsapp(phone)
+
+    to_number = formatted.strip()
     if not to_number.startswith("whatsapp:"):
         to_number = f"whatsapp:{to_number}"
 
@@ -61,9 +65,9 @@ def send_whatsapp_message(phone: str, message: str) -> bool:
             to=to_number,
         )
         logger.info(
-            f"WhatsApp sent to {phone[:8]}... | SID: {result.sid}"
+            f"WhatsApp sent to {formatted[:8]}... | SID: {result.sid}"
         )
         return True
     except Exception as e:
-        logger.error(f"WhatsApp send failed to {phone[:8]}...: {e}")
+        logger.error(f"WhatsApp send failed to {formatted[:8]}...: {e}")
         raise

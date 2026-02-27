@@ -23,6 +23,8 @@ import {
   FileDown,
   Menu,
   X,
+  Zap,
+  Megaphone,
 } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -32,12 +34,14 @@ const navItems = [
   { path: '/dashboard/focus', label: 'מיקוד', icon: Focus, description: 'מרכז השליטה' },
   { path: '/dashboard/landscape', label: 'נוף', icon: Map, description: 'מתחרים' },
   { path: '/dashboard/intelligence', label: 'מודיעין', icon: Radar, description: 'מחירים ופרסום' },
+  { path: '/dashboard/marketing', label: 'שיווק', icon: Megaphone, description: 'אסטרטגיית שיווק AI' },
   { path: '/dashboard/sniper', label: 'צלף הזדמנויות', icon: Crosshair, description: 'לידים חיים' },
   { path: '/dashboard/horizon', label: 'אופק', icon: TrendingUp, description: 'מגמות' },
   { path: '/dashboard/reflection', label: 'השתקפות', icon: MessageSquare, description: 'מוניטין' },
   { path: '/dashboard/knowledge', label: 'ידע', icon: BookOpen, description: 'בסיס ידע ונישה' },
   { path: '/dashboard/vault', label: 'הכספת', icon: Archive, description: 'ארכיון מודיעין' },
   { path: '/dashboard/reports', label: 'דו"חות', icon: FileDown, description: 'דו"ח אסטרטגי שבועי' },
+  { path: '/dashboard/automations', label: 'אוטומציות', icon: Zap, description: 'אוטומציה ומסעות' },
   { path: '/dashboard/staff', label: 'צוות', icon: Users, description: 'ניהול חברי צוות', minRole: 'admin' as const },
   { path: '/dashboard/billing', label: 'מנוי', icon: CreditCard, description: 'ניהול תוכנית ותשלום' },
   { path: '/dashboard/settings', label: 'הגדרות', icon: Settings, description: 'פרופיל העסק' },

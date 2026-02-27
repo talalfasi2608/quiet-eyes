@@ -19,6 +19,7 @@ const Reflection = lazy(() => import('./pages/dashboard/Reflection'));
 const Settings = lazy(() => import('./pages/dashboard/Settings'));
 const KnowledgeBase = lazy(() => import('./pages/dashboard/KnowledgeBase'));
 const MarketIntelligence = lazy(() => import('./pages/dashboard/MarketIntelligence'));
+const MarketingIntel = lazy(() => import('./pages/dashboard/MarketingIntel'));
 const LeadSniperFeed = lazy(() => import('./pages/dashboard/LeadSniperFeed'));
 const Vault = lazy(() => import('./pages/dashboard/Vault'));
 const Staff = lazy(() => import('./pages/dashboard/Staff'));
@@ -92,6 +93,7 @@ function ProtectedRoutes() {
         <Route path="focus" element={<Focus />} />
         <Route path="landscape" element={<Landscape />} />
         <Route path="intelligence" element={<MarketIntelligence />} />
+        <Route path="marketing" element={<MarketingIntel />} />
         <Route path="sniper" element={<LeadSniperFeed />} />
         <Route path="horizon" element={<Horizon />} />
         <Route path="reflection" element={<Reflection />} />

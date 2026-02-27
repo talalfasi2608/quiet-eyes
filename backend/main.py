@@ -762,6 +762,7 @@ from routers.automations import router as automations_router
 from routers.whatsapp_webhook import router as whatsapp_webhook_router
 from routers.waitlist import router as waitlist_router
 from routers.feedback import router as feedback_router
+from routers.marketing_intel import router as marketing_intel_router
 app.include_router(admin_router)
 app.include_router(crm_router)
 app.include_router(auditor_router)
@@ -788,6 +789,7 @@ app.include_router(automations_router)
 app.include_router(whatsapp_webhook_router)
 app.include_router(waitlist_router)
 app.include_router(feedback_router)
+app.include_router(marketing_intel_router)
 
 
 # =============================================================================

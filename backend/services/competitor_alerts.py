@@ -221,11 +221,12 @@ class CompetitorAlerts:
         """Send a competitor alert via WhatsApp."""
         try:
             from services.whatsapp import send_whatsapp_message
+            from services.whatsapp_templates import competitor_change
 
-            message = (
-                f"🔔 התראת מתחרה: {comp_name}\n"
-                f"📌 {alert_title}\n\n"
-                f"{action}"
+            message = competitor_change(
+                competitor_name=comp_name,
+                change_description=alert_title,
+                recommendation=action,
             )
             send_whatsapp_message(phone, message)
         except Exception as e:
