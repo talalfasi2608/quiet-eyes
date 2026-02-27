@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import FadeInSection from '../../components/marketing/FadeInSection';
+import useSEO from '../../hooks/useSEO';
 
 /* ── Mockup visuals ── */
 
@@ -160,45 +161,12 @@ function PdfMockup() {
   );
 }
 
-function ChatMockup() {
-  return (
-    <div className="rounded overflow-hidden" style={{ background: '#111827', border: '1px solid rgba(30,45,69,0.4)' }}>
-      <div className="px-4 py-2.5" style={{ background: '#0d1526', borderBottom: '1px solid rgba(30,45,69,0.3)' }}>
-        <p className="text-xs font-semibold" style={{ color: '#f0f4ff' }}>AI Advisor</p>
-      </div>
-      <div className="p-4 space-y-3">
-        <div className="rounded p-3 max-w-[80%] mr-auto" style={{ background: '#0d1526' }}>
-          <p className="text-xs" style={{ color: '#f0f4ff' }}>מה הסטטוס של המתחרים שלי השבוע?</p>
-        </div>
-        <div className="rounded p-3 max-w-[85%]" style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.15)' }}>
-          <p className="text-xs leading-relaxed" style={{ color: '#f0f4ff' }}>
-            <span style={{ color: '#00d4ff' }}>AI:</span> זיהיתי 3 שינויים משמעותיים השבוע:
-            <br />1. CoffeeX הוריד מחירים ב-15%
-            <br />2. BeanBar קיבל 12 ביקורות חדשות (4.6 ממוצע)
-            <br />3. מתחרה חדש "BrewLab" נפתח ב-500 מ' ממך.
-            <br /><br />מומלץ: עדכן את הצעת הערך שלך מול BrewLab.
-          </p>
-        </div>
-      </div>
-      <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(30,45,69,0.3)' }}>
-        <div className="flex gap-2">
-          <div className="flex-1 rounded px-3 py-1.5 text-xs" style={{ background: '#0d1526', border: '1px solid rgba(30,45,69,0.3)', color: '#4a5568' }}>
-            שאל שאלה...
-          </div>
-          <button className="px-3 py-1.5 rounded text-xs font-medium" style={{ background: '#00d4ff', color: '#0a0e1a' }}>שלח</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const mockups: Record<string, () => JSX.Element> = {
   lead: LeadCardMockup,
   competitor: CompetitorMapMockup,
   health: HealthGaugeMockup,
   whatsapp: WhatsAppMockup,
   pdf: PdfMockup,
-  chat: ChatMockup,
 };
 
 /* ═══════════════════════════════════════ */
@@ -206,37 +174,88 @@ const mockups: Record<string, () => JSX.Element> = {
 const features = [
   {
     id: 'lead',
-    title: 'צלף לידים',
-    desc: 'מוצא שיחות רלוונטיות בפייסבוק, גוגל ורשתות נוספות. כל ליד מקבל ציון רלוונטיות 0-100 ותיאור AI של הפעולה המומלצת.',
+    title: 'צלף לידים — מוצא את הלקוחות הבאים שלך',
+    bullets: [
+      'כל יום, אלפי אנשים כותבים ברשתות החברתיות שהם מחפשים שירות או מוצר כמו שלך. רובם לא יגיעו אליך — כי אתה לא יודע שהם שם.',
+      'Quieteyes סורקת פייסבוק, גוגל, פורומים ועוד עשרות מקורות. כל פוסט, כל שאלה, כל בקשת המלצה — מנותחת על ידי AI ומוערכת לפי הרלוונטיות לעסק שלך.',
+    ],
+    details: [
+      'ציון רלוונטיות 0-100',
+      'סיכום AI של מה שהאדם מחפש',
+      'המלצת פעולה: \'צור קשר\', \'שלח הצעה\', \'לא רלוונטי\'',
+      'קישור ישיר לפוסט המקורי',
+    ],
+    summary: 'התוצאה: רשימה יומית של אנשים שמחפשים בדיוק את מה שאתה מציע — מוכנים לשמוע ממך.',
   },
   {
     id: 'competitor',
-    title: 'מודיעין מתחרים',
-    desc: 'עוקב אחרי כל שינוי — פתיחה/סגירה, מחירים, ביקורות, פרסומות. מתראה תוך 24 שעות.',
+    title: 'מודיעין מתחרים — תמיד צעד אחד קדימה',
+    bullets: [
+      'בעולם שבו מידע הוא כסף, הבעיה היא לא המידע — הבעיה היא לדעת מה קורה לפני שזה משפיע עליך.',
+      'Quieteyes עוקבת כל 12 שעות אחרי כל מתחרה:',
+    ],
+    details: [
+      'שינויי מחירים — גילית לפני הלקוחות שלך',
+      'ביקורות חדשות — ראה מה אומרים עליהם',
+      'פרסומות ומבצעים — הבן את האסטרטגיה שלהם',
+      'עסקים חדשים שנפתחו — התראה תוך 24 שעות',
+      'עסקים שנסגרו — הזדמנות לתפוס את הלקוחות שלהם',
+    ],
+    summary: 'כל שינוי מהותי — הודעת וואטסאפ מיידית. לא צריך לבדוק ידנית. לא צריך לגגל מתחרים. Quieteyes עושה את זה בשבילך.',
   },
   {
     id: 'health',
-    title: 'ניתוח שוק AI',
-    desc: 'ניתוח שוק שבועי עם תובנות מותאמות לסוג העסק שלך. המלצות פעולה ספציפיות.',
-  },
-  {
-    id: 'whatsapp',
-    title: 'התראות וואטסאפ',
-    desc: 'כל ליד חם, כל שינוי אצל מתחרה — ישירות לוואטסאפ שלך. לא צריך להיכנס לפלטפורמה כדי לפעול.',
+    title: 'מיקוד יומי — 3 פעולות שמניעות את העסק שלך',
+    bullets: [
+      'הבעיה של רוב בעלי העסקים היא לא חוסר מידע. הבעיה היא יותר מדי מידע — ולא ברור מה לעשות קודם.',
+      'כל בוקר, AI שמכיר את העסק שלך, את המתחרים שלך ואת הנתונים מהסריקה האחרונה — מייצר תוכנית פעולה של 3 משימות בלבד.',
+      'לא 20 סעיפים. לא \'כדאי לשקול\'. 3 פעולות ספציפיות שאתה יכול לעשות היום.',
+    ],
+    details: [],
+    examples: [
+      '\'יש ליד חם ממסעדה שמחפשת שף — פנה אליה היום\'',
+      '\'המתחרה הגדיל מחירים ב-15% — עדכן את ההצעות שלך\'',
+      '\'יום ירושלים מחר — פרסם מבצע אחה"צ\'',
+    ],
+    summary: '',
   },
   {
     id: 'pdf',
-    title: 'דוח שבועי PDF',
-    desc: 'דוח מנהלים אוטומטי עם כל הנתונים, מגמות ותוכנית פעולה לשבוע הבא.',
+    title: 'דוח שוק שבועי — כמו שיש לתאגידים',
+    bullets: [
+      'כל יום ראשון, דוח PDF מקצועי ממתין לך. לא עוד ניחושים. לא עוד \'נראה לי\'.',
+    ],
+    details: [
+      'ציון בריאות השוק שלך — 0 עד 100',
+      'השוואה מלאה למתחרים: דירוג, ביקורות, מחירים',
+      'ניתוח לידים: כמה נמצאו, כמה פוטנציאל',
+      'מגמות שוק לשבוע הבא',
+      'תוכנית פעולה מומלצת לשבוע — 5 נקודות',
+    ],
+    summary: 'זה הדוח שחברות גדולות משלמות עליו עשרות אלפי שקלים בשנה לחברות יחסי ציבור ומחקר שוק. ב-Quieteyes הוא נוצר אוטומטית, כל שבוע.',
   },
   {
-    id: 'chat',
-    title: 'AI Advisor',
-    desc: "צ'אט עם AI שמכיר את העסק שלך, את המתחרים שלך ואת הנתונים שלך. שאל כל שאלה, קבל תשובה מבוססת נתונים.",
+    id: 'whatsapp',
+    title: 'התראות וואטסאפ — המודיעין בא אליך',
+    bullets: [
+      'אתה לא צריך לזכור להיכנס לפלטפורמה. Quieteyes שולחת לוואטסאפ שלך:',
+    ],
+    alerts: [
+      { color: '#ff4466', label: 'דחוף', text: '\'מתחרה חדש נפתח 300 מטר ממך\'' },
+      { color: '#ffaa00', label: 'חשוב', text: '\'יש 5 לידים חמים שממתינים לתגובה\'' },
+      { color: '#00ff88', label: 'מעקב', text: '\'המתחרה הגדיל מחירים ב-10%\'' },
+    ],
+    details: [],
+    summary: 'הודעת בוקר יומית — סיכום 3 דקות של מה שקרה. התראות מיידיות — רק כשמשהו חשוב קורה. לא ספאם. לא רעש. רק מה שחשוב לפעול עליו.',
   },
 ];
 
 export default function Features() {
+  useSEO(
+    'תכונות Quieteyes | מעקב מתחרים, לידים חמים וניתוח שוק AI',
+    'גלה את כל יכולות Quieteyes: מעקב מתחרים אוטומטי, צלף לידים, ניתוח שוק AI, התראות וואטסאפ ודוחות שבועיים. מודיעין עסקי לעסקים קטנים.'
+  );
+
   return (
     <div className="pt-16">
       {/* Hero */}
@@ -253,10 +272,10 @@ export default function Features() {
               FEATURES
             </p>
             <h1 className="text-4xl md:text-6xl font-extrabold mb-6" style={{ letterSpacing: '-0.03em' }}>
-              יכולות שעד עכשיו היו רק לתאגידים
+              כל הכלים שצריכים לראות את השוק שלך
             </h1>
-            <p className="text-lg max-w-xl mx-auto" style={{ color: '#8899aa' }}>
-              כלי מודיעין ברמה צבאית, מותאמים לעסקים קטנים ובינוניים
+            <p className="text-lg max-w-2xl mx-auto" style={{ color: '#8899aa' }}>
+              יכולות מודיעין עסקי שעד היום היו שמורות לתאגידים גדולים — עכשיו לכל עסק קטן ובינוני בישראל
             </p>
           </FadeInSection>
         </div>
@@ -277,12 +296,54 @@ export default function Features() {
                 <p className="text-xs tracking-[0.15em] uppercase mb-3" style={{ color: '#00d4ff', fontFamily: "'JetBrains Mono', monospace" }}>
                   {String(i + 1).padStart(2, '0')}
                 </p>
-                <h2 className="text-2xl md:text-4xl font-extrabold mb-4" style={{ letterSpacing: '-0.03em' }}>
+                <h2 className="text-2xl md:text-4xl font-extrabold mb-6" style={{ letterSpacing: '-0.03em' }}>
                   {feat.title}
                 </h2>
-                <p className="text-lg leading-relaxed" style={{ color: '#8899aa' }}>
-                  {feat.desc}
-                </p>
+
+                <div className="space-y-4 mb-6" style={{ color: '#8899aa' }}>
+                  {feat.bullets.map((b, j) => (
+                    <p key={j} className="leading-relaxed">{b}</p>
+                  ))}
+                </div>
+
+                {feat.details.length > 0 && (
+                  <ul className="space-y-2 mb-6">
+                    {feat.details.map((d, j) => (
+                      <li key={j} className="flex items-start gap-2 text-sm" style={{ color: '#f0f4ff' }}>
+                        <span style={{ color: '#00d4ff', marginTop: 2 }}>&#9654;</span>
+                        <span>{d}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {'examples' in feat && feat.examples && (
+                  <div className="rounded p-4 mb-6" style={{ background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)' }}>
+                    <p className="text-xs font-semibold mb-3" style={{ color: '#00d4ff' }}>דוגמאות אמיתיות:</p>
+                    <ul className="space-y-2">
+                      {(feat as any).examples.map((ex: string, j: number) => (
+                        <li key={j} className="text-sm" style={{ color: '#f0f4ff' }}>{ex}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {'alerts' in feat && feat.alerts && (
+                  <div className="space-y-3 mb-6">
+                    {(feat as any).alerts.map((a: any, j: number) => (
+                      <div key={j} className="flex items-start gap-3 text-sm">
+                        <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: a.color }} />
+                        <span style={{ color: '#f0f4ff' }}><span className="font-semibold" style={{ color: a.color }}>{a.label}:</span> {a.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {feat.summary && (
+                  <p className="leading-relaxed font-medium" style={{ color: '#f0f4ff' }}>
+                    {feat.summary}
+                  </p>
+                )}
               </FadeInSection>
 
               <FadeInSection delay={200} className={reversed ? 'md:order-1' : ''}>

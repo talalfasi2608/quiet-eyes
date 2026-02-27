@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import FadeInSection from '../../components/marketing/FadeInSection';
+import useSEO from '../../hooks/useSEO';
 
 const plans = [
   {
     name: 'חינמי',
     nameEn: 'FREE',
     monthlyPrice: 0,
+    desc: 'נסה את מודיעין העסקי בחינם. ראה איך הפלטפורמה עובדת עם הנתונים האמיתיים של העסק שלך — ללא סיכון.',
     features: [
       { text: '3 סריקות לידים', included: true },
       { text: '3 מתחרים במעקב', included: true },
@@ -21,6 +23,7 @@ const plans = [
     name: 'Basic',
     nameEn: 'BASIC',
     monthlyPrice: 149,
+    desc: 'לעסקים שרוצים להתחיל לעקוב אחרי המתחרים ולמצוא לידים ראשונים. מתאים לעסק עם 1-5 מתחרים.',
     features: [
       { text: '20 סריקות לידים', included: true },
       { text: '10 מתחרים במעקב', included: true },
@@ -35,6 +38,7 @@ const plans = [
     name: 'Pro',
     nameEn: 'PRO',
     monthlyPrice: 299,
+    desc: 'הכלי המלא לעסקים שרוצים יתרון תחרותי אמיתי. כולל התראות וואטסאפ, דוחות שבועיים וניתוח מחירים.',
     features: [
       { text: '100 סריקות לידים', included: true },
       { text: '25 מתחרים במעקב', included: true },
@@ -50,6 +54,7 @@ const plans = [
     name: 'Business',
     nameEn: 'BUSINESS',
     monthlyPrice: 599,
+    desc: 'לעסקים גדולים, רשתות וסוכנויות שיווק. ללא הגבלות, עם תמיכה ייעודית ו-API.',
     features: [
       { text: 'סריקות ללא הגבלה', included: true },
       { text: 'מתחרים ללא הגבלה', included: true },
@@ -64,14 +69,34 @@ const plans = [
 ];
 
 const faqs = [
-  { q: 'האם יש חוזה?', a: 'לא. ביטול בכל עת, ללא התחייבות.' },
-  { q: 'מה קורה אחרי 14 יום?', a: 'התוכנית עוברת אוטומטית לתוכנית החינמית. לא נגבה תשלום ללא אישורך.' },
-  { q: 'האם עובד לכל סוג עסק?', a: 'כן. Quieteyes מותאמת לכל עסק מקומי — מסעדות, סלונים, חנויות, שירותים ועוד.' },
-  { q: 'כמה זמן לוקחת ההגדרה?', a: '3 דקות. הכנס שם עסק, סוג ואזור — והפלטפורמה עושה את השאר.' },
-  { q: 'האם יש תמיכה בעברית?', a: 'כן. כל הממשק, ההתראות והדוחות בעברית מלאה.' },
+  {
+    q: 'האם צריך להתחייב לחוזה?',
+    a: 'לא. Quieteyes עובדת על בסיס חודשי בלבד. ביטול בכל עת — אין קנסות, אין מינימום תקופה. אנחנו מאמינים שאם הכלי לא מועיל לך — אתה לא צריך לשלם.',
+  },
+  {
+    q: 'מה קורה בסוף 14 הימים?',
+    a: 'אם לא בחרת תוכנית, החשבון עובר אוטומטית לתוכנית החינמית. לא חויבת שקל. לא צריך לבטל. תמשיך להשתמש בגרסה המוגבלת ללא תשלום.',
+  },
+  {
+    q: 'האם Quieteyes עובדת לכל סוג עסק?',
+    a: 'כן, לכל עסק מקומי עם מתחרים. הכי מתאים ל: מסעדות, בתי קפה, סלוני יופי, חדרי כושר, חנויות, סוכנויות נדל"ן, רופאים ופרקליטים, סוכנויות שיווק וחנויות אונליין.',
+  },
+  {
+    q: 'איפה הנתונים נשמרים?',
+    a: 'שרתים בישראל. עמידה מלאה בחוקי הגנת הפרטיות הישראלים. המידע שלך לא נמכר ולא משמש לאף מטרה אחרת.',
+  },
+  {
+    q: 'כמה זמן לוקח עד שרואים תוצאות?',
+    a: 'הרוב רואה לידים ראשונים תוך 24 שעות מהרשמה. ניתוח מתחרים מלא — תוך 12 שעות ראשונות. דוח שבועי ראשון — ביום ראשון הקרוב לאחר ההגדרה.',
+  },
 ];
 
 export default function Pricing() {
+  useSEO(
+    'תמחור Quieteyes | תוכניות מודיעין עסקי לכל עסק',
+    'בחר את תוכנית מודיעין עסקי שמתאימה לך. מתחיל ב-₪149/חודש. 14 יום חינם. ביטול בכל עת. ללא כרטיס אשראי.'
+  );
+
   const [annual, setAnnual] = useState(false);
 
   return (
@@ -84,10 +109,10 @@ export default function Pricing() {
               PRICING
             </p>
             <h1 className="text-4xl md:text-6xl font-extrabold mb-6" style={{ letterSpacing: '-0.03em' }}>
-              תוכניות ומחירים
+              השקעה שמחזירה את עצמה
             </h1>
-            <p className="text-lg mb-10" style={{ color: '#8899aa' }}>
-              בחר את התוכנית שמתאימה לעסק שלך. שדרג או בטל בכל עת.
+            <p className="text-lg mb-10 max-w-2xl mx-auto" style={{ color: '#8899aa' }}>
+              ליד אחד שתפסת בזכות Quieteyes שווה יותר מכל עלות המנוי. רוב הלקוחות מוצאים את ה-ROI בשבוע הראשון.
             </p>
 
             {/* Toggle */}
@@ -141,7 +166,9 @@ export default function Pricing() {
                     <p className="text-[10px] tracking-[0.15em] uppercase mb-1" style={{ color: '#4a5568', fontFamily: "'JetBrains Mono', monospace" }}>
                       {plan.nameEn}
                     </p>
-                    <h3 className="text-xl font-bold mb-4" style={{ color: '#f0f4ff' }}>{plan.name}</h3>
+                    <h3 className="text-xl font-bold mb-2" style={{ color: '#f0f4ff' }}>{plan.name}</h3>
+
+                    <p className="text-xs leading-relaxed mb-4" style={{ color: '#8899aa' }}>{plan.desc}</p>
 
                     <div className="mb-6">
                       {price === 0 ? (

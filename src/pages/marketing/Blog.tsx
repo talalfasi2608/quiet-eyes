@@ -1,54 +1,39 @@
 import { Link } from 'react-router-dom';
 import FadeInSection from '../../components/marketing/FadeInSection';
+import useSEO from '../../hooks/useSEO';
 
 const posts = [
   {
-    category: 'מודיעין עסקי',
-    title: 'איך OSINT משנה את המשחק לעסקים קטנים בישראל',
-    excerpt: 'כלי מודיעין פתוח (OSINT) שפעם היו נחלת סוכנויות ביון הפכו נגישים לכל עסק. למדו איך להשתמש בהם כדי להבין את השוק שלכם.',
+    category: 'מדריכים',
+    title: 'איך למצוא לידים חמים בפייסבוק בחינם — מדריך 2026',
+    excerpt: 'כל יום אלפי ישראלים כותבים ברשתות שהם מחפשים שירות. רובם לא יגיעו אליך דרך גוגל. הנה איך למצוא אותם לפני המתחרים...',
     date: '25 פברואר 2026',
-    readTime: '5 דק\' קריאה',
-    tag: 'OSINT',
-  },
-  {
-    category: 'לידים',
-    title: '7 שיטות למצוא לידים חמים ברשתות חברתיות — בלי לשלם על פרסום',
-    excerpt: 'לידים אורגניים הם הלידים הכי איכותיים. הנה 7 שיטות מוכחות שעוזרות לעסקים קטנים למצוא לקוחות פוטנציאלים בקבוצות פייסבוק, גוגל ועוד.',
-    date: '20 פברואר 2026',
-    readTime: '7 דק\' קריאה',
+    readTime: '5 דקות קריאה',
     tag: 'LEADS',
   },
   {
-    category: 'מתחרים',
-    title: 'המתחרה שלך הוריד מחירים — מה עושים עכשיו?',
-    excerpt: 'כשמתחרה מוריד מחירים, התגובה הראשונה היא להוריד גם. אבל זה כמעט תמיד טעות. הנה 5 אסטרטגיות חכמות יותר.',
-    date: '15 פברואר 2026',
-    readTime: '4 דק\' קריאה',
+    category: 'אסטרטגיה',
+    title: 'ניתוח מתחרים לעסק קטן: המדריך המלא',
+    excerpt: 'מה לבדוק, איך לבדוק ומה לעשות עם המידע שמצאת. מדריך שלב אחר שלב לעסקים שרוצים יתרון תחרותי אמיתי...',
+    date: '20 פברואר 2026',
+    readTime: '8 דקות קריאה',
     tag: 'STRATEGY',
   },
   {
-    category: 'AI',
-    title: 'איך AI יכול לחסוך 10 שעות עבודה בשבוע לבעל עסק קטן',
-    excerpt: 'מחקר שוק, ניתוח ביקורות, כתיבת תוכן, מעקב אחר מתחרים — כל אלה משימות ש-AI יכול לעשות בשבילכם. הנה איך.',
+    category: 'מושגים',
+    title: 'מה זה OSINT ואיך זה עוזר לעסק שלך',
+    excerpt: 'OSINT — Open Source Intelligence — הוא איסוף מידע ממקורות פתוחים. ה-CIA משתמש בזה. עכשיו גם בעל המסעדה שלך יכול...',
+    date: '15 פברואר 2026',
+    readTime: '4 דקות קריאה',
+    tag: 'OSINT',
+  },
+  {
+    category: 'מודיעין',
+    title: '5 סימנים שמתחרה חדש עומד לפתוח באזורך',
+    excerpt: 'יש סימנים מוקדמים שאפשר לזהות לפני שהמתחרה נפתח רשמית. הנה מה לחפש — ומה לעשות כשמוצאים...',
     date: '10 פברואר 2026',
-    readTime: '6 דק\' קריאה',
-    tag: 'AI',
-  },
-  {
-    category: 'ביקורות',
-    title: 'מדריך מלא: איך לנהל ביקורות גוגל כמו מקצוען',
-    excerpt: 'ביקורות גוגל הן אחד הגורמים החשובים ביותר להחלטת רכישה. למדו איך לנהל, להגיב ולשפר את הדירוג שלכם.',
-    date: '5 פברואר 2026',
-    readTime: '8 דק\' קריאה',
-    tag: 'REVIEWS',
-  },
-  {
-    category: 'צמיחה',
-    title: 'מ-0 ל-50 לקוחות חדשים בחודש: סיפור של מסעדה בחיפה',
-    excerpt: 'איך מסעדה קטנה בחיפה השתמשה בכלי מודיעין עסקי כדי למצוא לידים, לעקוב אחרי מתחרים ולהגדיל הכנסות ב-40%.',
-    date: '1 פברואר 2026',
-    readTime: '5 דק\' קריאה',
-    tag: 'CASE STUDY',
+    readTime: '6 דקות קריאה',
+    tag: 'INTEL',
   },
 ];
 
@@ -56,12 +41,15 @@ const tagColors: Record<string, string> = {
   OSINT: '#00d4ff',
   LEADS: '#00ff88',
   STRATEGY: '#ffaa00',
-  AI: '#a78bfa',
-  REVIEWS: '#ff4466',
-  'CASE STUDY': '#f97316',
+  INTEL: '#a78bfa',
 };
 
 export default function Blog() {
+  useSEO(
+    'בלוג Quieteyes | מדריכי מודיעין עסקי לעסקים קטנים',
+    'מדריכים, טיפים ותובנות על מודיעין עסקי, מעקב מתחרים, לידים חמים ו-AI לעסקים קטנים ובינוניים בישראל.'
+  );
+
   return (
     <div className="pt-16">
       {/* Hero */}
@@ -81,7 +69,7 @@ export default function Blog() {
               בלוג ותובנות
             </h1>
             <p className="text-lg max-w-lg mx-auto" style={{ color: '#8899aa' }}>
-              מדריכים, טיפים ותובנות על מודיעין עסקי, לידים, מתחרים ו-AI
+              מדריכים, טיפים ותובנות על מודיעין עסקי, לידים חמים, מעקב מתחרים ו-AI
             </p>
           </FadeInSection>
         </div>
@@ -90,7 +78,7 @@ export default function Blog() {
       {/* Posts grid */}
       <section className="py-16">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8">
             {posts.map((post, i) => (
               <FadeInSection key={i} delay={i * 80}>
                 <article
@@ -112,6 +100,7 @@ export default function Blog() {
 
                   {/* Content */}
                   <div className="px-6 pb-6 flex-1 flex flex-col">
+                    <p className="text-xs mb-2" style={{ color: '#00d4ff' }}>{post.category}</p>
                     <h2 className="text-lg font-bold mb-3 leading-snug" style={{ color: '#f0f4ff' }}>
                       {post.title}
                     </h2>
