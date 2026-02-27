@@ -318,11 +318,10 @@ export default function MarketIntelligence() {
     return (
       <div dir="rtl" className="flex items-center justify-center min-h-[50vh]">
         <EmptyState
-          icon={Radar}
-          iconColor="text-red-400"
-          title="אין מודיעין עדיין"
-          description="הפעל סריקת שוק מלאה כדי לגלות איומים, הזדמנויות ופעילות מתחרים באזור שלך."
-          actionLabel="התחל סריקה ראשונה"
+          emoji="🧠"
+          title="אין עדיין מודיעין"
+          description={"לאחר הסריקה הראשונה, תראה כאן\nהתראות ותובנות על השוק שלך."}
+          actionLabel="הפעל סריקה ידנית"
           onAction={triggerScan}
           actionIcon={Radar}
         />

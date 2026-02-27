@@ -433,9 +433,19 @@ export default function Landscape() {
               </tbody>
             </table>
             {competitors.length === 0 && (
-              <div className="text-center py-8">
-                <AlertTriangle className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                <p className="text-gray-500 text-sm">לא נמצאו מתחרים. לחץ "סרוק מתחרים"</p>
+              <div className="text-center py-8" dir="rtl">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">👁️</span>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-1">עדיין מחפשים מתחרים</h3>
+                <p className="text-gray-400 text-sm max-w-sm mx-auto whitespace-pre-line">{"הסריקה הראשונה תושלם תוך 12 שעות.\nניצור לך מפת נוף תחרותי מלאה."}</p>
+                <button
+                  onClick={handleScan}
+                  disabled={scanning}
+                  className="mt-4 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-medium text-sm hover:from-blue-500 hover:to-cyan-400 transition-all min-h-[44px]"
+                >
+                  סרוק מתחרים עכשיו
+                </button>
               </div>
             )}
           </div>
@@ -522,9 +532,19 @@ export default function Landscape() {
         {mobileView === 'list' && (
           <div className="space-y-2">
             {competitors.length === 0 ? (
-              <div className="glass-card p-6 text-center">
-                <AlertTriangle className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                <p className="text-gray-500 text-sm">לא נמצאו מתחרים. לחץ "סרוק"</p>
+              <div className="glass-card p-8 text-center" dir="rtl">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">👁️</span>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-1">עדיין מחפשים מתחרים</h3>
+                <p className="text-gray-400 text-sm whitespace-pre-line">{"הסריקה הראשונה תושלם תוך 12 שעות.\nניצור לך מפת נוף תחרותי מלאה."}</p>
+                <button
+                  onClick={handleScan}
+                  disabled={scanning}
+                  className="mt-4 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-medium text-sm hover:from-blue-500 hover:to-cyan-400 transition-all min-h-[48px]"
+                >
+                  סרוק מתחרים עכשיו
+                </button>
               </div>
             ) : (
               competitors.map(comp => {

@@ -902,7 +902,7 @@ export default function LeadSniperFeed() {
 
           {/* ── Empty State / Smart Searching ─────────────────────── */}
           {!loading && !error && leads.length === 0 && (
-            <div className="glass-card p-12 text-center">
+            <div className="glass-card p-8 md:p-12 text-center" dir="rtl">
               {isSearching && activeFilter === 'all' ? (
                 <>
                   <div className="relative w-24 h-24 mx-auto mb-6">
@@ -915,37 +915,51 @@ export default function LeadSniperFeed() {
                     </div>
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">
-                    מחפש לידים רלוונטיים לעסק שלך...
+                    עדיין לא מצאנו לידים
                   </h3>
-                  <p className="text-gray-400 mb-4 max-w-md mx-auto">
-                    הבינה המלאכותית סורקת פורומים, רשתות חברתיות ואתרי המלצות כדי למצוא לקוחות פוטנציאליים.
+                  <p className="text-gray-400 mb-4 max-w-md mx-auto whitespace-pre-line leading-relaxed">
+                    {"הסריקה הראשונה לוקחת עד 12 שעות.\nבינתיים, וודא שמילות המפתח שלך מוגדרות נכון."}
                   </p>
-                  <div className="flex items-center justify-center gap-2 text-sm text-orange-400">
+                  <div className="flex items-center justify-center gap-2 text-sm text-orange-400 mb-4">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     מתרענן אוטומטית כל 15 שניות
                   </div>
+                  <button
+                    onClick={() => window.location.href = '/dashboard/settings'}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-medium hover:from-blue-500 hover:to-cyan-400 transition-all inline-flex items-center gap-2 min-h-[48px]"
+                  >
+                    <Search className="w-5 h-5" />
+                    ערוך מילות מפתח
+                  </button>
                 </>
               ) : (
                 <>
                   <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
-                    <Crosshair className="w-10 h-10 text-red-400" />
+                    <span className="text-4xl">🎯</span>
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">
-                    {activeFilter === 'all' ? 'עדיין לא נמצאו לידים' : `אין ${filterLabels[activeFilter]}`}
+                    {activeFilter === 'all' ? 'לא נמצאו לידים רלוונטיים' : `אין ${filterLabels[activeFilter]}`}
                   </h3>
-                  <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                  <p className="text-gray-400 mb-6 max-w-md mx-auto whitespace-pre-line leading-relaxed">
                     {activeFilter === 'all'
-                      ? 'הרדאר סורק כעת את השוק. הפעל משימת ציד כדי למצוא אנשים שמחפשים את השירותים שלך עכשיו.'
+                      ? 'נסה להרחיב את מילות המפתח\nאו את אזור החיפוש'
                       : 'נסה לשנות את הסינון או להפעיל משימה חדשה.'}
                   </p>
-                  {activeFilter === 'all' && (
+                  {activeFilter === 'all' ? (
+                    <button
+                      onClick={() => window.location.href = '/dashboard/settings'}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-medium hover:from-blue-500 hover:to-cyan-400 transition-all inline-flex items-center gap-2 min-h-[48px]"
+                    >
+                      שנה הגדרות חיפוש
+                    </button>
+                  ) : (
                     <button
                       onClick={triggerMission}
                       disabled={scanning}
-                      className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-500/30 transition-all"
+                      className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-500/30 transition-all min-h-[48px]"
                     >
                       <Crosshair className="w-5 h-5 inline ml-2" />
-                      הפעל משימה ראשונה
+                      הפעל משימה חדשה
                     </button>
                   )}
                 </>

@@ -162,9 +162,26 @@ export default function Reports() {
 
       {!preview && !loading && !error && (
         <EmptyState
-          icon={FileDown}
-          title='אין דו"חות זמינים'
-          description='הדו"ח השבועי ייוצר אוטומטית לאחר שהמערכת תאסוף מספיק מודיעין'
+          emoji="📊"
+          title="הדוח הראשון שלך בדרך"
+          description={"הדוח השבועי הראשון יהיה מוכן\nביום ראשון הקרוב."}
+          actionLabel="צור דוח ידני עכשיו"
+          onAction={async () => {
+            if (!currentProfile?.id) return;
+            toast.loading('מייצר דוח...', { id: 'gen-report' });
+            try {
+              const res = await apiFetch(`/reports/generate/${currentProfile.id}`, { method: 'POST' });
+              if (res.ok) {
+                toast.success('הדוח נוצר בהצלחה!', { id: 'gen-report' });
+                window.location.reload();
+              } else {
+                toast.error('שגיאה ביצירת הדוח', { id: 'gen-report' });
+              }
+            } catch {
+              toast.error('שגיאה ביצירת הדוח', { id: 'gen-report' });
+            }
+          }}
+          actionIcon={FileDown}
         />
       )}
 
