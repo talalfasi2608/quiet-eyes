@@ -5,6 +5,7 @@ Handles new-business creation during the onboarding wizard flow.
 - POST /onboard/wizard  — create (or upsert) a business record
 """
 
+import json
 import logging
 import uuid
 from typing import Optional
@@ -192,6 +193,7 @@ class OnboardWizardRequest(BaseModel):
     onboarding_step: Optional[int] = None
     business_type_custom: Optional[str] = None
     priorities: Optional[str] = None  # JSON array string
+    business_description: Optional[str] = None
 
 
 @router.post("/wizard")
@@ -266,6 +268,7 @@ async def onboard_wizard(payload: OnboardWizardRequest, request: Request, auth_u
             "onboarding_step": payload.onboarding_step,
             "business_type_custom": payload.business_type_custom,
             "priorities": payload.priorities,
+            "business_description": payload.business_description,
         }
         for key, value in optional_fields.items():
             if value is not None:
@@ -301,3 +304,167 @@ async def onboard_wizard(payload: OnboardWizardRequest, request: Request, auth_u
     except Exception as e:
         logger.error(f"Onboard wizard failed for user {payload.user_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to create business")
+
+
+# ---------------------------------------------------------------------------
+# POST /onboard/first-scan  —  Onboarding first scan
+# ---------------------------------------------------------------------------
+
+class FirstScanRequest(BaseModel):
+    business_id: str
+
+
+@router.post("/first-scan")
+async def onboard_first_scan(payload: FirstScanRequest, auth_user_id: str = Depends(require_auth)):
+    """
+    Run the first comprehensive scan after onboarding completes.
+
+    Performs competitor discovery, lead sniping, and generates an AI action plan.
+    Each operation is independent -- a failure in one does not block the others.
+    """
+    sb = _get_service_role_client()
+    if not sb:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    business_id = payload.business_id
+
+    # ── Verify user owns the business ────────────────────────────────────
+    try:
+        biz_result = (
+            sb.table("businesses")
+            .select("user_id, business_name, industry, location")
+            .eq("id", business_id)
+            .execute()
+        )
+        biz_rows = biz_result.data if biz_result else []
+        if not biz_rows:
+            raise HTTPException(status_code=404, detail="Business not found")
+        if biz_rows[0].get("user_id") != auth_user_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        business = biz_rows[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"First-scan ownership check failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to verify business ownership")
+
+    business_name = business.get("business_name", "")
+    industry = business.get("industry", "")
+    location = business.get("location", "")
+
+    # ── 1. Competitor discovery ──────────────────────────────────────────
+    competitors_found = 0
+    try:
+        from routers.radar import _discover_competitors
+        competitors_found = _discover_competitors(business_id, sb)
+        logger.info(f"First-scan competitor discovery for {business_id}: found={competitors_found}")
+    except Exception as e:
+        logger.warning(f"First-scan competitor discovery failed (non-blocking): {e}")
+
+    # ── 2. Lead sniping ─────────────────────────────────────────────────
+    leads_found = 0
+    try:
+        from services.lead_sniper import get_lead_sniper
+        report = get_lead_sniper().sniping_mission(business_id, sb)
+        leads_found = report.leads_saved
+        logger.info(f"First-scan lead sniping for {business_id}: found={report.leads_found}, saved={report.leads_saved}")
+    except Exception as e:
+        logger.warning(f"First-scan lead sniping failed (non-blocking): {e}")
+
+    # ── Fetch top 3 competitors ──────────────────────────────────────────
+    top_competitors = []
+    try:
+        comp_result = (
+            sb.table("competitors")
+            .select("name, google_rating, distance")
+            .eq("business_id", business_id)
+            .order("google_rating", desc=True)
+            .limit(3)
+            .execute()
+        )
+        top_competitors = comp_result.data or []
+    except Exception as e:
+        logger.warning(f"First-scan fetch top competitors failed: {e}")
+
+    # ── Fetch top 2 leads ────────────────────────────────────────────────
+    top_leads = []
+    try:
+        leads_result = (
+            sb.table("leads_discovered")
+            .select("summary, relevance_score")
+            .eq("business_id", business_id)
+            .order("relevance_score", desc=True)
+            .limit(2)
+            .execute()
+        )
+        top_leads = leads_result.data or []
+    except Exception as e:
+        logger.warning(f"First-scan fetch top leads failed: {e}")
+
+    # ── 3. AI action plan generation ─────────────────────────────────────
+    health_score = 50
+    insight = ""
+    actions = []
+    try:
+        from services.claude_client import analyze as claude_analyze
+
+        prompt = f"""להלן נתונים על עסק חדש שהצטרף למערכת:
+
+שם העסק: {business_name}
+תחום: {industry}
+מיקום: {location}
+מספר מתחרים שנמצאו: {competitors_found}
+מספר לידים שנמצאו: {leads_found}
+
+בהתבסס על הנתונים האלו, החזר JSON בלבד בפורמט הבא:
+{{
+  "health_score": 72,
+  "insight": "משפט אחד בעברית שמסכם את מה שנמצא",
+  "actions": [
+    {{
+      "title": "כותרת פעולה בעברית",
+      "description": "הסבר בעברית למה זה חשוב עכשיו",
+      "time_estimate": "10 דקות",
+      "potential": "גבוה",
+      "link": "/dashboard/sniper"
+    }}
+  ]
+}}
+
+הפעולות (actions) צריכות להיות 3 פריטים ספציפיים שמבוססים על מה שבאמת נמצא.
+health_score צריך להיות מספר בין 0 ל-100 שמשקף את מצב העסק בהתבסס על הנתונים.
+"""
+
+        raw = claude_analyze(
+            prompt=prompt,
+            system="אתה יועץ עסקי דיגיטלי. ענה בעברית בלבד. החזר JSON תקין בלבד, ללא טקסט נוסף.",
+            temperature=0.4,
+            max_tokens=1000,
+        )
+
+        raw = raw.strip()
+        # Extract JSON from potential markdown code block
+        if "```" in raw:
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+
+        ai_result = json.loads(raw)
+        health_score = ai_result.get("health_score", 50)
+        insight = ai_result.get("insight", "")
+        actions = ai_result.get("actions", [])
+        logger.info(f"First-scan AI action plan generated for {business_id}")
+    except Exception as e:
+        logger.warning(f"First-scan AI action plan failed (non-blocking): {e}")
+
+    return {
+        "success": True,
+        "competitors_found": competitors_found,
+        "leads_found": leads_found,
+        "top_competitors": top_competitors,
+        "top_leads": top_leads,
+        "health_score": health_score,
+        "insight": insight,
+        "actions": actions,
+    }
