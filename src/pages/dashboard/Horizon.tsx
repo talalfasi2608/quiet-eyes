@@ -184,7 +184,7 @@ export default function Horizon() {
   const insights = predictions?.insights || [];
 
   return (
-    <div className="space-y-6 fade-in">
+    <div className="space-y-6 fade-in" dir="rtl">
       <header>
         <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: "var(--font-display)" }}>האופק</h1>
         <p className="text-[var(--text-secondary)]">מגמות, אירועים והזדמנויות עתידיות עבור {nameHebrew} {emoji}</p>
@@ -252,7 +252,9 @@ export default function Horizon() {
                       </span>
                       <span className={`flex items-center gap-1 font-medium ${getDaysUntilColor(event.days_until)}`}>
                         <Clock className="w-3.5 h-3.5" />
-                        {event.days_until === 0
+                        {event.days_until < 0
+                          ? `לפני ${Math.abs(event.days_until)} ימים`
+                          : event.days_until === 0
                           ? 'היום!'
                           : event.days_until === 1
                           ? 'מחר'

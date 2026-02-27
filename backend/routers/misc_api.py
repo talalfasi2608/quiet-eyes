@@ -246,6 +246,25 @@ async def report_preview(business_id: str, request: Request, auth_user_id: str =
     }
 
 
+@router.post("/reports/generate/{business_id}")
+async def report_generate(business_id: str, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("weekly_report"))):
+    """Trigger generation of a new weekly report."""
+    sb = _get_service_client() or get_supabase_client(request)
+    if not sb:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    _verify_business_owner(sb, business_id, auth_user_id)
+
+    try:
+        from services.pdf_generator import generate_weekly_brief
+        pdf_bytes = generate_weekly_brief(business_id)
+        if pdf_bytes:
+            return {"success": True, "message": "Report generated successfully"}
+    except Exception as e:
+        logger.error(f"Report generation error: {e}")
+
+    return {"success": False, "message": "Could not generate report"}
+
+
 @router.get("/reports/weekly-brief/{business_id}")
 async def report_pdf(business_id: str, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("weekly_report"))):
     sb = _get_service_client() or get_supabase_client(request)

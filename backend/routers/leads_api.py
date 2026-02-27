@@ -106,6 +106,47 @@ async def list_leads(business_id: str, request: Request, auth_user_id: str = Dep
     }
 
 
+@router.get("/{business_id}/export")
+async def export_leads_csv(business_id: str, request: Request, auth_user_id: str = Depends(require_auth)):
+    """Export leads as CSV."""
+    supabase = _get_service_client() or get_supabase_client(request)
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    _verify_business_owner(supabase, business_id, auth_user_id)
+
+    try:
+        sb = _get_service_client() or supabase
+        r = sb.table("leads_discovered").select("*").eq("business_id", business_id).order("created_at", desc=True).limit(500).execute()
+        leads = r.data or []
+    except Exception as e:
+        logger.error(f"Export leads error: {e}")
+        leads = []
+
+    import csv
+    import io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Platform", "Summary", "Score", "Status", "Source URL", "Created At"])
+    for lead in leads:
+        writer.writerow([
+            lead.get("id", ""),
+            lead.get("platform", ""),
+            lead.get("summary", ""),
+            lead.get("relevance_score", ""),
+            lead.get("status", ""),
+            lead.get("source_url", ""),
+            lead.get("created_at", ""),
+        ])
+
+    from fastapi.responses import Response
+    csv_content = output.getvalue()
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=leads-{business_id[:8]}.csv"},
+    )
+
+
 @router.post("/snipe/{business_id}")
 async def snipe_leads(business_id: str, request: Request, auth_user_id: str = Depends(require_auth), _perm=Depends(require_feature("leads_scans_per_month"))):
     supabase = _get_service_client() or get_supabase_client(request)

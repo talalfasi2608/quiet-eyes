@@ -249,7 +249,7 @@ export default function Pricing() {
           </h2>
           <p className="mb-6" style={{ color: '#8899aa' }}>נסה חינם ל-14 יום. ללא כרטיס אשראי.</p>
           <Link
-            to="/login"
+            to="/register"
             className="inline-block px-8 py-3 font-bold rounded transition-colors duration-200"
             style={{ background: '#00d4ff', color: '#0a0e1a' }}
             onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')}

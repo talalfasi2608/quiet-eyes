@@ -149,7 +149,7 @@ export default function Home() {
               Quieteyes סורקת את השוק שלך כל 12 שעות. מוצאת לידים חמים, עוקבת אחרי מתחרים ומתריעה על הזדמנויות — לפני שמישהו אחר רואה אותן.
             </p>
             <div className="flex flex-wrap gap-4 mb-6">
-              <Link to="/login" className="px-7 py-3 text-sm font-bold rounded transition-colors duration-200" style={{ background: '#00d4ff', color: '#0a0e1a' }} onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')} onMouseLeave={e => (e.currentTarget.style.background = '#00d4ff')}>
+              <Link to="/register" className="px-7 py-3 text-sm font-bold rounded transition-colors duration-200" style={{ background: '#00d4ff', color: '#0a0e1a' }} onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')} onMouseLeave={e => (e.currentTarget.style.background = '#00d4ff')}>
                 התחל מודיעין עסקי — 14 יום חינם &larr;
               </Link>
               <Link to="/features" className="px-7 py-3 text-sm font-medium rounded transition-colors duration-200" style={{ border: '1px solid rgba(0,212,255,0.4)', color: '#00d4ff' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,212,255,0.1)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -391,7 +391,7 @@ export default function Home() {
             <p className="mb-8 leading-relaxed" style={{ color: '#8899aa' }}>
               הצטרף ל-2,847 עסקים שכבר מקבלים מודיעין עסקי אוטומטי כל בוקר. 14 יום חינם. ביטול בכל עת. הגדרה תוך 3 דקות.
             </p>
-            <Link to="/login" className="inline-block px-8 py-4 font-bold rounded text-base transition-colors duration-200" style={{ background: '#00d4ff', color: '#0a0e1a' }} onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')} onMouseLeave={e => (e.currentTarget.style.background = '#00d4ff')}>
+            <Link to="/register" className="inline-block px-8 py-4 font-bold rounded text-base transition-colors duration-200" style={{ background: '#00d4ff', color: '#0a0e1a' }} onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')} onMouseLeave={e => (e.currentTarget.style.background = '#00d4ff')}>
               התחל עכשיו — חינם ל-14 יום &larr;
             </Link>
           </FadeInSection>

@@ -149,7 +149,7 @@ export default function About() {
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link
-              to="/login"
+              to="/register"
               className="px-8 py-3 font-bold rounded transition-colors duration-200"
               style={{ background: '#00d4ff', color: '#0a0e1a' }}
               onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import FadeInSection from '../../components/marketing/FadeInSection';
 import useSEO from '../../hooks/useSEO';
@@ -44,6 +45,42 @@ const tagColors: Record<string, string> = {
   INTEL: '#a78bfa',
 };
 
+function NewsletterForm() {
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes('@')) return;
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return <p className="text-sm" style={{ color: '#00d4ff' }}>תודה! נעדכן אותך בקרוב.</p>;
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex gap-3 max-w-md mx-auto">
+      <input
+        type="email"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        placeholder="הכנס אימייל..."
+        required
+        className="flex-1 px-4 py-2.5 rounded text-sm outline-none"
+        style={{ background: '#111827', border: '1px solid rgba(30,45,69,0.5)', color: '#f0f4ff' }}
+      />
+      <button
+        type="submit"
+        className="px-6 py-2.5 rounded text-sm font-semibold transition-colors duration-200"
+        style={{ background: '#00d4ff', color: '#0a0e1a' }}
+      >
+        הרשם
+      </button>
+    </form>
+  );
+}
+
 export default function Blog() {
   useSEO(
     'בלוג Quieteyes | מדריכי מודיעין עסקי לעסקים קטנים',
@@ -82,10 +119,8 @@ export default function Blog() {
             {posts.map((post, i) => (
               <FadeInSection key={i} delay={i * 80}>
                 <article
-                  className="rounded h-full flex flex-col transition-colors duration-200"
+                  className="rounded h-full flex flex-col"
                   style={{ background: '#111827', border: '1px solid rgba(30,45,69,0.3)' }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(0,212,255,0.3)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(30,45,69,0.3)')}
                 >
                   {/* Tag bar */}
                   <div className="px-6 pt-6 pb-3 flex items-center justify-between">
@@ -110,10 +145,10 @@ export default function Blog() {
                     <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid rgba(30,45,69,0.3)' }}>
                       <span className="text-xs" style={{ color: '#4a5568' }}>{post.date}</span>
                       <span
-                        className="text-xs font-medium cursor-pointer"
-                        style={{ color: '#00d4ff' }}
+                        className="text-xs font-medium cursor-default"
+                        style={{ color: '#8899aa' }}
                       >
-                        קרא עוד &larr;
+                        בקרוב...
                       </span>
                     </div>
                   </div>
@@ -134,20 +169,7 @@ export default function Blog() {
             <p className="text-sm mb-8" style={{ color: '#8899aa' }}>
               מדריכים, טיפים ועדכונים על מודיעין עסקי — פעם בשבוע, ישירות למייל.
             </p>
-            <div className="flex gap-3 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="הכנס אימייל..."
-                className="flex-1 px-4 py-2.5 rounded text-sm outline-none"
-                style={{ background: '#111827', border: '1px solid rgba(30,45,69,0.5)', color: '#f0f4ff' }}
-              />
-              <button
-                className="px-6 py-2.5 rounded text-sm font-semibold transition-colors duration-200"
-                style={{ background: '#00d4ff', color: '#0a0e1a' }}
-              >
-                הרשם
-              </button>
-            </div>
+            <NewsletterForm />
           </FadeInSection>
         </div>
       </section>
@@ -157,7 +179,7 @@ export default function Blog() {
         <FadeInSection>
           <p className="mb-4" style={{ color: '#8899aa' }}>רוצה לראות את הכלים בפעולה?</p>
           <Link
-            to="/login"
+            to="/register"
             className="inline-block px-8 py-3 font-bold rounded transition-colors duration-200"
             style={{ background: '#00d4ff', color: '#0a0e1a' }}
             onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')}

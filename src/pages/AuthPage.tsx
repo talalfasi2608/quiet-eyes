@@ -3,7 +3,7 @@ import { useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Mail, Lock, Loader2, AlertCircle, Sparkles, Shield, Radar,
-  TrendingUp, Zap, User, Phone, Check,
+  TrendingUp, Zap, User, Phone, Check, Eye, EyeOff,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -179,6 +179,9 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Read URL params
   useEffect(() => {
@@ -319,6 +322,7 @@ export default function AuthPage() {
       const { error } = await signUp(signupData.email, signupData.password, {
         first_name: signupData.firstName,
         last_name: signupData.lastName,
+        phone: signupData.phone.replace(/\D/g, '').replace(/^0/, '972'),
       });
 
       if (error) {
@@ -485,13 +489,16 @@ export default function AuthPage() {
                     <div className="relative">
                       <Lock className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
                       <input
-                        type="password"
+                        type={showSignupPassword ? 'text' : 'password'}
                         value={signupData.password}
                         onChange={(e) => updateSignupField('password', e.target.value)}
                         placeholder="לפחות 8 תווים"
                         dir="ltr"
                         className={inputWithIconClass('password')}
                       />
+                      <button type="button" onClick={() => setShowSignupPassword(!showSignupPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
+                        {showSignupPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                      </button>
                     </div>
                     {/* Strength indicator */}
                     {passwordStrength && (
@@ -528,13 +535,16 @@ export default function AuthPage() {
                     <div className="relative">
                       <Lock className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
                       <input
-                        type="password"
+                        type={showConfirmPassword ? 'text' : 'password'}
                         value={signupData.confirmPassword}
                         onChange={(e) => updateSignupField('confirmPassword', e.target.value)}
                         placeholder="הזן סיסמה שוב"
                         dir="ltr"
                         className={inputWithIconClass('confirmPassword')}
                       />
+                      <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
+                        {showConfirmPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                      </button>
                     </div>
                     {fieldErrors.confirmPassword && (
                       <p className="text-[var(--danger)] text-xs mt-1">{fieldErrors.confirmPassword}</p>
@@ -755,14 +765,17 @@ export default function AuthPage() {
                     <Lock className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
                     <input
                       id="login-password"
-                      type="password"
+                      type={showLoginPassword ? 'text' : 'password'}
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="הזן סיסמה"
                       required
                       dir="ltr"
-                      className="w-full bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl py-3 pr-12 pl-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)]/50 transition-all"
+                      className="w-full bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl py-3 pr-12 pl-10 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)]/50 transition-all"
                     />
+                    <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
+                      {showLoginPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                    </button>
                   </div>
                 </div>
               )}

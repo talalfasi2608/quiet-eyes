@@ -7,24 +7,25 @@ interface AnimatedGaugeProps {
 }
 
 export default function AnimatedGauge({ value, size = 160, label }: AnimatedGaugeProps) {
+  const safeValue = Math.max(0, Math.min(100, value || 0));
   const [displayed, setDisplayed] = useState(0);
 
   useEffect(() => {
     setDisplayed(0);
     const timer = setInterval(() => {
       setDisplayed(prev => {
-        if (prev >= value) {
+        if (prev >= safeValue) {
           clearInterval(timer);
-          return value;
+          return safeValue;
         }
         return prev + 2;
       });
     }, 20);
     return () => clearInterval(timer);
-  }, [value]);
+  }, [safeValue]);
 
-  const color = value >= 80 ? '#00ff88'
-    : value >= 50 ? '#ffaa00'
+  const color = safeValue >= 80 ? '#00ff88'
+    : safeValue >= 50 ? '#ffaa00'
     : '#ff4466';
 
   const circumference = 2 * Math.PI * 70;

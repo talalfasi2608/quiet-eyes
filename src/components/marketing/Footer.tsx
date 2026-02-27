@@ -20,8 +20,8 @@ const columns = [
   {
     title: 'משפטי',
     links: [
-      { label: 'פרטיות', to: '/about' },
-      { label: 'תנאי שימוש', to: '/about' },
+      { label: 'פרטיות', to: '/privacy' },
+      { label: 'תנאי שימוש', to: '/terms' },
     ],
   },
 ];

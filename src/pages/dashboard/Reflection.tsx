@@ -199,11 +199,15 @@ export default function Reflection() {
     }
   };
 
-  const handleCopyReply = (type: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedReply(type);
-    toast.success('הועתק!');
-    setTimeout(() => setCopiedReply(null), 2000);
+  const handleCopyReply = async (type: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedReply(type);
+      toast.success('הועתק!');
+      setTimeout(() => setCopiedReply(null), 2000);
+    } catch {
+      toast.error('לא ניתן להעתיק');
+    }
   };
 
   const renderStars = (rating: number) => {

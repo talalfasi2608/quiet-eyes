@@ -49,11 +49,11 @@ export default function Navbar() {
               התחבר
             </Link>
             <Link
-              to="/login"
+              to="/register"
               className="px-5 py-2 text-sm font-semibold rounded transition-colors duration-200"
               style={{ background: '#00d4ff', color: '#0a0e1a' }}
-              onMouseEnter={e => (e.target as HTMLElement).style.background = '#00bfe6'}
-              onMouseLeave={e => (e.target as HTMLElement).style.background = '#00d4ff'}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#00bfe6'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#00d4ff'}
             >
               התחל חינם
             </Link>
@@ -90,7 +90,7 @@ export default function Navbar() {
               התחבר
             </Link>
             <Link
-              to="/login"
+              to="/register"
               onClick={() => setOpen(false)}
               className="px-4 py-2.5 text-sm font-semibold rounded text-center"
               style={{ background: '#00d4ff', color: '#0a0e1a' }}

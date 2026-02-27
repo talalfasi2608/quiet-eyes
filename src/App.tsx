@@ -39,6 +39,8 @@ const MarketingFeatures = lazy(() => import('./pages/marketing/Features'));
 const MarketingPricing = lazy(() => import('./pages/marketing/Pricing'));
 const MarketingAbout = lazy(() => import('./pages/marketing/About'));
 const MarketingBlog = lazy(() => import('./pages/marketing/Blog'));
+const MarketingPrivacy = lazy(() => import('./pages/marketing/Privacy'));
+const MarketingTerms = lazy(() => import('./pages/marketing/Terms'));
 
 // Loading screen component
 function LoadingScreen({ message = 'טוען...' }: { message?: string }) {
@@ -85,6 +87,8 @@ function ProtectedRoutes() {
         <Route path="/pricing" element={<MarketingPricing />} />
         <Route path="/about" element={<MarketingAbout />} />
         <Route path="/blog" element={<MarketingBlog />} />
+        <Route path="/privacy" element={<MarketingPrivacy />} />
+        <Route path="/terms" element={<MarketingTerms />} />
       </Route>
 
       {/* Dashboard Routes */}
@@ -112,6 +116,7 @@ function ProtectedRoutes() {
       {/* Aliases */}
       <Route path="/app" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/register" element={<Navigate to="/dashboard" replace />} />
       <Route path="/beta" element={<BetaLanding />} />
       <Route path="/beta-onboarding" element={<BetaOnboarding />} />
       <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
@@ -134,24 +139,22 @@ function AppContent() {
   // If not logged in, show marketing pages with routing
   if (!user) {
     return (
-      <BrowserRouter>
-        <Suspense fallback={<LoadingScreen message="טוען..." />}>
-        <Routes>
-          {/* Marketing pages */}
-          <Route element={<MarketingLayout />}>
-            <Route path="/" element={<MarketingHome />} />
-            <Route path="/features" element={<MarketingFeatures />} />
-            <Route path="/pricing" element={<MarketingPricing />} />
-            <Route path="/about" element={<MarketingAbout />} />
-            <Route path="/blog" element={<MarketingBlog />} />
-          </Route>
-          <Route path="/login" element={<AuthPage />} />
-          <Route path="/register" element={<AuthPage />} />
-          <Route path="/beta" element={<BetaLanding />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <Suspense fallback={<LoadingScreen message="טוען..." />}>
+      <Routes>
+        {/* Marketing pages */}
+        <Route element={<MarketingLayout />}>
+          <Route path="/" element={<MarketingHome />} />
+          <Route path="/features" element={<MarketingFeatures />} />
+          <Route path="/pricing" element={<MarketingPricing />} />
+          <Route path="/about" element={<MarketingAbout />} />
+          <Route path="/blog" element={<MarketingBlog />} />
+        </Route>
+        <Route path="/login" element={<AuthPage />} />
+        <Route path="/register" element={<AuthPage />} />
+        <Route path="/beta" element={<BetaLanding />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      </Suspense>
     );
   }
 
@@ -160,9 +163,7 @@ function AppContent() {
     <WorkspaceProvider>
       <SubscriptionProvider>
         <SimulationProvider>
-          <BrowserRouter>
-            <ProtectedRoutes />
-          </BrowserRouter>
+          <ProtectedRoutes />
         </SimulationProvider>
       </SubscriptionProvider>
     </WorkspaceProvider>
@@ -172,7 +173,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </AuthProvider>
   );
 }
