@@ -68,6 +68,7 @@ async def get_business_by_user(user_id: str, request: Request, auth_user_id: str
                 "id": biz.get("id"),
                 "user_id": biz.get("user_id"),
                 "name_hebrew": biz.get("business_name", ""),
+                "business_name": biz.get("business_name", ""),
                 "industry": biz.get("industry", ""),
                 "archetype": biz.get("archetype", "Merchant"),
                 "target_audience": biz.get("target_audience", ""),
@@ -96,6 +97,14 @@ async def get_business_by_user(user_id: str, request: Request, auth_user_id: str
                 "target_audience_tags": biz.get("target_audience_tags"),
                 "alert_sensitivity": biz.get("alert_sensitivity", "medium"),
                 "scope": biz.get("scope"),
+                "business_type_custom": biz.get("business_type_custom"),
+                "priorities": biz.get("priorities"),
+                "onboarding_completed": biz.get("onboarding_completed", False),
+                "instagram_page": biz.get("instagram_page"),
+                "ideal_customer": biz.get("ideal_customer"),
+                "search_keywords": biz.get("search_keywords"),
+                "exclude_keywords": biz.get("exclude_keywords"),
+                "manual_competitors": biz.get("manual_competitors"),
             },
         }
     except HTTPException:
@@ -116,7 +125,7 @@ class BusinessProfileUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     business_type: Optional[str] = None
-    activity_radius_km: Optional[int] = None
+    activity_radius_km: Optional[float] = None
     notification_whatsapp: Optional[bool] = None
     notification_email: Optional[bool] = None
     notification_weekly_report: Optional[bool] = None
@@ -126,6 +135,16 @@ class BusinessProfileUpdate(BaseModel):
     target_audience_tags: Optional[str] = None
     alert_sensitivity: Optional[str] = None
     whatsapp_number: Optional[str] = None
+    business_type_custom: Optional[str] = None
+    priorities: Optional[str] = None
+    onboarding_completed: Optional[bool] = None
+    instagram_page: Optional[str] = None
+    ideal_customer: Optional[str] = None
+    search_keywords: Optional[str] = None
+    exclude_keywords: Optional[str] = None
+    manual_competitors: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 @router.patch("/profile/{business_id}")

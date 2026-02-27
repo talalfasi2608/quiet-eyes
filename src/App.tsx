@@ -142,6 +142,7 @@ function AppContent() {
             <Route path="/blog" element={<MarketingBlog />} />
           </Route>
           <Route path="/login" element={<AuthPage />} />
+          <Route path="/register" element={<AuthPage />} />
           <Route path="/beta" element={<BetaLanding />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

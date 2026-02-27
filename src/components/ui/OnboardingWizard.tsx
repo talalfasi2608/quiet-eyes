@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSimulation } from '../../context/SimulationContext';
@@ -6,55 +6,174 @@ import {
   Check,
   Loader2,
   Eye,
-  Mail,
-  FileText,
-  Clock,
-  MessageCircle,
   ArrowLeft,
-  Users,
-  Star,
-  BarChart3,
-  Timer,
+  ArrowRight,
+  Search,
+  ChevronDown,
 } from 'lucide-react';
 import { apiFetch } from '../../services/api';
+import { loadGoogleMaps } from '../../lib/googleMaps';
 
-// ── Mock competitor data ─────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────────
 
-const MOCK_COMPETITORS = [
-  { name: 'קפה רוטשילד', rating: 4.2, distance: '300 מ\'' },
-  { name: 'סלון ביוטי פלוס', rating: 3.8, distance: '500 מ\'' },
-  { name: 'מספרת הכיכר', rating: 4.5, distance: '200 מ\'' },
-  { name: 'סטודיו פיט', rating: 3.6, distance: '800 מ\'' },
-  { name: 'דליקטסן השכונה', rating: 4.0, distance: '650 מ\'' },
+const BUSINESS_TYPE_GROUPS = [
+  {
+    label: '\u{1F35C} \u05DE\u05D6\u05D5\u05DF \u05D5\u05DE\u05E1\u05E2\u05D3\u05D5\u05EA',
+    options: [
+      { value: 'restaurant', label: '\u05DE\u05E1\u05E2\u05D3\u05D4' },
+      { value: 'cafe', label: '\u05D1\u05D9\u05EA \u05E7\u05E4\u05D4' },
+      { value: 'fastfood', label: '\u05DE\u05D6\u05D5\u05DF \u05DE\u05D4\u05D9\u05E8' },
+      { value: 'catering', label: '\u05E7\u05D9\u05D9\u05D8\u05E8\u05D9\u05E0\u05D2' },
+    ],
+  },
+  {
+    label: '\u{1F487} \u05D9\u05D5\u05E4\u05D9 \u05D5\u05D8\u05D9\u05E4\u05D5\u05D7',
+    options: [
+      { value: 'hair_salon', label: '\u05E1\u05DC\u05D5\u05DF \u05E9\u05D9\u05E2\u05E8' },
+      { value: 'beauty_salon', label: '\u05DE\u05DB\u05D5\u05DF \u05D9\u05D5\u05E4\u05D9' },
+      { value: 'cosmetician', label: '\u05E7\u05D5\u05E1\u05DE\u05D8\u05D9\u05E7\u05D0\u05D9\u05EA' },
+      { value: 'spa', label: '\u05E1\u05E4\u05D0' },
+    ],
+  },
+  {
+    label: '\u{1F3CB}\uFE0F \u05D1\u05E8\u05D9\u05D0\u05D5\u05EA \u05D5\u05DB\u05D5\u05E9\u05E8',
+    options: [
+      { value: 'gym', label: '\u05D7\u05D3\u05E8 \u05DB\u05D5\u05E9\u05E8' },
+      { value: 'pilates_yoga', label: '\u05E1\u05D8\u05D5\u05D3\u05D9\u05D5 \u05E4\u05D9\u05DC\u05D0\u05D8\u05D9\u05E1/\u05D9\u05D5\u05D2\u05D4' },
+      { value: 'personal_trainer', label: '\u05DE\u05D0\u05DE\u05DF \u05D0\u05D9\u05E9\u05D9' },
+      { value: 'clinic', label: '\u05E7\u05DC\u05D9\u05E0\u05D9\u05E7\u05D4' },
+    ],
+  },
+  {
+    label: '\u{1F3E0} \u05E0\u05D3\u05DC"\u05DF',
+    options: [
+      { value: 'real_estate_agency', label: '\u05E1\u05D5\u05DB\u05E0\u05D5\u05EA \u05E0\u05D3\u05DC"\u05DF' },
+      { value: 'contractor', label: '\u05E7\u05D1\u05DC\u05DF' },
+      { value: 'appraiser', label: '\u05E9\u05DE\u05D0\u05D9' },
+    ],
+  },
+  {
+    label: '\u{1F6D2} \u05DE\u05E1\u05D7\u05E8',
+    options: [
+      { value: 'physical_store', label: '\u05D7\u05E0\u05D5\u05EA \u05E4\u05D9\u05D6\u05D9\u05EA' },
+      { value: 'online_store', label: '\u05D7\u05E0\u05D5\u05EA \u05D0\u05D5\u05E0\u05DC\u05D9\u05D9\u05DF' },
+      { value: 'wholesale', label: '\u05E1\u05D9\u05D8\u05D5\u05E0\u05D0\u05D9' },
+    ],
+  },
+  {
+    label: '\u{1F4E2} \u05E9\u05D9\u05E8\u05D5\u05EA\u05D9\u05DD \u05DE\u05E7\u05E6\u05D5\u05E2\u05D9\u05D9\u05DD',
+    options: [
+      { value: 'marketing_agency', label: '\u05E1\u05D5\u05DB\u05E0\u05D5\u05EA \u05E9\u05D9\u05D5\u05D5\u05E7' },
+      { value: 'law_firm', label: '\u05DE\u05E9\u05E8\u05D3 \u05E2\u05D5"\u05D3' },
+      { value: 'accountant', label: '\u05E8\u05D5\u05D0\u05D4 \u05D7\u05E9\u05D1\u05D5\u05DF' },
+      { value: 'business_consultant', label: '\u05D9\u05D5\u05E2\u05E5 \u05E2\u05E1\u05E7\u05D9' },
+    ],
+  },
+  {
+    label: '\u{1F527} \u05D0\u05D7\u05E8',
+    options: [
+      { value: 'other', label: '\u05D0\u05D7\u05E8 (\u05D4\u05DB\u05E0\u05E1 \u05D9\u05D3\u05E0\u05D9\u05EA)' },
+    ],
+  },
 ];
+
+const PRIORITY_OPTIONS = [
+  { id: 'leads', icon: '\u{1F3AF}', title: '\u05DC\u05D9\u05D3\u05D9\u05DD \u05D7\u05DE\u05D9\u05DD', desc: '\u05DE\u05E6\u05D0 \u05D0\u05E0\u05E9\u05D9\u05DD \u05E9\u05DE\u05D7\u05E4\u05E9\u05D9\u05DD \u05D1\u05D3\u05D9\u05D5\u05E7 \u05D0\u05EA \u05DE\u05D4 \u05E9\u05D0\u05EA\u05D4 \u05DE\u05E6\u05D9\u05E2' },
+  { id: 'competitors', icon: '\u{1F441}\uFE0F', title: '\u05DE\u05E2\u05E7\u05D1 \u05DE\u05EA\u05D7\u05E8\u05D9\u05DD', desc: '\u05D3\u05E2 \u05DE\u05D4 \u05D4\u05DE\u05EA\u05D7\u05E8\u05D9\u05DD \u05E9\u05DC\u05DA \u05E2\u05D5\u05E9\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05DB\u05D5\u05DC\u05DD' },
+  { id: 'reviews', icon: '\u2B50', title: '\u05E0\u05D9\u05D8\u05D5\u05E8 \u05D1\u05D9\u05E7\u05D5\u05E8\u05D5\u05EA', desc: '\u05E2\u05E7\u05D5\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05D1\u05D9\u05E7\u05D5\u05E8\u05D5\u05EA \u05E9\u05DC\u05DA \u05D5\u05E9\u05DC \u05D4\u05DE\u05EA\u05D7\u05E8\u05D9\u05DD' },
+  { id: 'ads', icon: '\u{1F4E2}', title: '\u05DE\u05E2\u05E7\u05D1 \u05DE\u05D5\u05D3\u05E2\u05D5\u05EA', desc: '\u05E8\u05D0\u05D4 \u05D0\u05D9\u05DC\u05D5 \u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05D4\u05DE\u05EA\u05D7\u05E8\u05D9\u05DD \u05DE\u05E8\u05D9\u05E6\u05D9\u05DD' },
+  { id: 'prices', icon: '\u{1F4B0}', title: '\u05E0\u05D9\u05D8\u05D5\u05E8 \u05DE\u05D7\u05D9\u05E8\u05D9\u05DD', desc: '\u05D4\u05EA\u05E8\u05D0\u05D4 \u05DB\u05E9\u05DE\u05EA\u05D7\u05E8\u05D4 \u05DE\u05E9\u05E0\u05D4 \u05DE\u05D7\u05D9\u05E8\u05D9\u05DD' },
+  { id: 'new_businesses', icon: '\u{1F195}', title: '\u05E2\u05E1\u05E7\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD', desc: '\u05D3\u05E2 \u05DB\u05E9\u05E2\u05E1\u05E7 \u05D7\u05D3\u05E9 \u05E0\u05E4\u05EA\u05D7 \u05D1\u05D0\u05D6\u05D5\u05E8\u05DA' },
+];
+
+const RADIUS_OPTIONS: { label: string; value: number }[] = [
+  { label: '0.5 \u05E7"\u05DE', value: 0.5 },
+  { label: '1 \u05E7"\u05DE', value: 1 },
+  { label: '2 \u05E7"\u05DE', value: 2 },
+  { label: '5 \u05E7"\u05DE', value: 5 },
+  { label: '10 \u05E7"\u05DE', value: 10 },
+  { label: '\u05D0\u05E8\u05E6\u05D9', value: 999 },
+];
+
+const STEP_LABELS = ['\u05E4\u05E8\u05D8\u05D9 \u05D4\u05E2\u05E1\u05E7', '\u05E2\u05D3\u05D9\u05E4\u05D5\u05D9\u05D5\u05EA', '\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA'];
+
+const WIZARD_STORAGE_KEY = 'qe_wizard_progress';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface RegistrationData {
-  firstName: string;
-  lastName: string;
-  phone: string;
+interface WizardStep1Data {
   businessName: string;
   businessType: string;
-  customIndustry?: string;
-  businessAddress: string;
-  latitude: number | null;
-  longitude: number | null;
-  activityRadius: number;
+  customBusinessType: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  radiusKm: number;
 }
 
-interface CompetitorCard {
-  name: string;
-  rating: number;
-  distance: string;
-  checked: boolean;
+interface WizardStep2Data {
+  priorities: string[];
 }
 
-interface NotificationPrefs {
-  whatsapp: boolean;
-  email: boolean;
+interface AlertPrefs {
+  dailySummary: boolean;
+  hotLead: boolean;
+  competitorChange: boolean;
+  newBusiness: boolean;
   weeklyReport: boolean;
+}
+
+interface WizardStep3Data {
+  alerts: AlertPrefs;
   morningTime: string;
+  phone: string;
+}
+
+interface WizardProgress {
+  currentStep: number;
+  step1: WizardStep1Data;
+  step2: WizardStep2Data;
+  step3: WizardStep3Data;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function getRegistrationData() {
+  try {
+    const raw = localStorage.getItem('qe_registration_data');
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {};
+}
+
+function loadWizardProgress(): WizardProgress | null {
+  try {
+    const raw = localStorage.getItem(WIZARD_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return null;
+}
+
+function saveWizardProgress(progress: WizardProgress) {
+  try {
+    localStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(progress));
+  } catch { /* ignore */ }
+}
+
+function getAllOptions() {
+  const all: { value: string; label: string }[] = [];
+  for (const group of BUSINESS_TYPE_GROUPS) {
+    for (const opt of group.options) {
+      all.push(opt);
+    }
+  }
+  return all;
+}
+
+function getOptionLabel(value: string): string {
+  const all = getAllOptions();
+  const found = all.find(o => o.value === value);
+  return found ? found.label : value;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -64,225 +183,354 @@ export default function OnboardingWizard() {
   const { refreshProfile } = useSimulation();
   const navigate = useNavigate();
 
-  const [currentStep, setCurrentStep] = useState(1);
+  // Registration data from localStorage
+  const regData = getRegistrationData();
+
+  // Saved wizard progress
+  const saved = loadWizardProgress();
+
+  // Current step
+  const [currentStep, setCurrentStep] = useState(saved?.currentStep ?? 1);
 
   // Step 1 state
-  const [isScanning, setIsScanning] = useState(true);
-  const [scanProgress, setScanProgress] = useState(0);
-  const [apiDone, setApiDone] = useState(false);
-  const [showCompetitors, setShowCompetitors] = useState(false);
-  const [competitors, setCompetitors] = useState<CompetitorCard[]>([]);
-  const [competitorsFound, setCompetitorsFound] = useState(4);
-  const [businessId, setBusinessId] = useState<string | null>(null);
-  const [registrationPhone, setRegistrationPhone] = useState('');
+  const [businessName, setBusinessName] = useState(saved?.step1?.businessName ?? '');
+  const [businessType, setBusinessType] = useState(saved?.step1?.businessType ?? '');
+  const [customBusinessType, setCustomBusinessType] = useState(saved?.step1?.customBusinessType ?? '');
+  const [address, setAddress] = useState(saved?.step1?.address ?? '');
+  const [lat, setLat] = useState<number | null>(saved?.step1?.lat ?? null);
+  const [lng, setLng] = useState<number | null>(saved?.step1?.lng ?? null);
+  const [radiusKm, setRadiusKm] = useState(saved?.step1?.radiusKm ?? 2);
+
+  // Step 1 UI state
+  const [step1Loading, setStep1Loading] = useState(false);
+  const [step1Error, setStep1Error] = useState('');
+  const [businessId, setBusinessId] = useState<string | null>(
+    localStorage.getItem('qe_business_id') || null
+  );
+
+  // Dropdown state
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownSearch, setDropdownSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownSearchRef = useRef<HTMLInputElement>(null);
+
+  // Google Places
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const [mapsLoaded, setMapsLoaded] = useState(false);
 
   // Step 2 state
-  const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>({
-    whatsapp: true,
-    email: true,
-    weeklyReport: false,
-    morningTime: '09:00',
-  });
+  const [priorities, setPriorities] = useState<string[]>(saved?.step2?.priorities ?? []);
+  const [step2Error, setStep2Error] = useState('');
 
   // Step 3 state
-  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
-  const [step3Ready, setStep3Ready] = useState(false);
+  const [alertPrefs, setAlertPrefs] = useState<AlertPrefs>(
+    saved?.step3?.alerts ?? {
+      dailySummary: true,
+      hotLead: true,
+      competitorChange: true,
+      newBusiness: true,
+      weeklyReport: false,
+    }
+  );
+  const [morningTime, setMorningTime] = useState(saved?.step3?.morningTime ?? '08:00');
+  const [phone, setPhone] = useState(saved?.step3?.phone || regData?.phone || '');
+  const [editingPhone, setEditingPhone] = useState(false);
 
-  // ── Step 1: Create business and scan ─────────────────────────────────────
+  // Step 3 saving
+  const [step3Loading, setStep3Loading] = useState(false);
+
+  // Completion
+  const [completed, setCompleted] = useState(false);
+
+  // ── Auto-save wizard progress ──────────────────────────────────────────
 
   useEffect(() => {
-    if (currentStep !== 1) return;
+    const progress: WizardProgress = {
+      currentStep,
+      step1: { businessName, businessType, customBusinessType, address, lat, lng, radiusKm },
+      step2: { priorities },
+      step3: { alerts: alertPrefs, morningTime, phone },
+    };
+    saveWizardProgress(progress);
+  }, [currentStep, businessName, businessType, customBusinessType, address, lat, lng, radiusKm, priorities, alertPrefs, morningTime, phone]);
 
-    let cancelled = false;
+  // ── Google Maps init ───────────────────────────────────────────────────
 
-    const createBusiness = async () => {
-      const raw = localStorage.getItem('qe_registration_data');
-      if (!raw || !user?.id) return;
+  useEffect(() => {
+    loadGoogleMaps()
+      .then(() => setMapsLoaded(true))
+      .catch((err) => console.error('Google Maps load error:', err));
+  }, []);
 
-      let data: RegistrationData;
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        return;
-      }
+  useEffect(() => {
+    if (!mapsLoaded || !addressInputRef.current || autocompleteRef.current) return;
 
-      setRegistrationPhone(data.phone || '');
+    try {
+      const ac = new google.maps.places.Autocomplete(addressInputRef.current, {
+        componentRestrictions: { country: 'il' },
+        fields: ['formatted_address', 'geometry', 'name'],
+      });
 
-      try {
-        const response = await apiFetch('/onboard/wizard', {
-          method: 'POST',
-          body: JSON.stringify({
-            user_id: user.id,
-            business_name: data.businessName,
-            address: data.businessAddress,
-            industry: data.businessType === 'other' ? data.customIndustry : data.businessType,
-            phone: data.phone,
-            first_name: data.firstName,
-            last_name: data.lastName,
-            business_type: data.businessType,
-            activity_radius_km: data.activityRadius,
-            latitude: data.latitude,
-            longitude: data.longitude,
-          }),
-        });
-
-        if (!response.ok) throw new Error('Failed to create business');
-
-        const result = await response.json();
-        if (!cancelled) {
-          localStorage.setItem('qe_business_id', result.business_id);
-          setBusinessId(result.business_id);
-          if (result.leads_found) {
-            setCompetitorsFound(result.leads_found);
-          }
-          setApiDone(true);
+      ac.addListener('place_changed', () => {
+        const place = ac.getPlace();
+        if (place.formatted_address) {
+          setAddress(place.formatted_address);
+        } else if (place.name) {
+          setAddress(place.name);
         }
-      } catch (err) {
-        console.error('Onboarding wizard API error:', err);
-        if (!cancelled) {
-          setApiDone(true);
+        if (place.geometry?.location) {
+          setLat(place.geometry.location.lat());
+          setLng(place.geometry.location.lng());
         }
+      });
+
+      autocompleteRef.current = ac;
+    } catch (err) {
+      console.error('Autocomplete init error:', err);
+    }
+  }, [mapsLoaded, currentStep]);
+
+  // ── Dropdown click outside ─────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+        setDropdownSearch('');
       }
     };
 
-    createBusiness();
-    return () => { cancelled = true; };
-  }, [currentStep, user?.id]);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [dropdownOpen]);
 
-  // Scan progress animation
+  // Focus search when dropdown opens
   useEffect(() => {
-    if (currentStep !== 1 || !isScanning) return;
+    if (dropdownOpen && dropdownSearchRef.current) {
+      dropdownSearchRef.current.focus();
+    }
+  }, [dropdownOpen]);
 
-    let frame: number;
-    const startTime = Date.now();
+  // ── Step 1: Validate and submit ────────────────────────────────────────
 
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
-      let progress: number;
+  const validateStep1 = (): string | null => {
+    if (!businessName.trim() || businessName.trim().length < 2 || businessName.trim().length > 50) {
+      return '\u05E9\u05DD \u05D4\u05E2\u05E1\u05E7 \u05D7\u05D9\u05D9\u05D1 \u05DC\u05D4\u05D9\u05D5\u05EA \u05D1\u05D9\u05DF 2 \u05DC-50 \u05EA\u05D5\u05D5\u05D9\u05DD';
+    }
+    if (!businessType) {
+      return '\u05D9\u05E9 \u05DC\u05D1\u05D7\u05D5\u05E8 \u05E1\u05D5\u05D2 \u05E2\u05E1\u05E7';
+    }
+    if (businessType === 'other' && !customBusinessType.trim()) {
+      return '\u05D9\u05E9 \u05DC\u05D4\u05DB\u05E0\u05D9\u05E1 \u05E1\u05D5\u05D2 \u05E2\u05E1\u05E7 \u05D9\u05D3\u05E0\u05D9\u05EA';
+    }
+    if (!address.trim()) {
+      return '\u05D9\u05E9 \u05DC\u05D4\u05DB\u05E0\u05D9\u05E1 \u05DB\u05EA\u05D5\u05D1\u05EA \u05E2\u05E1\u05E7';
+    }
+    if (lat === null || lng === null) {
+      return '\u05D9\u05E9 \u05DC\u05D1\u05D7\u05D5\u05E8 \u05DB\u05EA\u05D5\u05D1\u05EA \u05DE\u05D4\u05E8\u05E9\u05D9\u05DE\u05D4 \u05E9\u05DC Google';
+    }
+    return null;
+  };
 
-      if (elapsed < 3000) {
-        // 0-80% in first 3 seconds
-        progress = (elapsed / 3000) * 80;
-      } else {
-        // 80-95% slowly after that
-        const extra = elapsed - 3000;
-        progress = 80 + Math.min(15, (extra / 10000) * 15);
+  const handleStep1Next = async () => {
+    const err = validateStep1();
+    if (err) {
+      setStep1Error(err);
+      return;
+    }
+    setStep1Error('');
+    setStep1Loading(true);
+
+    try {
+      const response = await apiFetch('/onboard/wizard', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: user?.id,
+          business_name: businessName.trim(),
+          address,
+          industry: businessType === 'other' ? customBusinessType.trim() : businessType,
+          phone: phone || regData?.phone || '',
+          first_name: regData?.firstName || regData?.first_name || '',
+          last_name: regData?.lastName || regData?.last_name || '',
+          business_type: businessType,
+          activity_radius_km: radiusKm,
+          latitude: lat,
+          longitude: lng,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to create business');
+
+      const result = await response.json();
+      const bId = result.business_id;
+      localStorage.setItem('qe_business_id', bId);
+      setBusinessId(bId);
+      setStep1Loading(false);
+      setCurrentStep(2);
+    } catch (error) {
+      console.error('Step 1 API error:', error);
+      setStep1Error('\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1.');
+      setStep1Loading(false);
+    }
+  };
+
+  // ── Step 2: Validate and continue ──────────────────────────────────────
+
+  const handleStep2Next = () => {
+    if (priorities.length === 0) {
+      setStep2Error('\u05D9\u05E9 \u05DC\u05D1\u05D7\u05D5\u05E8 \u05DC\u05E4\u05D7\u05D5\u05EA \u05E2\u05D3\u05D9\u05E4\u05D5\u05EA \u05D0\u05D7\u05EA');
+      return;
+    }
+    if (priorities.length > 3) {
+      setStep2Error('\u05E0\u05D9\u05EA\u05DF \u05DC\u05D1\u05D7\u05D5\u05E8 \u05E2\u05D3 3 \u05E2\u05D3\u05D9\u05E4\u05D5\u05D9\u05D5\u05EA');
+      return;
+    }
+    setStep2Error('');
+    setCurrentStep(3);
+  };
+
+  const togglePriority = (id: string) => {
+    setPriorities(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(p => p !== id);
       }
+      if (prev.length >= 3) return prev;
+      return [...prev, id];
+    });
+    setStep2Error('');
+  };
 
-      setScanProgress(Math.min(progress, 95));
-      frame = requestAnimationFrame(tick);
-    };
+  // ── Step 3: Save and complete ──────────────────────────────────────────
 
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [currentStep, isScanning]);
-
-  // Transition from scanning to competitor cards after minimum delay
-  useEffect(() => {
-    if (!apiDone || !isScanning) return;
-
-    const minDelay = 3000 + Math.random() * 2000; // 3-5 seconds total minimum
-    const timer = setTimeout(() => {
-      setScanProgress(100);
-      setTimeout(() => {
-        setIsScanning(false);
-        // Reveal competitor cards with staggered animation
-        const cards = MOCK_COMPETITORS.map(c => ({ ...c, checked: true }));
-        setCompetitors(cards);
-        setShowCompetitors(true);
-      }, 400);
-    }, minDelay);
-
-    return () => clearTimeout(timer);
-  }, [apiDone, isScanning]);
-
-  // ── Step 3: Save preferences and finish ──────────────────────────────────
-
-  const savePreferencesAndFinish = useCallback(async () => {
+  const handleFinish = useCallback(async () => {
     const bId = businessId || localStorage.getItem('qe_business_id');
     if (!bId) return;
 
-    setIsSavingPrefs(true);
+    setStep3Loading(true);
+
     try {
       await apiFetch(`/business/profile/${bId}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          notification_whatsapp: notifPrefs.whatsapp,
-          notification_email: notifPrefs.email,
-          notification_weekly_report: notifPrefs.weeklyReport,
-          morning_alert_time: notifPrefs.morningTime,
-          whatsapp_number: registrationPhone,
+          notification_whatsapp: alertPrefs.dailySummary || alertPrefs.hotLead || alertPrefs.competitorChange || alertPrefs.newBusiness,
+          notification_email: true,
+          notification_weekly_report: alertPrefs.weeklyReport,
+          morning_alert_time: morningTime,
+          whatsapp_number: phone,
           onboarding_completed: true,
         }),
       });
     } catch (err) {
-      console.error('Failed to save notification prefs:', err);
+      console.error('Failed to save preferences:', err);
     }
 
     localStorage.setItem('qe_onboarding_done', 'true');
-    await refreshProfile();
-    setIsSavingPrefs(false);
-    setStep3Ready(true);
-  }, [businessId, notifPrefs, registrationPhone, refreshProfile]);
+    localStorage.removeItem(WIZARD_STORAGE_KEY);
+    setStep3Loading(false);
+    setCompleted(true);
+  }, [businessId, alertPrefs, morningTime, phone]);
+
+  const handleSkipStep3 = useCallback(async () => {
+    const bId = businessId || localStorage.getItem('qe_business_id');
+    if (!bId) {
+      localStorage.setItem('qe_onboarding_done', 'true');
+      localStorage.removeItem(WIZARD_STORAGE_KEY);
+      setCompleted(true);
+      return;
+    }
+
+    setStep3Loading(true);
+    try {
+      await apiFetch(`/business/profile/${bId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          notification_whatsapp: false,
+          notification_email: true,
+          notification_weekly_report: false,
+          morning_alert_time: '08:00',
+          whatsapp_number: phone,
+          onboarding_completed: true,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to save preferences on skip:', err);
+    }
+
+    localStorage.setItem('qe_onboarding_done', 'true');
+    localStorage.removeItem(WIZARD_STORAGE_KEY);
+    setStep3Loading(false);
+    setCompleted(true);
+  }, [businessId, phone]);
+
+  // ── Completion: auto-redirect ──────────────────────────────────────────
 
   useEffect(() => {
-    if (currentStep === 3 && !step3Ready && !isSavingPrefs) {
-      savePreferencesAndFinish();
-    }
-  }, [currentStep, step3Ready, isSavingPrefs, savePreferencesAndFinish]);
+    if (!completed) return;
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+    const timer = setTimeout(async () => {
+      await refreshProfile();
+      navigate('/dashboard/focus');
+    }, 2500);
 
-  const toggleCompetitor = (index: number) => {
-    setCompetitors(prev =>
-      prev.map((c, i) => (i === index ? { ...c, checked: !c.checked } : c))
-    );
+    return () => clearTimeout(timer);
+  }, [completed, refreshProfile, navigate]);
+
+  // ── Filtered dropdown groups ───────────────────────────────────────────
+
+  const filteredGroups = BUSINESS_TYPE_GROUPS.map(group => ({
+    ...group,
+    options: group.options.filter(opt =>
+      opt.label.includes(dropdownSearch)
+    ),
+  })).filter(group => group.options.length > 0);
+
+  // ── Toggle alert pref ──────────────────────────────────────────────────
+
+  const toggleAlert = (key: keyof AlertPrefs) => {
+    setAlertPrefs(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const maskPhone = (phone: string): string => {
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length < 7) return phone;
-    return digits.slice(0, 3) + '-XXX-' + digits.slice(-4);
-  };
+  // ── Mask phone ─────────────────────────────────────────────────────────
 
-  const timeOptions = ['07:00', '08:00', '09:00', '10:00'];
+  const maskPhone = (p: string): string => {
+    const digits = p.replace(/\D/g, '');
+    if (digits.length < 7) return p;
+    return digits.slice(0, 3) + '-' + 'X'.repeat(digits.length - 7) + 'XX-' + digits.slice(-4);
+  };
 
   // ── Step indicator ─────────────────────────────────────────────────────
 
-  const steps = [
-    { num: 1, label: 'מוצאים מתחרים' },
-    { num: 2, label: 'מגדירים התראות' },
-    { num: 3, label: 'הפלטפורמה מוכנה!' },
-  ];
-
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-10">
-      {steps.map((step, index) => (
-        <div key={step.num} className="flex items-center">
+      {[1, 2, 3].map((stepNum, index) => (
+        <div key={stepNum} className="flex items-center">
           <div className="flex flex-col items-center">
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold text-lg transition-all duration-300 ${
-                step.num === currentStep
+                stepNum === currentStep
                   ? 'bg-gradient-to-br from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/30 scale-110'
-                  : step.num < currentStep
+                  : stepNum < currentStep
                   ? 'bg-emerald-500 text-white'
                   : 'bg-gray-800 text-gray-500 border border-gray-700'
               }`}
             >
-              {step.num < currentStep ? <Check className="w-6 h-6" /> : step.num}
+              {stepNum < currentStep ? <Check className="w-6 h-6" /> : stepNum}
             </div>
             <span
               className={`mt-2 text-xs sm:text-sm font-medium text-center max-w-[80px] sm:max-w-none ${
-                step.num === currentStep ? 'text-cyan-400' : step.num < currentStep ? 'text-emerald-400' : 'text-gray-500'
+                stepNum === currentStep ? 'text-cyan-400' : stepNum < currentStep ? 'text-emerald-400' : 'text-gray-500'
               }`}
             >
-              {step.label}
+              {STEP_LABELS[index]}
             </span>
           </div>
-          {index < steps.length - 1 && (
+          {index < 2 && (
             <div
               className={`w-12 sm:w-20 h-0.5 mx-2 sm:mx-4 transition-colors duration-300 ${
-                step.num < currentStep ? 'bg-emerald-500' : 'bg-gray-800'
+                stepNum < currentStep ? 'bg-emerald-500' : 'bg-gray-800'
               }`}
             />
           )}
@@ -293,259 +541,352 @@ export default function OnboardingWizard() {
 
   // ── Step 1 Render ──────────────────────────────────────────────────────
 
-  const renderStep1 = () => {
-    if (isScanning) {
-      return (
-        <div className="animate-fadeIn text-center py-8">
-          {/* Radar animation */}
-          <div className="relative w-40 h-40 mx-auto mb-8">
-            {/* Grid background */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 160 160">
-              <defs>
-                <pattern id="scan-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(0,212,255,0.06)" strokeWidth="0.5" />
-                </pattern>
-              </defs>
-              <rect width="160" height="160" fill="url(#scan-grid)" rx="80" />
-            </svg>
+  const renderStep1 = () => (
+    <div className="animate-fadeIn">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-white mb-2">{'\u05E1\u05E4\u05E8 \u05DC\u05E0\u05D5 \u05E2\u05DC \u05D4\u05E2\u05E1\u05E7 \u05E9\u05DC\u05DA'}</h2>
+      </div>
 
-            {/* Pulsing circles */}
-            <div className="absolute inset-0 rounded-full border border-cyan-500/20 animate-ping" style={{ animationDuration: '2.5s' }} />
-            <div className="absolute inset-4 rounded-full border border-cyan-500/15 animate-ping" style={{ animationDuration: '3s', animationDelay: '0.5s' }} />
-            <div className="absolute inset-8 rounded-full border border-cyan-500/10 animate-ping" style={{ animationDuration: '3.5s', animationDelay: '1s' }} />
-
-            {/* Radar sweep */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 160 160">
-              <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(0,212,255,0.15)" strokeWidth="1" />
-              <circle cx="80" cy="80" r="45" fill="none" stroke="rgba(0,212,255,0.12)" strokeWidth="1" />
-              <circle cx="80" cy="80" r="20" fill="none" stroke="rgba(0,212,255,0.08)" strokeWidth="1" />
-              <circle cx="80" cy="80" r="4" fill="#00d4ff" opacity="0.8" />
-              <g>
-                <animateTransform
-                  attributeName="transform"
-                  type="rotate"
-                  from="0 80 80"
-                  to="360 80 80"
-                  dur="3s"
-                  repeatCount="indefinite"
-                />
-                <defs>
-                  <linearGradient id="sweep-grad" gradientTransform="rotate(90)">
-                    <stop offset="0%" stopColor="#00d4ff" stopOpacity="0" />
-                    <stop offset="100%" stopColor="#00d4ff" stopOpacity="0.25" />
-                  </linearGradient>
-                </defs>
-                <path d="M 80,80 L 80,10 A 70,70 0 0,1 129.5,31 Z" fill="url(#sweep-grad)" />
-                <line x1="80" y1="80" x2="80" y2="10" stroke="#00d4ff" strokeWidth="1.5" opacity="0.6" />
-              </g>
-              {/* Blip dots */}
-              <circle cx="55" cy="40" r="3" fill="#00d4ff" opacity="0">
-                <animate attributeName="opacity" values="0;0.8;0" dur="3s" begin="0.3s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="115" cy="65" r="2.5" fill="#00d4ff" opacity="0">
-                <animate attributeName="opacity" values="0;0.6;0" dur="3s" begin="1s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="45" cy="110" r="2" fill="#00d4ff" opacity="0">
-                <animate attributeName="opacity" values="0;0.7;0" dur="3s" begin="2s" repeatCount="indefinite" />
-              </circle>
-            </svg>
-          </div>
-
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Quieteyes סורקת את האזור שלך...
-          </h2>
-          <p className="text-gray-400 mb-8">מחפשים עסקים דומים בקרבתך</p>
-
-          {/* Progress bar */}
-          <div className="w-64 mx-auto h-2 bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${scanProgress}%` }}
-            />
-          </div>
-          <p className="text-gray-500 text-sm mt-2" dir="ltr">{Math.round(scanProgress)}%</p>
-        </div>
-      );
-    }
-
-    // Competitor cards view
-    return (
-      <div className="animate-fadeIn">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-white mb-2">אלה המתחרים שלך?</h2>
-          <p className="text-gray-400">בטל סימון אם מישהו לא רלוונטי</p>
+      <div className="space-y-6">
+        {/* Business Name */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">{'\u05E9\u05DD \u05D4\u05E2\u05E1\u05E7'}</label>
+          <input
+            type="text"
+            value={businessName}
+            onChange={e => setBusinessName(e.target.value)}
+            placeholder={'\u05DC\u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05E1\u05E2\u05D3\u05EA \u05D4\u05D9\u05DD, \u05E1\u05DC\u05D5\u05DF \u05D9\u05D5\u05E4\u05D9 \u05E9\u05E8\u05D4'}
+            maxLength={50}
+            className="w-full px-4 py-3 rounded-xl bg-gray-900/60 border border-gray-700/50 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all"
+          />
         </div>
 
-        <div className="space-y-3">
-          {competitors.map((comp, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-4 p-4 rounded-xl bg-gray-800/40 border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 cursor-pointer"
-              style={{
-                animation: `slideInRight 0.4s ease-out ${index * 0.12}s both`,
-              }}
-              onClick={() => toggleCompetitor(index)}
+        {/* Business Type — Custom Dropdown */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">{'\u05E1\u05D5\u05D2 \u05E2\u05E1\u05E7'}</label>
+          <div ref={dropdownRef} className="relative">
+            {/* Trigger */}
+            <button
+              type="button"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gray-900/60 border text-right transition-all ${
+                dropdownOpen
+                  ? 'border-cyan-500/50 ring-1 ring-cyan-500/30'
+                  : 'border-gray-700/50 hover:border-gray-600'
+              }`}
             >
-              {/* Checkbox */}
-              <div
-                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                  comp.checked
-                    ? 'bg-cyan-500 border-cyan-500'
-                    : 'border-gray-600 bg-transparent'
+              <span className={businessType ? 'text-white' : 'text-gray-500'}>
+                {businessType ? getOptionLabel(businessType) : '\u05D1\u05D7\u05E8 \u05E1\u05D5\u05D2 \u05E2\u05E1\u05E7'}
+              </span>
+              <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown panel */}
+            {dropdownOpen && (
+              <div className="absolute z-50 top-full mt-2 w-full bg-gray-800 border border-gray-700/50 rounded-xl shadow-2xl overflow-hidden" style={{ maxHeight: '320px' }}>
+                {/* Search */}
+                <div className="p-3 border-b border-gray-700/50">
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input
+                      ref={dropdownSearchRef}
+                      type="text"
+                      value={dropdownSearch}
+                      onChange={e => setDropdownSearch(e.target.value)}
+                      placeholder={'\u05D7\u05E4\u05E9...'}
+                      className="w-full pr-10 pl-3 py-2 rounded-lg bg-gray-900/60 border border-gray-700/50 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-cyan-500/50"
+                    />
+                  </div>
+                </div>
+
+                {/* Options */}
+                <div className="overflow-y-auto" style={{ maxHeight: '256px' }}>
+                  {filteredGroups.length === 0 && (
+                    <div className="p-4 text-center text-gray-500 text-sm">{'\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D5 \u05EA\u05D5\u05E6\u05D0\u05D5\u05EA'}</div>
+                  )}
+                  {filteredGroups.map(group => (
+                    <div key={group.label}>
+                      <div className="px-4 py-2 text-xs font-bold text-gray-500 bg-gray-900/30 select-none">
+                        {group.label}
+                      </div>
+                      {group.options.map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setBusinessType(opt.value);
+                            setDropdownOpen(false);
+                            setDropdownSearch('');
+                            if (opt.value !== 'other') {
+                              setCustomBusinessType('');
+                            }
+                          }}
+                          className={`w-full text-right px-6 py-2.5 text-sm transition-colors hover:bg-cyan-500/10 ${
+                            businessType === opt.value
+                              ? 'text-cyan-400 bg-cyan-500/5'
+                              : 'text-gray-300'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Custom type input */}
+          {businessType === 'other' && (
+            <input
+              type="text"
+              value={customBusinessType}
+              onChange={e => setCustomBusinessType(e.target.value)}
+              placeholder={'\u05D4\u05DB\u05E0\u05E1 \u05E1\u05D5\u05D2 \u05E2\u05E1\u05E7'}
+              className="w-full mt-3 px-4 py-3 rounded-xl bg-gray-900/60 border border-gray-700/50 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all"
+            />
+          )}
+        </div>
+
+        {/* Business Address */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">{'\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05E2\u05E1\u05E7'}</label>
+          <input
+            ref={addressInputRef}
+            type="text"
+            value={address}
+            onChange={e => {
+              setAddress(e.target.value);
+              // If user manually types, invalidate lat/lng
+              setLat(null);
+              setLng(null);
+            }}
+            placeholder={'\u05D4\u05DB\u05E0\u05E1 \u05DB\u05EA\u05D5\u05D1\u05EA \u05DE\u05DC\u05D0\u05D4'}
+            className="w-full px-4 py-3 rounded-xl bg-gray-900/60 border border-gray-700/50 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all"
+          />
+        </div>
+
+        {/* Activity Radius */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">{'\u05E2\u05D3 \u05DB\u05DE\u05D4 \u05E8\u05D7\u05D5\u05E7 \u05D4\u05DE\u05EA\u05D7\u05E8\u05D9\u05DD \u05E9\u05DC\u05DA \u05E8\u05DC\u05D5\u05D5\u05E0\u05D8\u05D9\u05D9\u05DD?'}</label>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {RADIUS_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setRadiusKm(opt.value)}
+                className={`py-2.5 px-2 rounded-xl border text-sm font-medium transition-all duration-200 ${
+                  radiusKm === opt.value
+                    ? 'border-cyan-500 bg-cyan-500/10 text-cyan-300 shadow-lg shadow-cyan-500/10'
+                    : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-300'
                 }`}
               >
-                {comp.checked && <Check className="w-4 h-4 text-white" />}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <span className="text-white font-medium">{comp.name}</span>
-              </div>
-
-              {/* Rating */}
-              <div className="flex items-center gap-1 text-amber-400 text-sm">
-                <Star className="w-4 h-4 fill-current" />
-                <span>{comp.rating}</span>
-              </div>
-
-              {/* Distance */}
-              <span className="text-gray-500 text-sm whitespace-nowrap">{comp.distance}</span>
-            </div>
-          ))}
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
-
-        <button
-          onClick={() => setCurrentStep(2)}
-          className="w-full mt-8 flex items-center justify-center gap-2 px-8 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-[1.01] transition-all"
-        >
-          <span>המשך</span>
-          <ArrowLeft className="w-5 h-5" />
-        </button>
       </div>
-    );
-  };
+
+      {/* Error */}
+      {step1Error && (
+        <p className="mt-4 text-red-400 text-sm text-center">{step1Error}</p>
+      )}
+
+      {/* Next button */}
+      <button
+        onClick={handleStep1Next}
+        disabled={step1Loading}
+        className="w-full mt-8 flex items-center justify-center gap-2 px-8 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-[1.01] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {step1Loading ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : (
+          <>
+            <span>{'\u05D4\u05DE\u05E9\u05DA \u05DC\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0'} &rarr;</span>
+            <ArrowLeft className="w-5 h-5" />
+          </>
+        )}
+      </button>
+    </div>
+  );
 
   // ── Step 2 Render ──────────────────────────────────────────────────────
 
   const renderStep2 = () => (
     <div className="animate-fadeIn">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">איך תרצה לקבל התראות?</h2>
-        <p className="text-gray-400">בחר את ערוצי ההתראה המועדפים עליך</p>
+        <h2 className="text-2xl font-bold text-white mb-2">{'\u05DE\u05D4 \u05D4\u05DB\u05D9 \u05D7\u05E9\u05D5\u05D1 \u05DC\u05DA \u05DC\u05D3\u05E2\u05EA?'}</h2>
+        <p className="text-gray-400">{'\u05E0\u05EA\u05D0\u05D9\u05DD \u05D0\u05EA \u05D4\u05E1\u05E8\u05D9\u05E7\u05D5\u05EA \u05DC\u05E4\u05D9 \u05D4\u05E2\u05D3\u05D9\u05E4\u05D5\u05D9\u05D5\u05EA \u05E9\u05DC\u05DA'}</p>
       </div>
 
-      {/* Notification toggles */}
+      {/* Priority cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+        {PRIORITY_OPTIONS.map(opt => {
+          const selected = priorities.includes(opt.id);
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => togglePriority(opt.id)}
+              className={`relative p-4 rounded-xl border text-right transition-all duration-200 hover:scale-[1.02] ${
+                selected
+                  ? 'bg-cyan-500/10 border-cyan-500/50'
+                  : 'bg-gray-800/40 border-gray-700/50 hover:border-gray-600/50'
+              }`}
+            >
+              {/* Check icon */}
+              {selected && (
+                <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-cyan-500 flex items-center justify-center">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+              )}
+
+              <div className="text-3xl mb-2">{opt.icon}</div>
+              <div className="text-white font-semibold text-sm mb-1">{opt.title}</div>
+              <div className="text-gray-500 text-xs leading-relaxed">{opt.desc}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Error */}
+      {step2Error && (
+        <p className="mb-4 text-red-400 text-sm text-center">{step2Error}</p>
+      )}
+
+      {/* Buttons */}
+      <div className="flex flex-col gap-3">
+        <button
+          onClick={handleStep2Next}
+          className="w-full flex items-center justify-center gap-2 px-8 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-[1.01] transition-all"
+        >
+          <span>{'\u05D4\u05DE\u05E9\u05DA'} &rarr;</span>
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+
+        <button
+          onClick={() => setCurrentStep(1)}
+          className="w-full flex items-center justify-center gap-2 px-8 py-3 text-gray-400 hover:text-white transition-colors"
+        >
+          <ArrowRight className="w-5 h-5" />
+          <span>&larr; {'\u05D7\u05D6\u05E8\u05D4'}</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setPriorities([]);
+            setCurrentStep(3);
+          }}
+          className="text-gray-600 text-sm hover:text-gray-400 transition-colors mx-auto"
+        >
+          {'\u05D3\u05DC\u05D2'}
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── Step 3 Render ──────────────────────────────────────────────────────
+
+  const ALERT_TOGGLES: { key: keyof AlertPrefs; label: string; timing: string }[] = [
+    { key: 'dailySummary', label: '\u05E1\u05D9\u05DB\u05D5\u05DD \u05D1\u05D5\u05E7\u05E8 \u05D9\u05D5\u05DE\u05D9', timing: '\u05DB\u05DC \u05D9\u05D5\u05DD \u05D1-08:00' },
+    { key: 'hotLead', label: '\u05DC\u05D9\u05D3 \u05D7\u05DD \u05D7\u05D3\u05E9', timing: '\u05DE\u05D9\u05D9\u05D3\u05D9' },
+    { key: 'competitorChange', label: '\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D0\u05E6\u05DC \u05DE\u05EA\u05D7\u05E8\u05D4', timing: '\u05DE\u05D9\u05D9\u05D3\u05D9' },
+    { key: 'newBusiness', label: '\u05E2\u05E1\u05E7 \u05D7\u05D3\u05E9 \u05D1\u05D0\u05D6\u05D5\u05E8\u05DA', timing: '\u05DE\u05D9\u05D9\u05D3\u05D9' },
+    { key: 'weeklyReport', label: '\u05D3\u05D5\u05D7 \u05E9\u05D1\u05D5\u05E2\u05D9', timing: '\u05DB\u05DC \u05D9\u05D5\u05DD \u05E8\u05D0\u05E9\u05D5\u05DF \u05D1-09:00' },
+  ];
+
+  const timeOptions = ['07:00', '08:00', '09:00', '10:00'];
+
+  const renderStep3 = () => (
+    <div className="animate-fadeIn">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-white mb-2">{'\u05DE\u05EA\u05D9 \u05DC\u05E9\u05DC\u05D5\u05D7 \u05DC\u05DA \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA?'}</h2>
+        <p className="text-gray-400">{'\u05E0\u05E9\u05DC\u05D7 \u05DC\u05D5\u05D5\u05D0\u05D8\u05E1\u05D0\u05E4 \u05E9\u05DC\u05DA \u05E8\u05E7 \u05DE\u05D4 \u05E9\u05D7\u05E9\u05D5\u05D1'}</p>
+      </div>
+
+      {/* Phone display */}
+      <div className="mb-6 p-4 rounded-xl bg-gray-900/40 border border-gray-700/40">
+        {editingPhone ? (
+          <div className="flex items-center gap-3">
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700/50 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-cyan-500/50"
+              dir="ltr"
+              placeholder="05X-XXXXXXX"
+            />
+            <button
+              onClick={() => setEditingPhone(false)}
+              className="text-cyan-400 text-sm font-medium hover:text-cyan-300 transition-colors"
+            >
+              {'\u05E9\u05DE\u05D5\u05E8'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <span className="text-gray-300 text-sm">
+              {'\u05D4\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05D9\u05D9\u05E9\u05DC\u05D7\u05D5 \u05DC:'}{' '}
+              <span className="text-white font-medium" dir="ltr">{maskPhone(phone)}</span>
+              {' '}<span className="text-emerald-400">{'\u2713'}</span>
+            </span>
+            <button
+              onClick={() => setEditingPhone(true)}
+              className="text-cyan-400 text-xs hover:text-cyan-300 transition-colors underline"
+            >
+              {'\u05E9\u05E0\u05D4 \u05DE\u05E1\u05E4\u05E8'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Alert toggles */}
       <div className="space-y-3 mb-8">
-        {/* WhatsApp */}
-        <div
-          className={`flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
-            notifPrefs.whatsapp
-              ? 'bg-emerald-500/5 border-emerald-500/30'
-              : 'bg-gray-800/40 border-gray-700/50'
-          }`}
-        >
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-            <MessageCircle className="w-5 h-5 text-emerald-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-white font-medium">WhatsApp</span>
-              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full">מומלץ</span>
+        {ALERT_TOGGLES.map(toggle => (
+          <div
+            key={toggle.key}
+            className={`flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
+              alertPrefs[toggle.key]
+                ? 'bg-cyan-500/5 border-cyan-500/30'
+                : 'bg-gray-800/40 border-gray-700/50'
+            }`}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-white font-medium text-sm">{toggle.label}</span>
+                <span className="text-gray-600 text-xs">&mdash; {toggle.timing}</span>
+              </div>
             </div>
-            <p className="text-gray-500 text-sm mt-0.5">
-              נשלח ל-{maskPhone(registrationPhone)}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setNotifPrefs(p => ({ ...p, whatsapp: !p.whatsapp }))}
-            className={`relative w-12 h-7 rounded-full transition-colors duration-200 flex-shrink-0 ${
-              notifPrefs.whatsapp ? 'bg-emerald-500' : 'bg-gray-700'
-            }`}
-          >
-            <div
-              className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ${
-                notifPrefs.whatsapp ? 'left-1' : 'left-6'
+            <button
+              type="button"
+              onClick={() => toggleAlert(toggle.key)}
+              className={`relative w-12 h-7 rounded-full transition-colors duration-200 flex-shrink-0 ${
+                alertPrefs[toggle.key] ? 'bg-cyan-500' : 'bg-gray-700'
               }`}
-            />
-          </button>
-        </div>
-
-        {/* Email */}
-        <div
-          className={`flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
-            notifPrefs.email
-              ? 'bg-blue-500/5 border-blue-500/30'
-              : 'bg-gray-800/40 border-gray-700/50'
-          }`}
-        >
-          <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center flex-shrink-0">
-            <Mail className="w-5 h-5 text-blue-400" />
+            >
+              <div
+                className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ${
+                  alertPrefs[toggle.key] ? 'left-1' : 'left-6'
+                }`}
+              />
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-white font-medium">אימייל</span>
-            <p className="text-gray-500 text-sm mt-0.5">התראות ישירות למייל שלך</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setNotifPrefs(p => ({ ...p, email: !p.email }))}
-            className={`relative w-12 h-7 rounded-full transition-colors duration-200 flex-shrink-0 ${
-              notifPrefs.email ? 'bg-blue-500' : 'bg-gray-700'
-            }`}
-          >
-            <div
-              className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ${
-                notifPrefs.email ? 'left-1' : 'left-6'
-              }`}
-            />
-          </button>
-        </div>
-
-        {/* Weekly PDF Report */}
-        <div
-          className={`flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
-            notifPrefs.weeklyReport
-              ? 'bg-orange-500/5 border-orange-500/30'
-              : 'bg-gray-800/40 border-gray-700/50'
-          }`}
-        >
-          <div className="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center flex-shrink-0">
-            <FileText className="w-5 h-5 text-orange-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-white font-medium">דוח שבועי PDF</span>
-            <p className="text-gray-500 text-sm mt-0.5">סיכום שבועי מלא בפורמט PDF</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setNotifPrefs(p => ({ ...p, weeklyReport: !p.weeklyReport }))}
-            className={`relative w-12 h-7 rounded-full transition-colors duration-200 flex-shrink-0 ${
-              notifPrefs.weeklyReport ? 'bg-orange-500' : 'bg-gray-700'
-            }`}
-          >
-            <div
-              className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ${
-                notifPrefs.weeklyReport ? 'left-1' : 'left-6'
-              }`}
-            />
-          </button>
-        </div>
+        ))}
       </div>
 
-      {/* Morning time preference */}
+      {/* Morning time */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock className="w-5 h-5 text-cyan-400" />
-          <span className="text-white font-medium">מתי לשלוח הודעת בוקר יומית?</span>
-        </div>
+        <span className="block text-sm font-medium text-gray-300 mb-3">{'\u05E9\u05E2\u05EA \u05D4\u05E1\u05D9\u05DB\u05D5\u05DD \u05D4\u05D9\u05D5\u05DE\u05D9:'}</span>
         <div className="grid grid-cols-4 gap-3">
           {timeOptions.map(time => (
             <button
               key={time}
               type="button"
-              onClick={() => setNotifPrefs(p => ({ ...p, morningTime: time }))}
+              onClick={() => setMorningTime(time)}
               className={`py-3 rounded-xl border text-center font-medium transition-all duration-200 ${
-                notifPrefs.morningTime === time
+                morningTime === time
                   ? 'border-cyan-500 bg-cyan-500/10 text-cyan-300 shadow-lg shadow-cyan-500/10'
                   : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-300'
               }`}
@@ -556,110 +897,72 @@ export default function OnboardingWizard() {
         </div>
       </div>
 
-      <button
-        onClick={() => setCurrentStep(3)}
-        className="w-full flex items-center justify-center gap-2 px-8 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-[1.01] transition-all"
-      >
-        <span>המשך</span>
-        <ArrowLeft className="w-5 h-5" />
-      </button>
+      {/* Buttons */}
+      <div className="flex flex-col gap-3">
+        <button
+          onClick={handleFinish}
+          disabled={step3Loading}
+          className="w-full flex items-center justify-center gap-2 px-8 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-[1.01] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {step3Loading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <span>{'\u05E1\u05D9\u05D9\u05DD \u05D4\u05D2\u05D3\u05E8\u05D4 \u2014 \u05D4\u05EA\u05D7\u05DC \u05DC\u05E1\u05E8\u05D5\u05E7!'} {'\u{1F680}'}</span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setCurrentStep(2)}
+          className="w-full flex items-center justify-center gap-2 px-8 py-3 text-gray-400 hover:text-white transition-colors"
+        >
+          <ArrowRight className="w-5 h-5" />
+          <span>&larr; {'\u05D7\u05D6\u05E8\u05D4'}</span>
+        </button>
+
+        <button
+          onClick={handleSkipStep3}
+          disabled={step3Loading}
+          className="text-gray-600 text-sm hover:text-gray-400 transition-colors mx-auto disabled:opacity-50"
+        >
+          {'\u05D3\u05DC\u05D2'}
+        </button>
+      </div>
     </div>
   );
 
-  // ── Step 3 Render ──────────────────────────────────────────────────────
+  // ── Completion screen ──────────────────────────────────────────────────
 
-  const renderStep3 = () => {
-    if (isSavingPrefs || !step3Ready) {
-      return (
-        <div className="animate-fadeIn text-center py-12">
-          <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">שומר הגדרות...</p>
+  const renderCompletion = () => (
+    <div className="animate-fadeIn text-center py-8">
+      {/* Success animation */}
+      <div className="relative w-28 h-28 mx-auto mb-8">
+        <div
+          className="absolute inset-0 rounded-full bg-cyan-500/20"
+          style={{ animation: 'celebrationPulse 2s ease-in-out infinite' }}
+        />
+        <div
+          className="absolute inset-3 rounded-full bg-cyan-500/15"
+          style={{ animation: 'celebrationPulse 2s ease-in-out 0.3s infinite' }}
+        />
+        <div className="absolute inset-5 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-cyan-500/40">
+          <Check className="w-10 h-10 text-white" />
         </div>
-      );
-    }
-
-    return (
-      <div className="animate-fadeIn text-center">
-        {/* Celebration animation */}
-        <div className="relative w-28 h-28 mx-auto mb-8">
-          {/* Outer glow */}
-          <div
-            className="absolute inset-0 rounded-full bg-cyan-500/20"
-            style={{
-              animation: 'celebrationPulse 2s ease-in-out infinite',
-            }}
-          />
-          {/* Middle glow */}
-          <div
-            className="absolute inset-3 rounded-full bg-cyan-500/15"
-            style={{
-              animation: 'celebrationPulse 2s ease-in-out 0.3s infinite',
-            }}
-          />
-          {/* Inner circle */}
-          <div className="absolute inset-5 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-cyan-500/40">
-            <Check className="w-10 h-10 text-white" />
-          </div>
-        </div>
-
-        <h2 className="text-3xl font-bold text-white mb-3">העסק שלך מחובר למודיעין</h2>
-        <p className="text-gray-400 mb-8 leading-relaxed">
-          הסריקה הראשונה תסתיים תוך ~12 שעות.
-          <br />
-          בינתיים, הנה מה שכבר יודעים על האזור שלך:
-        </p>
-
-        {/* Teaser stat cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-          <div
-            className="p-5 rounded-2xl bg-gray-800/40 border border-gray-700/50"
-            style={{ animation: 'slideUp 0.5s ease-out 0.2s both' }}
-          >
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/15 flex items-center justify-center mx-auto mb-3">
-              <Users className="w-5 h-5 text-cyan-400" />
-            </div>
-            <p className="text-2xl font-bold text-white mb-1">{competitorsFound}</p>
-            <p className="text-gray-500 text-sm">מתחרים זוהו באזורך</p>
-          </div>
-
-          <div
-            className="p-5 rounded-2xl bg-gray-800/40 border border-gray-700/50"
-            style={{ animation: 'slideUp 0.5s ease-out 0.4s both' }}
-          >
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center mx-auto mb-3">
-              <BarChart3 className="w-5 h-5 text-amber-400" />
-            </div>
-            <p className="text-2xl font-bold text-white mb-1">3.9 <Star className="w-4 h-4 inline text-amber-400 fill-amber-400 -mt-1" /></p>
-            <p className="text-gray-500 text-sm">הדירוג הממוצע של המתחרים</p>
-          </div>
-
-          <div
-            className="p-5 rounded-2xl bg-gray-800/40 border border-gray-700/50"
-            style={{ animation: 'slideUp 0.5s ease-out 0.6s both' }}
-          >
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/15 flex items-center justify-center mx-auto mb-3">
-              <Timer className="w-5 h-5 text-indigo-400" />
-            </div>
-            <p className="text-2xl font-bold text-white mb-1">12 שעות</p>
-            <p className="text-gray-500 text-sm">הסריקה הבאה</p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => navigate('/dashboard/focus')}
-          className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-bold text-lg shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.02] transition-all"
-        >
-          <span>כנס לפלטפורמה</span>
-          <ArrowLeft className="w-5 h-5" />
-        </button>
       </div>
-    );
-  };
+
+      <h2 className="text-3xl font-bold text-white mb-3">{'\u05DE\u05E2\u05D5\u05DC\u05D4! \u05DE\u05EA\u05D7\u05D9\u05DC\u05D9\u05DD \u05DC\u05E1\u05E8\u05D5\u05E7 \u05D0\u05EA \u05D4\u05E9\u05D5\u05E7 \u05E9\u05DC\u05DA...'}</h2>
+      <p className="text-gray-400 mb-8 leading-relaxed">{'\u05D4\u05E1\u05E8\u05D9\u05E7\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4 \u05EA\u05D5\u05E9\u05DC\u05DD \u05EA\u05D5\u05DA 12 \u05E9\u05E2\u05D5\u05EA'}</p>
+
+      <div className="flex items-center justify-center gap-2 text-gray-500">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-sm">{'\u05DE\u05E2\u05D1\u05D9\u05E8 \u05DC\u05DE\u05E2\u05E8\u05DB\u05EA...'}</span>
+      </div>
+    </div>
+  );
 
   // ── Main render ────────────────────────────────────────────────────────
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800">
+    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800" style={{ fontFamily: 'Heebo, sans-serif' }}>
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl" />
@@ -689,12 +992,17 @@ export default function OnboardingWizard() {
 
           {/* Wizard Card */}
           <div className="bg-gray-800/50 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-6 sm:p-8 shadow-2xl">
-            {renderStepIndicator()}
+            {!completed && renderStepIndicator()}
 
             {/* Step Content */}
-            {currentStep === 1 && renderStep1()}
-            {currentStep === 2 && renderStep2()}
-            {currentStep === 3 && renderStep3()}
+            {completed
+              ? renderCompletion()
+              : currentStep === 1
+              ? renderStep1()
+              : currentStep === 2
+              ? renderStep2()
+              : renderStep3()
+            }
           </div>
         </div>
       </div>
@@ -707,10 +1015,6 @@ export default function OnboardingWizard() {
         }
         .animate-fadeIn {
           animation: fadeIn 0.4s ease-out;
-        }
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(30px); }
-          to { opacity: 1; transform: translateX(0); }
         }
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -725,7 +1029,8 @@ export default function OnboardingWizard() {
   );
 }
 
-// Type declarations
+// ── Type declarations ────────────────────────────────────────────────────────
+
 declare global {
   interface Window {
     google?: {

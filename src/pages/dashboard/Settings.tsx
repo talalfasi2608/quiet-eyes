@@ -15,67 +15,73 @@ import {
   RefreshCw,
   Mail,
   KeyRound,
+  MapPin,
+  Globe,
+  Search,
+  X,
+  Plus,
+  Trash2,
+  AlertTriangle,
+  Instagram,
+  Facebook,
+  ChevronDown,
 } from 'lucide-react';
 import { apiFetch } from '../../services/api';
 import { supabase } from '../../lib/supabaseClient';
 import { loadGoogleMaps } from '../../lib/googleMaps';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// BUSINESS TYPE OPTIONS
+// CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const businessTypeOptions = [
-  { value: 'restaurant', label: '\uD83C\uDF5C \u05DE\u05E1\u05E2\u05D3\u05D4 / \u05D1\u05D9\u05EA \u05E7\u05E4\u05D4' },
-  { value: 'beauty', label: '\uD83D\uDC87 \u05D9\u05D5\u05E4\u05D9 / \u05E7\u05D5\u05E1\u05DE\u05D8\u05D9\u05E7\u05D4 / \u05E9\u05D9\u05E2\u05E8' },
-  { value: 'fitness', label: '\uD83C\uDFCB\uFE0F \u05DB\u05D5\u05E9\u05E8 / \u05D1\u05E8\u05D9\u05D0\u05D5\u05EA / \u05E1\u05E4\u05D0' },
-  { value: 'realestate', label: '\uD83C\uDFE0 \u05E0\u05D3\u05DC"\u05DF / \u05EA\u05D9\u05D5\u05D5\u05DA' },
-  { value: 'ecommerce', label: '\uD83D\uDED2 \u05D7\u05E0\u05D5\u05EA / e-Commerce' },
-  { value: 'agency', label: '\uD83D\uDCE2 \u05E1\u05D5\u05DB\u05E0\u05D5\u05EA \u05E9\u05D9\u05D5\u05D5\u05E7 / \u05E4\u05E8\u05E1\u05D5\u05DD' },
-  { value: 'health', label: '\uD83C\uDFE5 \u05D1\u05E8\u05D9\u05D0\u05D5\u05EA / \u05E8\u05E4\u05D5\u05D0\u05D4 / \u05E7\u05DC\u05D9\u05E0\u05D9\u05E7\u05D4' },
-  { value: 'legal', label: '\u2696\uFE0F \u05DE\u05E9\u05E4\u05D8\u05D9\u05DD / \u05D9\u05D9\u05E2\u05D5\u05E5' },
-  { value: 'delivery', label: '\uD83C\uDF55 \u05DE\u05E9\u05DC\u05D5\u05D7\u05D9\u05DD / \u05E7\u05D9\u05D9\u05D8\u05E8\u05D9\u05E0\u05D2' },
-  { value: 'services', label: '\uD83D\uDD27 \u05E9\u05D9\u05E8\u05D5\u05EA\u05D9\u05DD' },
-  { value: 'education', label: '\uD83D\uDCDA \u05D7\u05D9\u05E0\u05D5\u05DA / \u05D4\u05D3\u05E8\u05DB\u05D4' },
-  { value: 'tourism', label: '\uD83C\uDFE8 \u05EA\u05D9\u05D9\u05E8\u05D5\u05EA / \u05DE\u05DC\u05D5\u05E0\u05D0\u05D5\u05EA' },
-  { value: 'tech', label: '\uD83D\uDCBB \u05D8\u05DB\u05E0\u05D5\u05DC\u05D5\u05D2\u05D9\u05D4 / \u05D4\u05D9\u05D9\u05D8\u05E7' },
-  { value: 'other', label: '\uD83D\uDD35 \u05D0\u05D7\u05E8' },
+const TABS = [
+  { id: 'profile', label: 'פרופיל עסקי', icon: Building },
+  { id: 'alerts', label: 'התראות', icon: Bell },
+  { id: 'account', label: 'חשבון', icon: User },
+  { id: 'subscription', label: 'מנוי', icon: CreditCard },
+] as const;
+
+const BUSINESS_TYPES = [
+  { value: 'restaurant', label: '🍜 מסעדה / בית קפה' },
+  { value: 'beauty', label: '💇 יופי / קוסמטיקה / שיער' },
+  { value: 'fitness', label: '🏋️ כושר / בריאות / ספא' },
+  { value: 'realestate', label: '🏠 נדל"ן / תיווך' },
+  { value: 'ecommerce', label: '🛒 חנות / e-Commerce' },
+  { value: 'agency', label: '📢 סוכנות שיווק / פרסום' },
+  { value: 'health', label: '🏥 בריאות / רפואה / קליניקה' },
+  { value: 'legal', label: '⚖️ משפטים / ייעוץ' },
+  { value: 'delivery', label: '🍕 משלוחים / קייטרינג' },
+  { value: 'services', label: '🔧 שירותים' },
+  { value: 'education', label: '📚 חינוך / הדרכה' },
+  { value: 'tourism', label: '🏨 תיירות / מלונאות' },
+  { value: 'tech', label: '💻 טכנולוגיה / הייטק' },
+  { value: 'other', label: '🔵 אחר' },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ACTIVITY RADIUS OPTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const radiusOptions = [
-  { value: 1, label: '1 \u05E7"\u05DE' },
-  { value: 3, label: '3 \u05E7"\u05DE' },
-  { value: 5, label: '5 \u05E7"\u05DE' },
-  { value: 10, label: '10 \u05E7"\u05DE' },
-  { value: 0, label: '\u05D0\u05E8\u05E6\u05D9' },
+const RADIUS_OPTIONS = [
+  { value: 0.5, label: '0.5 ק"מ' },
+  { value: 1, label: '1 ק"מ' },
+  { value: 2, label: '2 ק"מ' },
+  { value: 5, label: '5 ק"מ' },
+  { value: 10, label: '10 ק"מ' },
+  { value: 999, label: 'ארצי' },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MORNING ALERT TIME OPTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const morningAlertTimeOptions = [
+const MORNING_ALERT_OPTIONS = [
   { value: '07:00', label: '07:00' },
   { value: '08:00', label: '08:00' },
   { value: '09:00', label: '09:00' },
   { value: '10:00', label: '10:00' },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ALERT SENSITIVITY OPTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const alertSensitivityOptions = [
-  { value: 'high', label: '\u05D2\u05D1\u05D5\u05D4\u05D4', desc: '\u05DB\u05DC \u05E9\u05D9\u05E0\u05D5\u05D9' },
-  { value: 'medium', label: '\u05D1\u05D9\u05E0\u05D5\u05E0\u05D9\u05EA', desc: '\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D7\u05E9\u05D5\u05D1\u05D9\u05DD' },
-  { value: 'low', label: '\u05E0\u05DE\u05D5\u05DB\u05D4', desc: '\u05E8\u05E7 \u05E7\u05E8\u05D9\u05D8\u05D9' },
+const ALERT_SENSITIVITY_OPTIONS = [
+  { value: 'high', label: 'גבוהה', desc: 'כל שינוי' },
+  { value: 'medium', label: 'בינונית', desc: 'שינויים חשובים' },
+  { value: 'low', label: 'נמוכה', desc: 'רק קריטי' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SCHEDULED JOBS TYPES
+// SCHEDULED JOBS TYPES & HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface ScheduledJob {
@@ -90,31 +96,34 @@ interface ScheduledJob {
 }
 
 const JOB_LABELS: Record<string, { name: string; description: string }> = {
-  competitor_scan: { name: '\u05E1\u05E8\u05D9\u05E7\u05EA \u05DE\u05EA\u05D7\u05E8\u05D9\u05DD', description: '\u05E1\u05E8\u05D9\u05E7\u05D4 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05E9\u05DC \u05DE\u05EA\u05D7\u05E8\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D1\u05D0\u05D6\u05D5\u05E8' },
-  lead_snipe: { name: '\u05E6\u05D9\u05D3 \u05DC\u05D9\u05D3\u05D9\u05DD', description: '\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05E9\u05DC \u05DC\u05D9\u05D3\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD' },
-  market_discovery: { name: '\u05D2\u05D9\u05DC\u05D5\u05D9 \u05E9\u05D5\u05E7', description: '\u05E1\u05E8\u05D9\u05E7\u05EA \u05E9\u05D5\u05E7 \u05DB\u05DC\u05DC\u05D9\u05EA \u05D5\u05DE\u05E6\u05D9\u05D0\u05EA \u05DE\u05EA\u05D7\u05E8\u05D9\u05DD' },
-  price_check: { name: '\u05D1\u05D3\u05D9\u05E7\u05EA \u05DE\u05D7\u05D9\u05E8\u05D9\u05DD', description: '\u05DE\u05E2\u05E7\u05D1 \u05D0\u05D7\u05E8 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9 \u05DE\u05D7\u05D9\u05E8\u05D9\u05DD \u05E9\u05DC \u05DE\u05EA\u05D7\u05E8\u05D9\u05DD' },
+  competitor_scan: { name: 'סריקת מתחרים', description: 'סריקה אוטומטית של מתחרים חדשים באזור' },
+  lead_snipe: { name: 'ציד לידים', description: 'חיפוש אוטומטי של לידים חדשים' },
+  market_discovery: { name: 'גילוי שוק', description: 'סריקת שוק כללית ומציאת מתחרים' },
+  price_check: { name: 'בדיקת מחירים', description: 'מעקב אחר שינויי מחירים של מתחרים' },
 };
 
 function cronToHebrew(cron: string): string {
   const match4h = cron.match(/^0\s+\*\/(\d+)\s+\*\s+\*\s+\*$/);
-  if (match4h) return `\u05DB\u05DC ${match4h[1]} \u05E9\u05E2\u05D5\u05EA`;
-  if (cron === '0 0 * * *') return '\u05E4\u05E2\u05DD \u05D1\u05D9\u05D5\u05DD (\u05D7\u05E6\u05D5\u05EA)';
+  if (match4h) return `כל ${match4h[1]} שעות`;
+  if (cron === '0 0 * * *') return 'פעם ביום (חצות)';
   const matchTime = cron.match(/^(\d+)\s+(\d+)\s+\*\s+\*\s+\*$/);
-  if (matchTime) return `\u05DB\u05DC \u05D9\u05D5\u05DD \u05D1-${matchTime[2]}:${matchTime[1].padStart(2, '0')}`;
+  if (matchTime) return `כל יום ב-${matchTime[2]}:${matchTime[1].padStart(2, '0')}`;
   return cron;
 }
 
 function formatDateTime(iso: string | null): string {
-  if (!iso) return '\u05D8\u05E8\u05DD \u05D4\u05D5\u05E8\u05E5';
+  if (!iso) return 'טרם הורץ';
   return new Date(iso).toLocaleString('he-IL', {
-    day: '2-digit', month: '2-digit', year: '2-digit',
-    hour: '2-digit', minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SECTION SAVE BUTTON COMPONENT
+// INLINE SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function SectionSaveButton({
@@ -130,29 +139,122 @@ function SectionSaveButton({
     <button
       onClick={onClick}
       disabled={isSaving}
-      className={
-        'btn-primary flex items-center gap-2 mt-6 ' +
-        (saved ? 'bg-emerald-500 ' : '') +
-        (isSaving ? 'opacity-70 cursor-wait' : '')
-      }
+      className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-all ${
+        saved
+          ? 'bg-emerald-500 text-white'
+          : 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:from-blue-500 hover:to-cyan-400'
+      } ${isSaving ? 'opacity-70 cursor-wait' : ''}`}
     >
       {isSaving ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>\u05E9\u05D5\u05DE\u05E8...</span>
+          <span>שומר...</span>
         </>
       ) : saved ? (
         <>
           <Check className="w-4 h-4" />
-          <span>\u05E0\u05E9\u05DE\u05E8!</span>
+          <span>נשמר!</span>
         </>
       ) : (
         <>
           <Save className="w-4 h-4" />
-          <span>\u05E9\u05DE\u05D5\u05E8 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD</span>
+          <span>שמור שינויים</span>
         </>
       )}
     </button>
+  );
+}
+
+function ToggleSwitch({
+  enabled,
+  onChange,
+  color = 'bg-indigo-500',
+}: {
+  enabled: boolean;
+  onChange: (v: boolean) => void;
+  color?: string;
+}) {
+  return (
+    <button
+      onClick={() => onChange(!enabled)}
+      className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+        enabled ? color : 'bg-gray-700'
+      }`}
+    >
+      <span
+        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${
+          enabled ? 'right-1' : 'left-1'
+        }`}
+      />
+    </button>
+  );
+}
+
+function TagsInput({
+  tags,
+  onTagsChange,
+  placeholder,
+  helperText,
+}: {
+  tags: string[];
+  onTagsChange: (tags: string[]) => void;
+  placeholder: string;
+  helperText?: string;
+}) {
+  const [input, setInput] = useState('');
+
+  const addTag = () => {
+    const trimmed = input.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      onTagsChange([...tags, trimmed]);
+      setInput('');
+    }
+  };
+
+  const removeTag = (index: number) => {
+    onTagsChange(tags.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              addTag();
+            }
+          }}
+          placeholder={placeholder}
+          className="input-glass flex-1"
+          dir="rtl"
+        />
+        <button
+          onClick={addTag}
+          className="px-3 py-2 rounded-xl bg-gray-800/50 border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+      {helperText && <p className="text-gray-500 text-xs mt-1">{helperText}</p>}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {tags.map((tag, i) => (
+            <span
+              key={i}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-sm"
+            >
+              {tag}
+              <button onClick={() => removeTag(i)} className="hover:text-white">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -164,33 +266,34 @@ export default function Settings() {
   const { user } = useAuth();
   const { currentProfile, refreshProfile } = useSimulation();
 
-  // ─── Section 1: Personal Details ─────────────────────────────────────────
-  const [personalData, setPersonalData] = useState({
-    first_name: '',
-    last_name: '',
-    phone: '',
-  });
-  const [personalSaving, setPersonalSaving] = useState(false);
-  const [personalSaved, setPersonalSaved] = useState(false);
-  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  // ─── General state ─────────────────────────────────────────────────────────
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>('profile');
+  const [businessId, setBusinessId] = useState<string | null>(null);
 
-  // ─── Section 2: Business Details ─────────────────────────────────────────
-  const [businessData, setBusinessData] = useState({
+  // ─── Tab 1: Business Profile ───────────────────────────────────────────────
+  const [profileData, setProfileData] = useState({
     business_name: '',
     business_type: '',
+    business_description: '',
     address: '',
     latitude: null as number | null,
     longitude: null as number | null,
-    activity_radius_km: 5,
-    business_description: '',
+    activity_radius_km: 5 as number,
     website: '',
     facebook_page: '',
+    instagram_page: '',
+    ideal_customer: '',
   });
-  const [businessSaving, setBusinessSaving] = useState(false);
-  const [businessSaved, setBusinessSaved] = useState(false);
+  const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
+  const [excludeKeywords, setExcludeKeywords] = useState<string[]>([]);
+  const [manualCompetitors, setManualCompetitors] = useState<string[]>([]);
+  const [competitorInput, setCompetitorInput] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
   const addressInputRef = useRef<HTMLInputElement>(null);
 
-  // ─── Section 3: Notification Preferences ─────────────────────────────────
+  // ─── Tab 2: Alerts ─────────────────────────────────────────────────────────
   const [notifData, setNotifData] = useState({
     notification_whatsapp: true,
     notification_email: true,
@@ -201,49 +304,88 @@ export default function Settings() {
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifSaved, setNotifSaved] = useState(false);
 
-  // ─── Scheduled Jobs ──────────────────────────────────────────────────────
+  // ─── Scheduled Jobs ────────────────────────────────────────────────────────
   const [jobs, setJobs] = useState<ScheduledJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState(false);
   const [togglingJob, setTogglingJob] = useState<number | null>(null);
   const [resettingJobs, setResettingJobs] = useState(false);
 
+  // ─── Tab 3: Account ────────────────────────────────────────────────────────
+  const [personalData, setPersonalData] = useState({
+    first_name: '',
+    last_name: '',
+    phone: '',
+  });
+  const [personalSaving, setPersonalSaving] = useState(false);
+  const [personalSaved, setPersonalSaved] = useState(false);
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // SYNC FORM STATE FROM PROFILE
+  // DATA LOADING — FETCH DIRECTLY FROM API
   // ═══════════════════════════════════════════════════════════════════════════
 
   useEffect(() => {
-    if (!currentProfile) return;
-    const p = currentProfile as any;
+    if (!user?.id) return;
 
-    setPersonalData((prev) => ({
-      first_name: p.first_name || prev.first_name,
-      last_name: p.last_name || prev.last_name,
-      phone: p.phone || prev.phone,
-    }));
+    const loadSettings = async () => {
+      setLoading(true);
+      try {
+        const res = await apiFetch(`/business/user/${user.id}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const biz = data.business;
 
-    setBusinessData((prev) => ({
-      business_name: p.nameHebrew || p.business_name || p.name_hebrew || prev.business_name,
-      business_type: p.business_type || prev.business_type,
-      address: p.address || prev.address,
-      latitude: p.latitude ?? prev.latitude,
-      longitude: p.longitude ?? prev.longitude,
-      activity_radius_km: p.activity_radius_km ?? prev.activity_radius_km,
-      business_description: p.business_description || prev.business_description,
-      website: p.website || prev.website,
-      facebook_page: p.facebook_page || prev.facebook_page,
-    }));
+        setBusinessId(biz.id);
 
-    setNotifData((prev) => ({
-      notification_whatsapp: p.notification_whatsapp ?? prev.notification_whatsapp,
-      notification_email: p.notification_email ?? prev.notification_email,
-      notification_weekly_report: p.notification_weekly_report ?? prev.notification_weekly_report,
-      morning_alert_time: p.morning_alert_time || prev.morning_alert_time,
-      alert_sensitivity: p.alert_sensitivity || prev.alert_sensitivity,
-    }));
-  }, [currentProfile]);
+        setProfileData({
+          business_name: biz.business_name || biz.name_hebrew || '',
+          business_type: biz.business_type || '',
+          business_description: biz.business_description || '',
+          address: biz.address || biz.location || '',
+          latitude: biz.latitude ?? null,
+          longitude: biz.longitude ?? null,
+          activity_radius_km: biz.activity_radius_km ?? 5,
+          website: biz.website || '',
+          facebook_page: biz.facebook_page || '',
+          instagram_page: biz.instagram_page || '',
+          ideal_customer: biz.ideal_customer || '',
+        });
+
+        setSearchKeywords(
+          (biz.search_keywords || '').split(',').filter(Boolean)
+        );
+        setExcludeKeywords(
+          (biz.exclude_keywords || '').split(',').filter(Boolean)
+        );
+        setManualCompetitors(
+          (biz.manual_competitors || '').split(',').filter(Boolean)
+        );
+
+        setNotifData({
+          notification_whatsapp: biz.notification_whatsapp ?? true,
+          notification_email: biz.notification_email ?? true,
+          notification_weekly_report: biz.notification_weekly_report ?? true,
+          morning_alert_time: biz.morning_alert_time || '08:00',
+          alert_sensitivity: biz.alert_sensitivity || 'medium',
+        });
+
+        setPersonalData({
+          first_name: biz.first_name || '',
+          last_name: biz.last_name || '',
+          phone: biz.phone || '',
+        });
+      } catch {
+        toast.error('שגיאה בטעינת ההגדרות');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [user?.id]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // GOOGLE PLACES AUTOCOMPLETE FOR ADDRESS
+  // GOOGLE PLACES AUTOCOMPLETE
   // ═══════════════════════════════════════════════════════════════════════════
 
   useEffect(() => {
@@ -256,9 +398,7 @@ export default function Settings() {
 
       autocomplete = new window.google.maps.places.Autocomplete(
         addressInputRef.current,
-        {
-          componentRestrictions: { country: 'il' },
-        }
+        { componentRestrictions: { country: 'il' } }
       );
 
       autocomplete.addListener('place_changed', () => {
@@ -266,7 +406,7 @@ export default function Settings() {
         const addr = place.formatted_address || place.name || '';
         const lat = place.geometry?.location?.lat() ?? null;
         const lng = place.geometry?.location?.lng() ?? null;
-        setBusinessData((prev) => ({
+        setProfileData((prev) => ({
           ...prev,
           address: addr,
           latitude: lat,
@@ -276,37 +416,39 @@ export default function Settings() {
     };
 
     loadGoogleMaps().then(initAutocomplete).catch(() => {});
-  }, []);
+  }, [activeTab]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SCHEDULED JOBS
   // ═══════════════════════════════════════════════════════════════════════════
 
+  const resolvedBusinessId = businessId || currentProfile?.id;
+
   const fetchJobs = useCallback(async () => {
-    if (!currentProfile?.id) return;
+    if (!resolvedBusinessId) return;
     setJobsLoading(true);
     try {
-      const res = await apiFetch(`/jobs/${currentProfile.id}`);
+      const res = await apiFetch(`/jobs/${resolvedBusinessId}`);
       if (res.ok) {
         const data = await res.json();
         setJobs(data.jobs || []);
       }
     } catch {
-      toast.error('\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D8\u05E2\u05D9\u05E0\u05EA \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA');
+      toast.error('שגיאה בטעינת הגדרות');
     } finally {
       setJobsLoading(false);
     }
-  }, [currentProfile?.id]);
+  }, [resolvedBusinessId]);
 
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
 
   const toggleJob = async (jobId: number, active: boolean) => {
-    if (!currentProfile?.id) return;
+    if (!resolvedBusinessId) return;
     setTogglingJob(jobId);
     try {
-      await apiFetch(`/jobs/${currentProfile.id}/toggle/${jobId}`, {
+      await apiFetch(`/jobs/${resolvedBusinessId}/toggle/${jobId}`, {
         method: 'POST',
         body: JSON.stringify({ active }),
       });
@@ -323,10 +465,10 @@ export default function Settings() {
   };
 
   const resetDefaults = async () => {
-    if (!currentProfile?.id) return;
+    if (!resolvedBusinessId) return;
     setResettingJobs(true);
     try {
-      await apiFetch(`/jobs/${currentProfile.id}/ensure-defaults`, {
+      await apiFetch(`/jobs/${resolvedBusinessId}/ensure-defaults`, {
         method: 'POST',
       });
       await fetchJobs();
@@ -338,7 +480,7 @@ export default function Settings() {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION SAVE HANDLERS
+  // SAVE HANDLERS
   // ═══════════════════════════════════════════════════════════════════════════
 
   const saveSection = async (
@@ -346,10 +488,11 @@ export default function Settings() {
     setSaving: (v: boolean) => void,
     setSaved: (v: boolean) => void
   ) => {
-    if (!currentProfile?.id) return;
+    const id = resolvedBusinessId;
+    if (!id) return;
     setSaving(true);
     try {
-      const res = await apiFetch(`/business/profile/${currentProfile.id}`, {
+      const res = await apiFetch(`/business/profile/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(fields),
       });
@@ -358,43 +501,36 @@ export default function Settings() {
         throw new Error(err.detail || 'Failed to save');
       }
       setSaved(true);
-      toast.success('\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D5 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4');
+      toast.success('הנתונים נשמרו בהצלחה');
       setTimeout(() => setSaved(false), 2000);
       await refreshProfile();
-    } catch (err: unknown) {
-      toast.error('\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DE\u05D9\u05E8\u05D4');
+    } catch {
+      toast.error('שגיאה בשמירה');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSavePersonal = () => {
+  const handleSaveProfile = () => {
     saveSection(
       {
-        first_name: personalData.first_name || undefined,
-        last_name: personalData.last_name || undefined,
-        phone: personalData.phone || undefined,
+        business_name: profileData.business_name || undefined,
+        business_type: profileData.business_type || undefined,
+        business_description: profileData.business_description || undefined,
+        address: profileData.address || undefined,
+        latitude: profileData.latitude,
+        longitude: profileData.longitude,
+        activity_radius_km: profileData.activity_radius_km,
+        website: profileData.website || undefined,
+        facebook_page: profileData.facebook_page || undefined,
+        instagram_page: profileData.instagram_page || undefined,
+        ideal_customer: profileData.ideal_customer || undefined,
+        search_keywords: searchKeywords.join(','),
+        exclude_keywords: excludeKeywords.join(','),
+        manual_competitors: manualCompetitors.join(','),
       },
-      setPersonalSaving,
-      setPersonalSaved
-    );
-  };
-
-  const handleSaveBusiness = () => {
-    saveSection(
-      {
-        business_name: businessData.business_name || undefined,
-        business_type: businessData.business_type || undefined,
-        address: businessData.address || undefined,
-        latitude: businessData.latitude,
-        longitude: businessData.longitude,
-        activity_radius_km: businessData.activity_radius_km,
-        business_description: businessData.business_description || undefined,
-        website: businessData.website || undefined,
-        facebook_page: businessData.facebook_page || undefined,
-      },
-      setBusinessSaving,
-      setBusinessSaved
+      setProfileSaving,
+      setProfileSaved
     );
   };
 
@@ -412,6 +548,18 @@ export default function Settings() {
     );
   };
 
+  const handleSavePersonal = () => {
+    saveSection(
+      {
+        first_name: personalData.first_name || undefined,
+        last_name: personalData.last_name || undefined,
+        phone: personalData.phone || undefined,
+      },
+      setPersonalSaving,
+      setPersonalSaved
+    );
+  };
+
   const handleResetPassword = async () => {
     if (!user?.email) return;
     setResetPasswordLoading(true);
@@ -420,199 +568,95 @@ export default function Settings() {
         redirectTo: `${window.location.origin}/auth`,
       });
       if (error) throw error;
-      toast.success('\u05DE\u05D9\u05D9\u05DC \u05DC\u05D0\u05D9\u05E4\u05D5\u05E1 \u05E1\u05D9\u05E1\u05DE\u05D4 \u05E0\u05E9\u05DC\u05D7 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4');
+      toast.success('מייל לאיפוס סיסמה נשלח בהצלחה');
     } catch {
-      toast.error('\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DC\u05D9\u05D7\u05EA \u05D4\u05DE\u05D9\u05D9\u05DC');
+      toast.error('שגיאה בשליחת המייל');
     } finally {
       setResetPasswordLoading(false);
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (
+      !window.confirm(
+        'האם אתה בטוח שברצונך למחוק את החשבון? פעולה זו לא ניתנת לביטול.'
+      )
+    )
+      return;
+    try {
+      const res = await apiFetch(`/business/profile/${resolvedBusinessId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        toast.success('החשבון נמחק בהצלחה');
+        window.location.href = '/';
+      } else {
+        toast.error('שגיאה במחיקת החשבון');
+      }
+    } catch {
+      toast.error('שגיאה במחיקת החשבון');
+    }
+  };
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // LOADING STATE
+  // COMPETITOR HELPERS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  if (!currentProfile) return <PageLoader message="\u05D8\u05D5\u05E2\u05DF \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA..." />;
+  const addCompetitor = () => {
+    const trimmed = competitorInput.trim();
+    if (trimmed && !manualCompetitors.includes(trimmed)) {
+      setManualCompetitors([...manualCompetitors, trimmed]);
+      setCompetitorInput('');
+    }
+  };
+
+  const removeCompetitor = (index: number) => {
+    setManualCompetitors(manualCompetitors.filter((_, i) => i !== index));
+  };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER
+  // TAB RENDERERS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  return (
-    <div className="space-y-6 fade-in">
-      {/* Page Header */}
-      <header>
-        <h1
-          className="text-3xl font-bold text-white mb-2"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA
-        </h1>
-        <p className="text-[var(--text-secondary)]">
-          \u05E0\u05D4\u05DC \u05D0\u05EA \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05D4\u05E2\u05E1\u05E7, \u05E4\u05E8\u05D8\u05D9\u05DD \u05D0\u05D9\u05E9\u05D9\u05D9\u05DD \u05D5\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA
-        </p>
-      </header>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          SECTION 1: PERSONAL DETAILS
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="glass-card">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-            <User className="w-5 h-5 text-cyan-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-white">
-            \u05E4\u05E8\u05D8\u05D9\u05DD \u05D0\u05D9\u05E9\u05D9\u05D9\u05DD
-          </h2>
-        </div>
-
-        <div className="space-y-4">
-          {/* First Name + Last Name side by side */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-400 text-sm mb-2">
-                \u05E9\u05DD \u05E4\u05E8\u05D8\u05D9
-              </label>
-              <input
-                type="text"
-                value={personalData.first_name}
-                onChange={(e) =>
-                  setPersonalData({ ...personalData, first_name: e.target.value })
-                }
-                className="input-glass"
-                dir="rtl"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-400 text-sm mb-2">
-                \u05E9\u05DD \u05DE\u05E9\u05E4\u05D7\u05D4
-              </label>
-              <input
-                type="text"
-                value={personalData.last_name}
-                onChange={(e) =>
-                  setPersonalData({ ...personalData, last_name: e.target.value })
-                }
-                className="input-glass"
-                dir="rtl"
-              />
-            </div>
-          </div>
-
-          {/* Email (read-only) */}
-          <div>
-            <label className="block text-gray-400 text-sm mb-2">
-              \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC
-            </label>
-            <div className="relative">
-              <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input
-                type="email"
-                value={user?.email || ''}
-                disabled
-                className="input-glass pr-12 opacity-60 cursor-not-allowed"
-                dir="ltr"
-              />
-            </div>
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label className="block text-gray-400 text-sm mb-2">
-              \u05D8\u05DC\u05E4\u05D5\u05DF \u05E0\u05D9\u05D9\u05D3
-            </label>
-            <input
-              type="tel"
-              value={personalData.phone}
-              onChange={(e) =>
-                setPersonalData({ ...personalData, phone: e.target.value })
-              }
-              placeholder="050-1234567"
-              className="input-glass"
-              dir="ltr"
-            />
-            <p className="text-gray-500 text-xs mt-1">
-              \u05DE\u05E9\u05DE\u05E9 \u05DC\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05D5\u05D5\u05D0\u05D8\u05E1\u05D0\u05E4
-            </p>
-          </div>
-
-          {/* Change Password */}
-          <div className="pt-2 border-t border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-400 text-sm">
-                  \u05E9\u05D9\u05E0\u05D5\u05D9 \u05E1\u05D9\u05E1\u05DE\u05D4
-                </span>
-              </div>
-              <button
-                onClick={handleResetPassword}
-                disabled={resetPasswordLoading}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl transition-colors disabled:opacity-50"
-              >
-                {resetPasswordLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Mail className="w-4 h-4" />
-                )}
-                \u05E9\u05DC\u05D7 \u05DE\u05D9\u05D9\u05DC \u05DC\u05D0\u05D9\u05E4\u05D5\u05E1 \u05E1\u05D9\u05E1\u05DE\u05D4
-              </button>
-            </div>
-          </div>
-
-          <SectionSaveButton
-            isSaving={personalSaving}
-            saved={personalSaved}
-            onClick={handleSavePersonal}
-          />
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          SECTION 2: BUSINESS DETAILS
-          ═══════════════════════════════════════════════════════════════════════ */}
+  const renderProfileTab = () => (
+    <div className="space-y-6">
+      {/* Section A — פרטי העסק */}
       <div className="glass-card">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
             <Building className="w-5 h-5 text-indigo-400" />
           </div>
-          <h2 className="text-lg font-semibold text-white">
-            \u05E4\u05E8\u05D8\u05D9 \u05D4\u05E2\u05E1\u05E7
-          </h2>
+          <h2 className="text-lg font-semibold text-white">פרטי העסק</h2>
         </div>
 
         <div className="space-y-4">
-          {/* Business Name */}
+          {/* שם העסק */}
           <div>
-            <label className="block text-gray-400 text-sm mb-2">
-              \u05E9\u05DD \u05D4\u05E2\u05E1\u05E7
-            </label>
+            <label className="block text-gray-400 text-sm mb-2">שם העסק</label>
             <input
               type="text"
-              value={businessData.business_name}
+              value={profileData.business_name}
               onChange={(e) =>
-                setBusinessData({ ...businessData, business_name: e.target.value })
+                setProfileData({ ...profileData, business_name: e.target.value })
               }
               className="input-glass"
               dir="rtl"
             />
           </div>
 
-          {/* Business Type */}
+          {/* סוג עסק */}
           <div>
-            <label className="block text-gray-400 text-sm mb-2">
-              \u05E1\u05D5\u05D2 \u05D4\u05E2\u05E1\u05E7
-            </label>
+            <label className="block text-gray-400 text-sm mb-2">סוג עסק</label>
             <select
-              value={businessData.business_type}
+              value={profileData.business_type}
               onChange={(e) =>
-                setBusinessData({ ...businessData, business_type: e.target.value })
+                setProfileData({ ...profileData, business_type: e.target.value })
               }
               className="input-glass w-full appearance-none cursor-pointer"
               dir="rtl"
             >
-              <option value="">\u05D1\u05D7\u05E8 \u05E1\u05D5\u05D2 \u05E2\u05E1\u05E7...</option>
-              {businessTypeOptions.map((opt) => (
+              <option value="">בחר סוג עסק...</option>
+              {BUSINESS_TYPES.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -620,42 +664,73 @@ export default function Settings() {
             </select>
           </div>
 
-          {/* Address with Google Places */}
+          {/* תיאור קצר */}
           <div>
             <label className="block text-gray-400 text-sm mb-2">
-              \u05DB\u05EA\u05D5\u05D1\u05EA
+              תיאור קצר של העסק
+            </label>
+            <textarea
+              value={profileData.business_description}
+              onChange={(e) => {
+                if (e.target.value.length <= 200) {
+                  setProfileData({
+                    ...profileData,
+                    business_description: e.target.value,
+                  });
+                }
+              }}
+              rows={3}
+              maxLength={200}
+              className="input-glass resize-none"
+              dir="rtl"
+            />
+            <div className="flex justify-between mt-1">
+              <p className="text-gray-500 text-xs">
+                משמש ל-AI להבין את העסק שלך טוב יותר
+              </p>
+              <p className="text-gray-500 text-xs">
+                {profileData.business_description.length}/200
+              </p>
+            </div>
+          </div>
+
+          {/* כתובת */}
+          <div>
+            <label className="block text-gray-400 text-sm mb-2">
+              <MapPin className="w-4 h-4 inline ml-1" />
+              כתובת
             </label>
             <input
               ref={addressInputRef}
               type="text"
-              value={businessData.address}
+              value={profileData.address}
               onChange={(e) =>
-                setBusinessData({ ...businessData, address: e.target.value })
+                setProfileData({ ...profileData, address: e.target.value })
               }
-              placeholder="\u05D4\u05EA\u05D7\u05DC \u05DC\u05D4\u05E7\u05DC\u05D9\u05D3 \u05DB\u05EA\u05D5\u05D1\u05EA..."
+              placeholder="התחל להקליד כתובת..."
               className="input-glass"
               dir="rtl"
             />
           </div>
 
-          {/* Activity Radius */}
+          {/* אזור פעילות */}
           <div>
             <label className="block text-gray-400 text-sm mb-2">
-              \u05E8\u05D3\u05D9\u05D5\u05E1 \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA
+              אזור פעילות
             </label>
             <div className="flex flex-wrap gap-2">
-              {radiusOptions.map((opt) => (
+              {RADIUS_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() =>
-                    setBusinessData({
-                      ...businessData,
+                    setProfileData({
+                      ...profileData,
                       activity_radius_km: opt.value,
                     })
                   }
                   className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
-                    businessData.activity_radius_km === opt.value
+                    profileData.activity_radius_km === opt.value
                       ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
                       : 'border-gray-700 bg-gray-800/30 text-gray-400 hover:border-gray-600'
                   }`}
@@ -666,81 +741,206 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Business Description */}
+          {/* אתר אינטרנט */}
           <div>
             <label className="block text-gray-400 text-sm mb-2">
-              \u05EA\u05D9\u05D0\u05D5\u05E8 \u05D4\u05E2\u05E1\u05E7
+              <Globe className="w-4 h-4 inline ml-1" />
+              אתר אינטרנט
             </label>
-            <textarea
-              value={businessData.business_description}
+            <input
+              type="url"
+              value={profileData.website}
               onChange={(e) =>
-                setBusinessData({
-                  ...businessData,
-                  business_description: e.target.value,
-                })
+                setProfileData({ ...profileData, website: e.target.value })
               }
-              rows={3}
-              className="input-glass resize-none"
-              dir="rtl"
+              placeholder="https://www.example.com"
+              className="input-glass"
+              dir="ltr"
             />
-            <p className="text-gray-500 text-xs mt-1">
-              \u05DE\u05E9\u05DE\u05E9 \u05D0\u05EA \u05D4-AI \u05DC\u05D9\u05E6\u05D9\u05E8\u05EA \u05EA\u05D5\u05D1\u05E0\u05D5\u05EA \u05DE\u05D5\u05EA\u05D0\u05DE\u05D5\u05EA
-            </p>
           </div>
 
-          {/* Website + Facebook side by side */}
+          {/* פייסבוק + אינסטגרם */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-gray-400 text-sm mb-2">
-                \u05D0\u05EA\u05E8 \u05D0\u05D9\u05E0\u05D8\u05E8\u05E0\u05D8
+                <Facebook className="w-4 h-4 inline ml-1" />
+                עמוד פייסבוק
               </label>
               <input
                 type="url"
-                value={businessData.website}
+                value={profileData.facebook_page}
                 onChange={(e) =>
-                  setBusinessData({ ...businessData, website: e.target.value })
-                }
-                placeholder="https://www.example.com"
-                className="input-glass"
-                dir="ltr"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-400 text-sm mb-2">
-                \u05E2\u05DE\u05D5\u05D3 \u05E4\u05D9\u05D9\u05E1\u05D1\u05D5\u05E7
-              </label>
-              <input
-                type="url"
-                value={businessData.facebook_page}
-                onChange={(e) =>
-                  setBusinessData({ ...businessData, facebook_page: e.target.value })
+                  setProfileData({
+                    ...profileData,
+                    facebook_page: e.target.value,
+                  })
                 }
                 placeholder="https://facebook.com/..."
                 className="input-glass"
                 dir="ltr"
               />
             </div>
+            <div>
+              <label className="block text-gray-400 text-sm mb-2">
+                <Instagram className="w-4 h-4 inline ml-1" />
+                עמוד אינסטגרם
+              </label>
+              <input
+                type="url"
+                value={profileData.instagram_page}
+                onChange={(e) =>
+                  setProfileData({
+                    ...profileData,
+                    instagram_page: e.target.value,
+                  })
+                }
+                placeholder="https://instagram.com/..."
+                className="input-glass"
+                dir="ltr"
+              />
+            </div>
           </div>
-
-          <SectionSaveButton
-            isSaving={businessSaving}
-            saved={businessSaved}
-            onClick={handleSaveBusiness}
-          />
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          SECTION 3: NOTIFICATION PREFERENCES
-          ═══════════════════════════════════════════════════════════════════════ */}
+      {/* Section B — קהל יעד */}
+      <div className="glass-card">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+            <Search className="w-5 h-5 text-cyan-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-white">קהל יעד</h2>
+        </div>
+
+        <div className="space-y-5">
+          {/* לקוח אידיאלי */}
+          <div>
+            <label className="block text-gray-400 text-sm mb-2">
+              מי הלקוח האידיאלי שלך?
+            </label>
+            <textarea
+              value={profileData.ideal_customer}
+              onChange={(e) =>
+                setProfileData({
+                  ...profileData,
+                  ideal_customer: e.target.value,
+                })
+              }
+              rows={3}
+              placeholder="לדוגמה: נשים 25-45, תושבי האזור, מחפשות טיפולי יופי במחיר סביר"
+              className="input-glass resize-none"
+              dir="rtl"
+            />
+          </div>
+
+          {/* מילות מפתח לחיפוש */}
+          <div>
+            <label className="block text-gray-400 text-sm mb-2">
+              מילות מפתח לחיפוש לידים
+            </label>
+            <TagsInput
+              tags={searchKeywords}
+              onTagsChange={setSearchKeywords}
+              placeholder="הוסף מילת מפתח ולחץ Enter"
+              helperText="Quieteyes יחפש פוסטים עם מילים אלה"
+            />
+          </div>
+
+          {/* מילות מפתח לאי-כלול */}
+          <div>
+            <label className="block text-gray-400 text-sm mb-2">
+              מילות מפתח לאי-כלול
+            </label>
+            <TagsInput
+              tags={excludeKeywords}
+              onTagsChange={setExcludeKeywords}
+              placeholder="מילים שלא רלוונטיות לעסק שלך"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Section C — מתחרים ידניים */}
+      <div className="glass-card">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5 text-amber-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-white">מתחרים ידניים</h2>
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-gray-400 text-sm">
+            מתחרים שברצונך לעקוב אחריהם
+          </p>
+
+          <div className="flex gap-2">
+            <input
+              value={competitorInput}
+              onChange={(e) => setCompetitorInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addCompetitor();
+                }
+              }}
+              placeholder="הוסף שם מתחרה..."
+              className="input-glass flex-1"
+              dir="rtl"
+            />
+            <button
+              onClick={addCompetitor}
+              className="px-3 py-2 rounded-xl bg-gray-800/50 border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+
+          {manualCompetitors.length === 0 ? (
+            <p className="text-gray-600 text-sm py-3 text-center">
+              טרם נוספו מתחרים
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {manualCompetitors.map((name, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700/50"
+                >
+                  <span className="text-white text-sm">{name}</span>
+                  <button
+                    onClick={() => removeCompetitor(i)}
+                    className="text-gray-500 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Save button */}
+      <div className="flex justify-end">
+        <SectionSaveButton
+          isSaving={profileSaving}
+          saved={profileSaved}
+          onClick={handleSaveProfile}
+        />
+      </div>
+    </div>
+  );
+
+  const renderAlertsTab = () => (
+    <div className="space-y-6">
+      {/* Notification Preferences */}
       <div className="glass-card">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
             <Bell className="w-5 h-5 text-amber-400" />
           </div>
-          <h2 className="text-lg font-semibold text-white">
-            \u05D4\u05E2\u05D3\u05E4\u05D5\u05EA \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA
-          </h2>
+          <h2 className="text-lg font-semibold text-white">העדפות התראות</h2>
         </div>
 
         <div className="space-y-4">
@@ -752,89 +952,48 @@ export default function Settings() {
                 <p className="text-white font-medium">WhatsApp</p>
                 <p className="text-gray-500 text-sm">
                   {personalData.phone
-                    ? `\u05E0\u05E9\u05DC\u05D7 \u05DC-${personalData.phone}`
-                    : '\u05D4\u05D5\u05E1\u05E3 \u05DE\u05E1\u05E4\u05E8 \u05D8\u05DC\u05E4\u05D5\u05DF \u05D1\u05E4\u05E8\u05D8\u05D9\u05DD \u05D0\u05D9\u05E9\u05D9\u05D9\u05DD'}
+                    ? `נשלח ל-${personalData.phone}`
+                    : 'הוסף מספר טלפון בפרטים אישיים'}
                 </p>
               </div>
-              <button
-                onClick={() =>
-                  setNotifData({
-                    ...notifData,
-                    notification_whatsapp: !notifData.notification_whatsapp,
-                  })
+              <ToggleSwitch
+                enabled={notifData.notification_whatsapp}
+                onChange={(v) =>
+                  setNotifData({ ...notifData, notification_whatsapp: v })
                 }
-                className={
-                  'relative w-12 h-6 rounded-full transition-colors ' +
-                  (notifData.notification_whatsapp ? 'bg-indigo-500' : 'bg-gray-700')
-                }
-              >
-                <span
-                  className={
-                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ' +
-                    (notifData.notification_whatsapp ? 'right-1' : 'left-1')
-                  }
-                />
-              </button>
+              />
             </div>
 
             {/* Email Toggle */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800/50">
               <div>
-                <p className="text-white font-medium">\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC</p>
+                <p className="text-white font-medium">אימייל</p>
                 <p className="text-gray-500 text-sm">
-                  \u05E7\u05D1\u05DC \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05D1\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC
+                  קבל התראות באימייל
                 </p>
               </div>
-              <button
-                onClick={() =>
-                  setNotifData({
-                    ...notifData,
-                    notification_email: !notifData.notification_email,
-                  })
+              <ToggleSwitch
+                enabled={notifData.notification_email}
+                onChange={(v) =>
+                  setNotifData({ ...notifData, notification_email: v })
                 }
-                className={
-                  'relative w-12 h-6 rounded-full transition-colors ' +
-                  (notifData.notification_email ? 'bg-indigo-500' : 'bg-gray-700')
-                }
-              >
-                <span
-                  className={
-                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ' +
-                    (notifData.notification_email ? 'right-1' : 'left-1')
-                  }
-                />
-              </button>
+              />
             </div>
 
             {/* Weekly Report Toggle */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800/50">
               <div>
-                <p className="text-white font-medium">
-                  \u05D3\u05D5\u05D7 \u05E9\u05D1\u05D5\u05E2\u05D9 PDF
-                </p>
+                <p className="text-white font-medium">דוח שבועי PDF</p>
                 <p className="text-gray-500 text-sm">
-                  \u05E1\u05D9\u05DB\u05D5\u05DD \u05E9\u05D1\u05D5\u05E2\u05D9 \u05E9\u05DC \u05D4\u05DE\u05D5\u05D3\u05D9\u05E2\u05D9\u05DF \u05D4\u05E2\u05E1\u05E7\u05D9
+                  סיכום שבועי של המודיעין העסקי
                 </p>
               </div>
-              <button
-                onClick={() =>
-                  setNotifData({
-                    ...notifData,
-                    notification_weekly_report: !notifData.notification_weekly_report,
-                  })
+              <ToggleSwitch
+                enabled={notifData.notification_weekly_report}
+                onChange={(v) =>
+                  setNotifData({ ...notifData, notification_weekly_report: v })
                 }
-                className={
-                  'relative w-12 h-6 rounded-full transition-colors ' +
-                  (notifData.notification_weekly_report ? 'bg-indigo-500' : 'bg-gray-700')
-                }
-              >
-                <span
-                  className={
-                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ' +
-                    (notifData.notification_weekly_report ? 'right-1' : 'left-1')
-                  }
-                />
-              </button>
+              />
             </div>
           </div>
 
@@ -842,10 +1001,10 @@ export default function Settings() {
           <div>
             <label className="block text-gray-400 text-sm mb-2">
               <Clock className="w-4 h-4 inline ml-1" />
-              \u05E9\u05E2\u05EA \u05D4\u05D5\u05D3\u05E2\u05EA \u05D1\u05D5\u05E7\u05E8
+              שעת הודעת בוקר
             </label>
             <div className="flex flex-wrap gap-2">
-              {morningAlertTimeOptions.map((opt) => (
+              {MORNING_ALERT_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
@@ -867,10 +1026,10 @@ export default function Settings() {
           {/* Alert Sensitivity */}
           <div>
             <label className="block text-gray-400 text-sm mb-2">
-              \u05E8\u05DE\u05EA \u05E8\u05D2\u05D9\u05E9\u05D5\u05EA \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA
+              רמת רגישות התראות
             </label>
             <div className="flex flex-wrap gap-2">
-              {alertSensitivityOptions.map((opt) => (
+              {ALERT_SENSITIVITY_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
@@ -884,7 +1043,9 @@ export default function Settings() {
                   }`}
                 >
                   <span className="font-medium">{opt.label}</span>
-                  <span className="text-xs text-gray-500 mr-1">({opt.desc})</span>
+                  <span className="text-xs text-gray-500 mr-1">
+                    ({opt.desc})
+                  </span>
                 </button>
               ))}
             </div>
@@ -898,44 +1059,7 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          SECTION 4: SUBSCRIPTION
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="glass-card">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
-            <CreditCard className="w-5 h-5 text-indigo-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-white">\u05DE\u05E0\u05D5\u05D9</h2>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">
-              \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E0\u05D5\u05DB\u05D7\u05D9\u05EA:
-            </span>
-            <span className="text-white font-medium">
-              {(currentProfile as any)?.plan_name || '\u05D7\u05D9\u05E0\u05DE\u05D9'}
-            </span>
-          </div>
-
-          <p className="text-gray-400 text-sm">
-            \u05E0\u05D4\u05DC\u05D5 \u05D0\u05EA \u05D4\u05DE\u05E0\u05D5\u05D9, \u05E9\u05D3\u05E8\u05D2\u05D5 \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05D5\u05E6\u05E4\u05D5 \u05D1\u05E9\u05D9\u05DE\u05D5\u05E9 \u05E7\u05E8\u05D3\u05D9\u05D8\u05D9\u05DD
-          </p>
-
-          <a
-            href="/dashboard/billing"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-medium hover:from-blue-500 hover:to-cyan-500 transition-all"
-          >
-            <CreditCard className="w-4 h-4" />
-            \u05E0\u05D9\u05D4\u05D5\u05DC \u05DE\u05E0\u05D5\u05D9
-          </a>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          SCHEDULED JOBS
-          ═══════════════════════════════════════════════════════════════════════ */}
+      {/* Scheduled Jobs */}
       <div className="glass-card">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -944,10 +1068,10 @@ export default function Settings() {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-white">
-                \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05DE\u05EA\u05D5\u05D6\u05DE\u05E0\u05D5\u05EA
+                משימות מתוזמנות
               </h2>
               <p className="text-gray-500 text-sm">
-                \u05E0\u05D9\u05D4\u05D5\u05DC \u05E1\u05E8\u05D9\u05E7\u05D5\u05EA \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05D5\u05EA
+                ניהול סריקות אוטומטיות
               </p>
             </div>
           </div>
@@ -959,7 +1083,7 @@ export default function Settings() {
             <RefreshCw
               className={`w-4 h-4 ${resettingJobs ? 'animate-spin' : ''}`}
             />
-            \u05D0\u05D9\u05E4\u05D5\u05E1 \u05D1\u05E8\u05D9\u05E8\u05D5\u05EA \u05DE\u05D7\u05D3\u05DC
+            איפוס ברירות מחדל
           </button>
         </div>
 
@@ -970,14 +1094,12 @@ export default function Settings() {
         ) : jobs.length === 0 ? (
           <div className="text-center py-8">
             <Clock className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-            <p className="text-gray-400 text-sm">
-              \u05D0\u05D9\u05DF \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05DE\u05EA\u05D5\u05D6\u05DE\u05E0\u05D5\u05EA
-            </p>
+            <p className="text-gray-400 text-sm">אין משימות מתוזמנות</p>
             <button
               onClick={resetDefaults}
               className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors text-sm"
             >
-              \u05E6\u05D5\u05E8 \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC
+              צור משימות ברירת מחדל
             </button>
           </div>
         ) : (
@@ -1009,10 +1131,10 @@ export default function Settings() {
                     <p className="text-gray-500 text-sm">{label.description}</p>
                     <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-500">
                       <span>
-                        \u05D4\u05E8\u05E6\u05D4 \u05D0\u05D7\u05E8\u05D5\u05E0\u05D4: {formatDateTime(job.last_run_at)}
+                        הרצה אחרונה: {formatDateTime(job.last_run_at)}
                       </span>
                       <span>
-                        \u05D4\u05E8\u05E6\u05D4 \u05D4\u05D1\u05D0\u05D4: {formatDateTime(job.next_run_at)}
+                        הרצה הבאה: {formatDateTime(job.next_run_at)}
                       </span>
                     </div>
                   </div>
@@ -1042,58 +1164,232 @@ export default function Settings() {
           </div>
         )}
       </div>
+    </div>
+  );
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          DANGER ZONE
-          ═══════════════════════════════════════════════════════════════════════ */}
+  const renderAccountTab = () => (
+    <div className="space-y-6">
+      {/* Personal Details */}
+      <div className="glass-card">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+            <User className="w-5 h-5 text-cyan-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-white">פרטים אישיים</h2>
+        </div>
+
+        <div className="space-y-4">
+          {/* First Name + Last Name */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-400 text-sm mb-2">
+                שם פרטי
+              </label>
+              <input
+                type="text"
+                value={personalData.first_name}
+                onChange={(e) =>
+                  setPersonalData({
+                    ...personalData,
+                    first_name: e.target.value,
+                  })
+                }
+                className="input-glass"
+                dir="rtl"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-400 text-sm mb-2">
+                שם משפחה
+              </label>
+              <input
+                type="text"
+                value={personalData.last_name}
+                onChange={(e) =>
+                  setPersonalData({
+                    ...personalData,
+                    last_name: e.target.value,
+                  })
+                }
+                className="input-glass"
+                dir="rtl"
+              />
+            </div>
+          </div>
+
+          {/* Email (read-only) */}
+          <div>
+            <label className="block text-gray-400 text-sm mb-2">אימייל</label>
+            <div className="relative">
+              <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+              <input
+                type="email"
+                value={user?.email || ''}
+                disabled
+                className="input-glass pr-12 opacity-60 cursor-not-allowed"
+                dir="ltr"
+              />
+            </div>
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-gray-400 text-sm mb-2">
+              טלפון נייד
+            </label>
+            <input
+              type="tel"
+              value={personalData.phone}
+              onChange={(e) =>
+                setPersonalData({ ...personalData, phone: e.target.value })
+              }
+              placeholder="050-1234567"
+              className="input-glass"
+              dir="ltr"
+            />
+            <p className="text-gray-500 text-xs mt-1">
+              משמש להתראות וואטסאפ
+            </p>
+          </div>
+
+          {/* Change Password */}
+          <div className="pt-2 border-t border-gray-700/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-gray-400" />
+                <span className="text-gray-400 text-sm">שינוי סיסמה</span>
+              </div>
+              <button
+                onClick={handleResetPassword}
+                disabled={resetPasswordLoading}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {resetPasswordLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Mail className="w-4 h-4" />
+                )}
+                שלח מייל לאיפוס סיסמה
+              </button>
+            </div>
+          </div>
+
+          <SectionSaveButton
+            isSaving={personalSaving}
+            saved={personalSaved}
+            onClick={handleSavePersonal}
+          />
+        </div>
+      </div>
+
+      {/* Danger Zone */}
       <div className="glass-card border border-red-500/20">
-        <h3 className="text-red-400 font-semibold mb-4">
-          \u05D0\u05D6\u05D5\u05E8 \u05DE\u05E1\u05D5\u05DB\u05DF
-        </h3>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5 text-red-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-red-400">אזור מסוכן</h2>
+        </div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-white">
-              \u05DE\u05D7\u05E7 \u05D0\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF
-            </p>
+            <p className="text-white">מחק את החשבון</p>
             <p className="text-gray-500 text-sm">
-              \u05E4\u05E2\u05D5\u05DC\u05D4 \u05D6\u05D5 \u05DC\u05D0 \u05E0\u05D9\u05EA\u05E0\u05EA \u05DC\u05D1\u05D9\u05D8\u05D5\u05DC
+              פעולה זו לא ניתנת לביטול
             </p>
           </div>
           <button
-            onClick={async () => {
-              if (
-                !window.confirm(
-                  '\u05D4\u05D0\u05DD \u05D0\u05EA\u05D4 \u05D1\u05D8\u05D5\u05D7 \u05E9\u05D1\u05E8\u05E6\u05D5\u05E0\u05DA \u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF? \u05E4\u05E2\u05D5\u05DC\u05D4 \u05D6\u05D5 \u05DC\u05D0 \u05E0\u05D9\u05EA\u05E0\u05EA \u05DC\u05D1\u05D9\u05D8\u05D5\u05DC.'
-                )
-              )
-                return;
-              try {
-                const res = await apiFetch(
-                  `/business/profile/${currentProfile?.id}`,
-                  { method: 'DELETE' }
-                );
-                if (res.ok) {
-                  toast.success(
-                    '\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E0\u05DE\u05D7\u05E7 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4'
-                  );
-                  window.location.href = '/';
-                } else {
-                  toast.error(
-                    '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF'
-                  );
-                }
-              } catch {
-                toast.error(
-                  '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF'
-                );
-              }
-            }}
+            onClick={handleDeleteAccount}
             className="px-4 py-2 rounded-xl bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-colors"
           >
-            \u05DE\u05D7\u05E7 \u05D7\u05E9\u05D1\u05D5\u05DF
+            מחק חשבון
           </button>
         </div>
       </div>
+    </div>
+  );
+
+  const renderSubscriptionTab = () => (
+    <div className="space-y-6">
+      <div className="glass-card">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+            <CreditCard className="w-5 h-5 text-indigo-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-white">מנוי</h2>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm">תוכנית נוכחית:</span>
+            <span className="text-white font-medium">
+              {(currentProfile as any)?.plan_name || 'חינמי'}
+            </span>
+          </div>
+
+          <p className="text-gray-400 text-sm">
+            נהלו את המנוי, שדרגו תוכנית וצפו בשימוש קרדיטים
+          </p>
+
+          <a
+            href="/dashboard/billing"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-medium hover:from-blue-500 hover:to-cyan-400 transition-all"
+          >
+            <CreditCard className="w-4 h-4" />
+            ניהול מנוי
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOADING STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (loading) return <PageLoader message="טוען הגדרות..." />;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  return (
+    <div className="space-y-6 fade-in">
+      <header>
+        <h1
+          className="text-3xl font-bold text-white mb-2"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          הגדרות
+        </h1>
+        <p className="text-[var(--text-secondary)]">
+          נהל את פרופיל העסק, פרטים אישיים והעדפות
+        </p>
+      </header>
+
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-gray-700/50 overflow-x-auto">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+              activeTab === tab.id
+                ? 'text-[#00d4ff] border-[#00d4ff]'
+                : 'text-gray-400 hover:text-gray-200 border-transparent'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {activeTab === 'profile' && renderProfileTab()}
+      {activeTab === 'alerts' && renderAlertsTab()}
+      {activeTab === 'account' && renderAccountTab()}
+      {activeTab === 'subscription' && renderSubscriptionTab()}
     </div>
   );
 }

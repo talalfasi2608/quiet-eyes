@@ -183,13 +183,15 @@ class OnboardWizardRequest(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     business_type: Optional[str] = None
-    activity_radius_km: Optional[int] = None
+    activity_radius_km: Optional[float] = None
     notification_whatsapp: Optional[bool] = None
     notification_email: Optional[bool] = None
     notification_weekly_report: Optional[bool] = None
     morning_alert_time: Optional[str] = None
     onboarding_completed: Optional[bool] = None
     onboarding_step: Optional[int] = None
+    business_type_custom: Optional[str] = None
+    priorities: Optional[str] = None  # JSON array string
 
 
 @router.post("/wizard")
@@ -262,6 +264,8 @@ async def onboard_wizard(payload: OnboardWizardRequest, request: Request, auth_u
             "morning_alert_time": payload.morning_alert_time,
             "onboarding_completed": payload.onboarding_completed,
             "onboarding_step": payload.onboarding_step,
+            "business_type_custom": payload.business_type_custom,
+            "priorities": payload.priorities,
         }
         for key, value in optional_fields.items():
             if value is not None:
