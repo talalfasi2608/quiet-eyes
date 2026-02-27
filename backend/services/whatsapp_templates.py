@@ -146,3 +146,201 @@ def test_message(business_name: str = "העסק שלך") -> str:
         f"━━━━━━━━━━━━━\n"
         f"Quieteyes | מודיעין עסקי"
     ).strip()
+
+
+# ═══════════════════════════════════════════════════════════════
+# Trial Conversion Templates
+# ═══════════════════════════════════════════════════════════════
+
+def trial_day1_welcome(
+    name: str,
+    competitors_found: int = 0,
+    leads_found: int = 0,
+) -> str:
+    return (
+        f"👋 היי {name}!\n"
+        f"\n"
+        f"ברוך הבא ל-Quieteyes 🎉\n"
+        f"\n"
+        f"הסריקה הראשונה שלך הושלמה.\n"
+        f"מצאנו {competitors_found} מתחרים ו-{leads_found} לידים.\n"
+        f"\n"
+        f"⏰ יש לך 14 יום חינם להכיר את הפלטפורמה.\n"
+        f"\n"
+        f"💡 טיפ ליום הראשון:\n"
+        f"כנס לעמוד הלידים וראה מי מחפש\n"
+        f"את השירות שלך עכשיו.\n"
+        f"\n"
+        f"👉 {_FRONTEND_URL}/dashboard/sniper\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Quieteyes"
+    ).strip()
+
+
+def trial_day3_value(
+    name: str,
+    leads_found: int = 0,
+    competitor_changes: int = 0,
+    new_businesses: int = 0,
+    insight: str = "",
+) -> str:
+    insight_line = f"\n💡 הכי מעניין השבוע:\n{insight}" if insight else ""
+    return (
+        f"📊 3 ימים עם Quieteyes — הנה מה שמצאנו:\n"
+        f"\n"
+        f"🎯 לידים חמים: {leads_found}\n"
+        f"👁️ שינויים אצל מתחרים: {competitor_changes}\n"
+        f"🆕 עסקים חדשים באזורך: {new_businesses}"
+        f"{insight_line}\n"
+        f"\n"
+        f"עוד 11 יום בניסיון החינמי שלך.\n"
+        f"\n"
+        f"👉 {_FRONTEND_URL}/dashboard\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Quieteyes"
+    ).strip()
+
+
+def trial_day7_halfway(
+    name: str,
+    business_name: str,
+    leads_found: int = 0,
+    competitors_tracked: int = 0,
+    changes_detected: int = 0,
+    alerts_sent: int = 0,
+    best_insight: str = "",
+) -> str:
+    insight_line = f"\n💡 התובנה הכי חשובה השבוע:\n{best_insight}" if best_insight else ""
+    return (
+        f"🎯 שבוע ראשון — הנה הסיכום שלך:\n"
+        f"\n"
+        f"עסק: {business_name}\n"
+        f"תקופה: 7 ימים\n"
+        f"\n"
+        f"📈 מה מצאנו בשבילך:\n"
+        f"- {leads_found} לידים חמים\n"
+        f"- {competitors_tracked} מתחרים במעקב\n"
+        f"- {changes_detected} שינויים שזוהו\n"
+        f"- {alerts_sent} התראות נשלחו"
+        f"{insight_line}\n"
+        f"\n"
+        f"⏰ נותרו לך 7 ימים בניסיון החינמי.\n"
+        f"\n"
+        f"השאלה היא לא אם Quieteyes מביאה ערך —\n"
+        f"השאלה היא כמה ערך אתה רוצה לקבל.\n"
+        f"\n"
+        f"👉 ראה את תוכניות המנוי: {_FRONTEND_URL}/dashboard/billing\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Quieteyes"
+    ).strip()
+
+
+def trial_day12_urgency(
+    name: str,
+    leads_found: int = 0,
+    competitor_changes: int = 0,
+    health_score: int = 0,
+) -> str:
+    return (
+        f"⚠️ נותרו לך 2 ימים בניסיון החינמי\n"
+        f"\n"
+        f"{name}, הנה מה שמצאנו עבורך ב-12 הימים האחרונים:\n"
+        f"\n"
+        f"🎯 {leads_found} לידים חמים שזוהו\n"
+        f"👁️ {competitor_changes} שינויים אצל המתחרים\n"
+        f"📊 ציון בריאות השוק: {health_score}/100\n"
+        f"\n"
+        f"אם לא תשדרג — תפסיק לקבל:\n"
+        f"❌ התראות וואטסאפ\n"
+        f"❌ סריקות לידים אוטומטיות\n"
+        f"❌ מעקב מתחרים\n"
+        f"\n"
+        f"התוכנית הכי פופולרית: PRO ב-₪299/חודש\n"
+        f"= פחות מ-₪10 ליום למודיעין עסקי מלא\n"
+        f"\n"
+        f"👉 שדרג עכשיו: {_FRONTEND_URL}/dashboard/billing\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Quieteyes"
+    ).strip()
+
+
+def trial_day13_last_chance(
+    name: str,
+) -> str:
+    return (
+        f"⏰ מחר הניסיון שלך מסתיים\n"
+        f"\n"
+        f"{name}, מחר החשבון שלך\n"
+        f"עובר למצב חינמי מוגבל.\n"
+        f"\n"
+        f"מה תפסיד:\n"
+        f"❌ התראות וואטסאפ יפסיקו\n"
+        f"❌ סריקות לידים: 3 בחודש (במקום 100)\n"
+        f"❌ מעקב מתחרים: 3 בלבד (במקום 25)\n"
+        f"\n"
+        f"מה תשמור:\n"
+        f"✅ כל הנתונים שנאספו\n"
+        f"✅ גישה לדשבורד (מוגבל)\n"
+        f"\n"
+        f"💡 הצעה אחרונה:\n"
+        f"שדרג היום ותקבל חודש ראשון ב-₪99\n"
+        f"(במקום ₪299 לתוכנית PRO)\n"
+        f"\n"
+        f"קוד: UPGRADE99 — בתוקף עד חצות\n"
+        f"\n"
+        f"👉 {_FRONTEND_URL}/dashboard/billing\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Quieteyes"
+    ).strip()
+
+
+def trial_day14_expired(
+    name: str,
+) -> str:
+    return (
+        f"🔔 הניסיון החינמי שלך הסתיים היום\n"
+        f"\n"
+        f"{name}, 14 ימי הניסיון הסתיימו.\n"
+        f"\n"
+        f"הפלטפורמה עברה למצב חינמי —\n"
+        f"חלק מהיכולות הושבתו.\n"
+        f"\n"
+        f"מה עצרנו:\n"
+        f"⏸️ התראות וואטסאפ\n"
+        f"⏸️ סריקות לידים אוטומטיות\n"
+        f"⏸️ מעקב מלא אחרי מתחרים\n"
+        f"\n"
+        f"כדי להמשיך לקבל מודיעין עסקי מלא:\n"
+        f"\n"
+        f"👉 שדרג עכשיו: {_FRONTEND_URL}/dashboard/billing\n"
+        f"\n"
+        f"יש שאלות? ענה להודעה הזו ישירות.\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Quieteyes"
+    ).strip()
+
+
+def trial_day21_winback(
+    name: str,
+    leads_missed: int = 0,
+) -> str:
+    return (
+        f"👋 {name}, עדיין חושב?\n"
+        f"\n"
+        f"מאז שהניסיון שלך הסתיים\n"
+        f"מצאנו עוד {leads_missed} לידים חמים באזורך\n"
+        f"שהלכו למתחרים שלך.\n"
+        f"\n"
+        f"אנחנו רוצים שתצליח.\n"
+        f"לכן — הצעה חד פעמית:\n"
+        f"\n"
+        f"חודש PRO ב-₪149 (50% הנחה)\n"
+        f"לא יחזור על עצמו.\n"
+        f"\n"
+        f"קוד: WINBACK50\n"
+        f"בתוקף ל-48 שעות.\n"
+        f"\n"
+        f"👉 {_FRONTEND_URL}/dashboard/billing\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Quieteyes"
+    ).strip()

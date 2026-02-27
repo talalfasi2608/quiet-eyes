@@ -22,6 +22,8 @@ interface SubscriptionContextType extends SubscriptionState {
   isTrial: boolean;
   isBusiness: boolean;
   isBetaUser: boolean;
+  trialDaysRemaining: number;
+  isTrialExpired: boolean;
   refreshSubscription: () => Promise<void>;
 }
 
@@ -46,6 +48,8 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   isTrial: false,
   isBusiness: false,
   isBetaUser: false,
+  trialDaysRemaining: 0,
+  isTrialExpired: false,
   refreshSubscription: async () => {},
 });
 
@@ -103,6 +107,25 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   })();
 
+  const trialDaysRemaining = (() => {
+    if (!state.trialEndsAt) return 0;
+    try {
+      const diff = new Date(state.trialEndsAt).getTime() - Date.now();
+      return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    } catch {
+      return 0;
+    }
+  })();
+
+  const isTrialExpired = (() => {
+    if (!state.trialEndsAt) return false;
+    try {
+      return new Date(state.trialEndsAt) <= new Date() && state.tier === 'free';
+    } catch {
+      return false;
+    }
+  })();
+
   // Check beta user status from localStorage (set during beta onboarding)
   const isBetaUser = (() => {
     try {
@@ -121,6 +144,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         isTrial,
         isBusiness,
         isBetaUser,
+        trialDaysRemaining,
+        isTrialExpired,
         refreshSubscription: fetchSubscription,
       }}
     >

@@ -105,6 +105,11 @@ class GlobalRadar:
                 self._check_beta_triggers()
             except Exception as e:
                 logger.debug(f"[GlobalRadar] Beta trigger check error: {e}")
+            # Trial conversion touchpoints — run once daily at 06:00 UTC
+            try:
+                self._check_trial_conversions()
+            except Exception as e:
+                logger.debug(f"[GlobalRadar] Trial conversion check error: {e}")
             self._stop_event.wait(timeout=self.poll_interval_seconds)
 
     def _check_beta_triggers(self):
@@ -119,6 +124,25 @@ class GlobalRadar:
             self.last_run["_beta_triggers"] = now
         except ImportError:
             pass
+
+    def _check_trial_conversions(self):
+        """Check and send trial conversion touchpoints daily."""
+        now = datetime.now(timezone.utc)
+        last = self.last_run.get("_trial_conversions")
+        if last and (now - last).total_seconds() < 86400:
+            return  # Already ran today
+        # Run at hour 6 UTC (08:00 Israel time)
+        if now.hour != 6:
+            return
+        try:
+            from services.trial_conversion import get_trial_conversion
+            from config import supabase
+            count = get_trial_conversion().check_all_trials(supabase)
+            if count > 0:
+                logger.info(f"[GlobalRadar] Trial touchpoints sent: {count}")
+            self.last_run["_trial_conversions"] = now
+        except Exception as e:
+            logger.error(f"[GlobalRadar] Trial conversion check error: {e}")
 
     def _ensure_all_default_jobs(self):
         """Create default scheduled jobs for every active business."""

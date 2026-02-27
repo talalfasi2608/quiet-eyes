@@ -27,6 +27,7 @@ const PlanManagement = lazy(() => import('./pages/dashboard/PlanManagement'));
 const SuperAdmin = lazy(() => import('./pages/dashboard/SuperAdmin'));
 const Reports = lazy(() => import('./pages/dashboard/Reports'));
 const Automations = lazy(() => import('./pages/dashboard/Automations'));
+const Upgrade = lazy(() => import('./pages/dashboard/Upgrade'));
 const BetaLanding = lazy(() => import('./pages/public/BetaLanding'));
 const BetaOnboarding = lazy(() => import('./pages/auth/BetaOnboarding'));
 import RoleGate from './components/auth/RoleGate';
@@ -105,6 +106,7 @@ function ProtectedRoutes() {
         <Route path="reports" element={<Reports />} />
         <Route path="automations" element={<Automations />} />
         <Route path="super-admin" element={<SuperAdmin />} />
+        <Route path="upgrade" element={<Upgrade />} />
       </Route>
 
       {/* Aliases */}

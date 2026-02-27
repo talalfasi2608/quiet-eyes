@@ -58,7 +58,7 @@ const TIER_COLORS: Record<string, string> = {
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
-  const { tier, tierName, creditsRemaining, creditsLimit, isLoading: subLoading } = useSubscription();
+  const { tier, tierName, creditsRemaining, creditsLimit, isLoading: subLoading, isTrial, trialDaysRemaining, isTrialExpired } = useSubscription();
   const { role } = useWorkspace();
   const { currentProfile } = useSimulation();
   const [signingOut, setSigningOut] = useState(false);
@@ -152,6 +152,31 @@ export default function Sidebar() {
                   style={{ width: `${Math.min(100, (creditsRemaining / creditsLimit) * 100)}%` }}
                 />
               </div>
+            )}
+            {/* Trial indicator */}
+            {isTrial && trialDaysRemaining > 0 && (
+              <div className={`mt-2 px-3 py-1.5 rounded-lg text-xs font-medium text-center ${
+                trialDaysRemaining <= 2
+                  ? 'bg-red-500/20 text-red-400 animate-pulse'
+                  : trialDaysRemaining <= 5
+                    ? 'bg-amber-500/20 text-amber-400'
+                    : 'bg-emerald-500/20 text-emerald-400'
+              }`}>
+                {trialDaysRemaining <= 2
+                  ? `🔴 ${trialDaysRemaining} ימים נותרו`
+                  : trialDaysRemaining <= 5
+                    ? `⚠️ ${trialDaysRemaining} ימים נותרו | שדרג`
+                    : `✓ ניסיון חינמי | ${trialDaysRemaining} ימים נותרו`
+                }
+              </div>
+            )}
+            {isTrialExpired && (
+              <NavLink
+                to="/dashboard/billing"
+                className="mt-2 block px-3 py-1.5 rounded-lg text-xs font-medium text-center bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+              >
+                הניסיון הסתיים — שדרג לגרסה מלאה
+              </NavLink>
             )}
           </div>
         )}

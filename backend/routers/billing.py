@@ -307,3 +307,98 @@ async def billing_usage(
     except Exception:
         # credit_logs table might not exist yet — return empty
         return {"usage": []}
+
+
+# =============================================================================
+# GET /billing/trial-status
+# =============================================================================
+
+@router.get("/trial-status")
+async def trial_status(request: Request, auth_user_id: str = Depends(require_auth)):
+    """Return detailed trial status with stats for the upgrade page."""
+    supabase = _get_service_client() or get_supabase_client(request)
+    if not supabase:
+        return {"in_trial": False, "days_remaining": 0}
+
+    # Get subscription
+    trial_ends_at = None
+    tier = "free"
+    try:
+        sub = (
+            supabase.table("subscriptions")
+            .select("tier, trial_ends_at, trial_touchpoints_sent")
+            .eq("user_id", auth_user_id)
+            .maybe_single()
+            .execute()
+        )
+        if sub.data:
+            trial_ends_at = sub.data.get("trial_ends_at")
+            tier = sub.data.get("tier", "free")
+    except Exception:
+        pass
+
+    # Get business
+    biz_id = None
+    biz_name = ""
+    created_at = None
+    try:
+        biz = (
+            supabase.table("businesses")
+            .select("id, business_name, created_at")
+            .eq("user_id", auth_user_id)
+            .maybe_single()
+            .execute()
+        )
+        if biz.data:
+            biz_id = biz.data["id"]
+            biz_name = biz.data.get("business_name", "")
+            created_at = biz.data.get("created_at")
+    except Exception:
+        pass
+
+    # Calculate trial days
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+
+    if trial_ends_at:
+        try:
+            trial_end = datetime.fromisoformat(trial_ends_at.replace("Z", "+00:00"))
+        except Exception:
+            trial_end = now
+    elif created_at:
+        try:
+            created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            trial_end = created_dt + timedelta(days=14)
+        except Exception:
+            trial_end = now
+    else:
+        trial_end = now
+
+    days_remaining = max(0, (trial_end - now).days)
+    in_trial = days_remaining > 0 and tier == "free"
+    expired = days_remaining == 0 and tier == "free"
+
+    # Get stats if business exists
+    stats = {}
+    if biz_id:
+        try:
+            from services.trial_conversion import get_trial_conversion
+            stats = get_trial_conversion()._get_trial_stats(biz_id, supabase)
+        except Exception:
+            pass
+
+    return {
+        "in_trial": in_trial,
+        "expired": expired,
+        "days_remaining": days_remaining,
+        "trial_end": trial_end.isoformat(),
+        "tier": tier,
+        "business_name": biz_name,
+        "stats": {
+            "leads_found": stats.get("leads_count", 0),
+            "competitors_tracked": stats.get("competitors_count", 0),
+            "competitor_changes": stats.get("competitor_changes", 0),
+            "alerts_sent": stats.get("alerts_sent", 0),
+            "health_score": stats.get("health_score", 65),
+        },
+    }
