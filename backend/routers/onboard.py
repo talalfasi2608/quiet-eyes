@@ -179,6 +179,17 @@ class OnboardWizardRequest(BaseModel):
     competitors_list: Optional[str] = None
     whatsapp_number: Optional[str] = None
     daily_update_time: Optional[str] = None
+    # Registration fields
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    business_type: Optional[str] = None
+    activity_radius_km: Optional[int] = None
+    notification_whatsapp: Optional[bool] = None
+    notification_email: Optional[bool] = None
+    notification_weekly_report: Optional[bool] = None
+    morning_alert_time: Optional[str] = None
+    onboarding_completed: Optional[bool] = None
+    onboarding_step: Optional[int] = None
 
 
 @router.post("/wizard")
@@ -241,6 +252,16 @@ async def onboard_wizard(payload: OnboardWizardRequest, request: Request, auth_u
             "competitors_list": payload.competitors_list,
             "whatsapp_number": payload.whatsapp_number,
             "daily_update_time": payload.daily_update_time,
+            "first_name": payload.first_name,
+            "last_name": payload.last_name,
+            "business_type": payload.business_type,
+            "activity_radius_km": payload.activity_radius_km,
+            "notification_whatsapp": payload.notification_whatsapp,
+            "notification_email": payload.notification_email,
+            "notification_weekly_report": payload.notification_weekly_report,
+            "morning_alert_time": payload.morning_alert_time,
+            "onboarding_completed": payload.onboarding_completed,
+            "onboarding_step": payload.onboarding_step,
         }
         for key, value in optional_fields.items():
             if value is not None:

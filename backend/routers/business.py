@@ -80,6 +80,22 @@ async def get_business_by_user(user_id: str, request: Request, auth_user_id: str
                 "address": biz.get("address") or biz.get("location"),
                 "latitude": biz.get("latitude"),
                 "longitude": biz.get("longitude"),
+                "first_name": biz.get("first_name"),
+                "last_name": biz.get("last_name"),
+                "phone": biz.get("phone"),
+                "whatsapp_number": biz.get("whatsapp_number"),
+                "business_type": biz.get("business_type"),
+                "activity_radius_km": biz.get("activity_radius_km"),
+                "notification_whatsapp": biz.get("notification_whatsapp", True),
+                "notification_email": biz.get("notification_email", True),
+                "notification_weekly_report": biz.get("notification_weekly_report", False),
+                "morning_alert_time": biz.get("morning_alert_time", "09:00"),
+                "business_description": biz.get("business_description"),
+                "website": biz.get("website"),
+                "facebook_page": biz.get("facebook_page"),
+                "target_audience_tags": biz.get("target_audience_tags"),
+                "alert_sensitivity": biz.get("alert_sensitivity", "medium"),
+                "scope": biz.get("scope"),
             },
         }
     except HTTPException:
@@ -97,6 +113,19 @@ class BusinessProfileUpdate(BaseModel):
     hours: Optional[str] = None
     archetype: Optional[str] = None
     scope: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    business_type: Optional[str] = None
+    activity_radius_km: Optional[int] = None
+    notification_whatsapp: Optional[bool] = None
+    notification_email: Optional[bool] = None
+    notification_weekly_report: Optional[bool] = None
+    morning_alert_time: Optional[str] = None
+    business_description: Optional[str] = None
+    facebook_page: Optional[str] = None
+    target_audience_tags: Optional[str] = None
+    alert_sensitivity: Optional[str] = None
+    whatsapp_number: Optional[str] = None
 
 
 @router.patch("/profile/{business_id}")
