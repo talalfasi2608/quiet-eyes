@@ -17,7 +17,7 @@ export default function Navbar() {
       <div className="max-w-[1200px] mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-0.5 text-xl font-extrabold tracking-tight" style={{ color: '#f0f4ff', fontFamily: "'Inter', sans-serif" }}>
+          <Link to="/" className="flex items-center gap-0.5 text-xl font-extrabold tracking-tight" style={{ color: '#f0f4ff' }}>
             Quiet<span style={{ color: '#00d4ff' }}>eyes</span>
           </Link>
 
@@ -28,7 +28,7 @@ export default function Navbar() {
                 key={l.to}
                 to={l.to}
                 className="text-sm font-medium transition-colors duration-200"
-                style={{ color: pathname === l.to ? '#00d4ff' : '#8899aa', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: pathname === l.to ? '#00d4ff' : '#8899aa' }}
                 onMouseEnter={e => { if (pathname !== l.to) (e.target as HTMLElement).style.color = '#f0f4ff'; }}
                 onMouseLeave={e => { if (pathname !== l.to) (e.target as HTMLElement).style.color = '#8899aa'; }}
               >
@@ -42,7 +42,7 @@ export default function Navbar() {
             <Link
               to="/login"
               className="px-4 py-1.5 text-sm transition-colors duration-200"
-              style={{ color: '#8899aa', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: '#8899aa' }}
               onMouseEnter={e => (e.target as HTMLElement).style.color = '#f0f4ff'}
               onMouseLeave={e => (e.target as HTMLElement).style.color = '#8899aa'}
             >
@@ -51,7 +51,7 @@ export default function Navbar() {
             <Link
               to="/login"
               className="px-5 py-2 text-sm font-semibold rounded transition-colors duration-200"
-              style={{ background: '#00d4ff', color: '#0a0e1a', fontFamily: "'Inter', sans-serif" }}
+              style={{ background: '#00d4ff', color: '#0a0e1a' }}
               onMouseEnter={e => (e.target as HTMLElement).style.background = '#00bfe6'}
               onMouseLeave={e => (e.target as HTMLElement).style.background = '#00d4ff'}
             >
@@ -80,7 +80,7 @@ export default function Navbar() {
                 to={l.to}
                 onClick={() => setOpen(false)}
                 className="text-sm font-medium py-1"
-                style={{ color: pathname === l.to ? '#00d4ff' : '#8899aa', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: pathname === l.to ? '#00d4ff' : '#8899aa' }}
               >
                 {l.label}
               </Link>

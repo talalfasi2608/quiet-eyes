@@ -4,7 +4,7 @@ import Footer from '../../components/marketing/Footer';
 
 export default function MarketingLayout() {
   return (
-    <div className="min-h-screen" style={{ background: '#0a0e1a', color: '#f0f4ff', fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen" style={{ background: '#0a0e1a', color: '#f0f4ff' }}>
       <Navbar />
       <main>
         <Outlet />

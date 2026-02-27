@@ -27,9 +27,27 @@ html {
   overflow-x: hidden;
 }
 
+/* Global font — Heebo for Hebrew, Inter fallback for Latin */
+*, *::before, *::after {
+  font-family: 'Heebo', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+:lang(he) *, [dir="rtl"] * {
+  font-family: 'Heebo', sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: 'Heebo', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+h1 { font-weight: 800; }
+h2 { font-weight: 700; }
+h3 { font-weight: 600; }
+
 body {
   @apply bg-gray-950 text-gray-100 antialiased;
-  font-family: var(--font-body);
+  font-family: 'Heebo', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-primary);
   background-image:
     radial-gradient(ellipse at 20% 50%, rgba(0, 212, 255, 0.03) 0%, transparent 50%),

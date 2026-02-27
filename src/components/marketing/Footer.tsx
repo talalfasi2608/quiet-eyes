@@ -28,7 +28,7 @@ const columns = [
 
 export default function Footer() {
   return (
-    <footer style={{ background: '#080c16', borderTop: '1px solid rgba(30,45,69,0.5)', fontFamily: "'Inter', sans-serif" }}>
+    <footer style={{ background: '#080c16', borderTop: '1px solid rgba(30,45,69,0.5)' }}>
       <div className="max-w-[1200px] mx-auto px-6 py-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
           {/* Brand */}
