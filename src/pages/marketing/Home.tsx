@@ -108,13 +108,93 @@ function DashboardMockup() {
   );
 }
 
+/* ── WhatsApp-style chat bubble ── */
+function WhatsAppBubble({ message }: { message: string }) {
+  return (
+    <div className="mt-4 rounded-lg p-3" style={{ background: '#f0f4f0', maxWidth: '100%' }}>
+      <p className="text-[10px] font-bold mb-1" style={{ color: '#00d4ff' }}>Quieteyes</p>
+      <p className="text-xs leading-relaxed" style={{ color: '#1a1a1a', direction: 'rtl' }}>{message}</p>
+      <p className="text-[9px] text-left mt-1" style={{ color: '#999' }}>08:02 ✓✓</p>
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════ */
 
 export default function Home() {
   useSEO(
-    'Quieteyes | מודיעין עסקי ומעקב מתחרים אוטומטי לעסקים קטנים',
-    'Quieteyes היא פלטפורמת המודיעין העסקי הראשונה בישראל לעסקים קטנים ובינוניים. מעקב מתחרים אוטומטי, לידים חמים, התראות שוק – הכל בעברית. נסיון חינם 14 יום.'
+    'Quieteyes | מודיעין עסקי חכם — 6 עוזרים שעובדים בשבילך 24/7',
+    'Quieteyes היא פלטפורמת המודיעין העסקי הראשונה בישראל. 6 עוזרים חכמים סורקים את השוק, מוצאים לידים, עוקבים אחרי מתחרים ושולחים לך הכל לוואטסאפ. נסיון חינם 14 יום.'
   );
+
+  const helpers = [
+    {
+      emoji: '👁️',
+      name: 'עיני',
+      tagline: 'עוקב בשבילך על מה שקורה בחוץ',
+      desc: 'סורק רשתות חברתיות, פורומים וקבוצות ומוצא אנשים שמחפשים בדיוק את מה שאתה נותן. בזמן אמת.',
+      whatsapp: 'מצאתי מישהו שמחפש בדיוק מה שאתה נותן. פרסם לפני 4 דקות. יש לך חלון של 20 דקות 🎯',
+    },
+    {
+      emoji: '🧠',
+      name: 'המוח',
+      tagline: 'חושב בשבילך כשאתה עסוק',
+      desc: 'מנתח את כל הנתונים, מזהה דפוסים, ונותן לך כל בוקר 3 משימות בסדר עדיפות שיזיזו את העסק קדימה.',
+      whatsapp: 'שמתי לב שאתה מפספס לידים בין 14:00-16:00. רוצה שנתקן את זה? 💡',
+    },
+    {
+      emoji: '📢',
+      name: 'הקול',
+      tagline: 'מדבר ללקוחות שלך כשאין לך זמן',
+      desc: 'מנתח מה עובד בתעשייה שלך, מה המתחרים לא מדברים עליו, ומכין לך תוכן שממצב אותך כמומחה.',
+      whatsapp: 'המתחרים שלך לא מדברים על [נושא]. כתבתי לך 3 פוסטים שיהפכו אותך למומחה בנושא הזה תוך חודש 📢',
+    },
+    {
+      emoji: '💰',
+      name: 'הכיס',
+      tagline: 'שומר שלא תפספס אף שקל',
+      desc: 'מזהה הזדמנויות הכנסה, עונתיות, ודפוסי קנייה של הלקוחות שלך. מתריע לפני ירידות ומציע תוכניות.',
+      whatsapp: 'בפברואר תמיד יש ירידה של 23% אצלך. יש לי תוכנית שתמנע את זה השנה. רוצה לראות? 💰',
+    },
+    {
+      emoji: '👂',
+      name: 'האוזן',
+      tagline: 'מקשיב ללקוחות שלך בשבילך',
+      desc: 'עוקב אחרי ביקורות, תלונות, ומגמות דעת קהל בתעשייה שלך. יודע מה הלקוחות רוצים לפני שהם אומרים.',
+      whatsapp: '31% מהלקוחות באזורך רוצים הזמנה בוואטסאפ. אף מתחרה לא נותן את זה עדיין 👂',
+    },
+    {
+      emoji: '🔭',
+      name: 'הטווח',
+      tagline: 'מסתכל לאן השוק הולך',
+      desc: 'מזהה מגמות שמגיעות לאזורך, טכנולוגיות חדשות, ושינויים בהתנהגות צרכנים. נותן לך יתרון של שבועות.',
+      whatsapp: 'המגמה הזו הגיעה לחיפה לפני 6 שבועות. עכשיו היא מגיעה לאזורך. הכנתי לך תוכנית 🔭',
+    },
+  ];
+
+  const testimonials = [
+    {
+      quote: 'לפני Quieteyes הייתי מגלה על מבצעים של מתחרים רק כשלקוחות עזבו. עכשיו אני יודע מראש ומגיב. המסעדה מרגישה אחרת לגמרי.',
+      name: 'יוסי כהן',
+      role: 'בעל מסעדה',
+      city: 'חיפה',
+      badge: 'מפספס פחות ₪8,000 בחודש',
+    },
+    {
+      quote: 'העוזרים של Quieteyes מצאו לי לקוחות שחיפשו קוסמטיקאית באזור שלי ברשתות החברתיות. הגעתי אליהן תוך דקות. הן לא האמינו כמה מהר הגבתי.',
+      name: 'שרה לוי',
+      role: 'קוסמטיקאית',
+      city: 'תל אביב',
+      badge: '+11 לקוחות חדשות בחודש',
+    },
+    {
+      quote: 'הטווח התריע שמגמת ריהוט סקנדינבי מגיעה לאזור שלי שבועיים לפני כולם. הכנתי מלאי, עשיתי פוסטים, והייתי הראשון. רבעון שיא.',
+      name: 'דני אברהם',
+      role: 'חנות ריהוט',
+      city: 'ראשל"צ',
+      badge: '+23% לקוחות חדשים ברבעון',
+    },
+  ];
 
   return (
     <>
@@ -123,9 +203,9 @@ export default function Home() {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "Quieteyes",
-        "description": "פלטפורמת מודיעין עסקי לעסקים קטנים ובינוניים בישראל",
+        "description": "פלטפורמת מודיעין עסקי חכמה עם 6 עוזרים אוטומטיים לעסקים קטנים ובינוניים בישראל",
         "applicationCategory": "BusinessApplication",
-        "offers": { "@type": "AggregateOffer", "lowPrice": "0", "highPrice": "599", "priceCurrency": "ILS" },
+        "offers": { "@type": "AggregateOffer", "lowPrice": "0", "highPrice": "449", "priceCurrency": "ILS" },
         "inLanguage": "he",
         "availableLanguage": "Hebrew",
       })}} />
@@ -137,27 +217,38 @@ export default function Home() {
       >
         <div className="max-w-[1200px] mx-auto px-6 py-20 grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <p className="text-sm tracking-[0.2em] mb-6 uppercase" style={{ color: '#00d4ff', fontFamily: "'JetBrains Mono', monospace" }}>
-              פלטפורמת OSINT &middot; מודיעין עסקי בעברית
-            </p>
-            <h1 className="text-4xl md:text-6xl lg:text-[76px] font-extrabold leading-[1.08] mb-6" style={{ letterSpacing: '-0.03em', color: '#f0f4ff' }}>
-              ראה את השוק
+            <h1 className="text-4xl md:text-6xl lg:text-[68px] font-extrabold leading-[1.08] mb-6" style={{ letterSpacing: '-0.03em', color: '#f0f4ff' }}>
+              תדע מה קורה בעסק שלך
               <br />
-              לפני המתחרים שלך
+              גם כשאתה לא מסתכל
             </h1>
             <p className="text-lg md:text-xl leading-relaxed mb-8 max-w-lg" style={{ color: '#8899aa' }}>
-              Quieteyes סורקת את השוק שלך כל 12 שעות. מוצאת לידים חמים, עוקבת אחרי מתחרים ומתריעה על הזדמנויות — לפני שמישהו אחר רואה אותן.
+              6 עוזרים חכמים עובדים בשבילך 24 שעות.
+              <br />
+              אתה מקבל את מה שחשוב — ישירות לוואטסאפ.
             </p>
             <div className="flex flex-wrap gap-4 mb-6">
-              <Link to="/register" className="px-7 py-3 text-sm font-bold rounded transition-colors duration-200" style={{ background: '#00d4ff', color: '#0a0e1a' }} onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')} onMouseLeave={e => (e.currentTarget.style.background = '#00d4ff')}>
-                התחל מודיעין עסקי — 14 יום חינם &larr;
+              <Link
+                to="/register"
+                className="px-7 py-3 text-sm font-bold rounded transition-colors duration-200"
+                style={{ background: '#00d4ff', color: '#0a0e1a' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#00d4ff')}
+              >
+                התחל חינם — 14 יום ללא כרטיס אשראי
               </Link>
-              <Link to="/features" className="px-7 py-3 text-sm font-medium rounded transition-colors duration-200" style={{ border: '1px solid rgba(0,212,255,0.4)', color: '#00d4ff' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,212,255,0.1)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                צפה איך זה עובד
+              <Link
+                to="/features"
+                className="px-7 py-3 text-sm font-medium rounded transition-colors duration-200"
+                style={{ border: '1px solid rgba(0,212,255,0.4)', color: '#00d4ff' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,212,255,0.1)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                {'ראה איך זה עובד \u2190'}
               </Link>
             </div>
             <p className="text-xs" style={{ color: '#4a5568' }}>
-              ללא כרטיס אשראי &middot; ביטול בכל עת &middot; הגדרה תוך 3 דקות &middot; 2,847 עסקים פעילים
+              כבר 2,847 בעלי עסקים בישראל יודעים מה קורה בשוק שלהם. בזמן אמת.
             </p>
           </div>
           <div className="hidden md:block">
@@ -166,14 +257,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── LIVE STATS BAR ─── */}
+      {/* ─── STATS BAR ─── */}
       <section style={{ background: '#0d1526', borderTop: '1px solid rgba(30,45,69,0.3)', borderBottom: '1px solid rgba(30,45,69,0.3)' }}>
         <div className="max-w-[1200px] mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
             { value: 2847, label: 'עסקים פעילים' },
-            { value: 156000, label: 'לידים חמים זוהו', suffix: '+' },
-            { value: 94, label: 'דיוק זיהוי AI', suffix: '%' },
-            { value: 3, label: 'הגדרה ראשונית', prefix: '<', suffix: ' דקות' },
+            { value: 156000, label: 'לידים שנמצאו', suffix: '+' },
+            { value: 94, label: 'מדויקות', suffix: '%' },
+            { value: 3200, label: 'ממוצע הזדמנויות שבועיות', prefix: '₪' },
           ].map((s, i) => (
             <div key={i}>
               <div className="text-3xl md:text-4xl font-extrabold mb-1" style={{ color: '#f0f4ff' }}>
@@ -185,57 +276,55 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── PROBLEM / SOLUTION ─── */}
+      {/* ─── PROBLEM ─── */}
       <section className="py-24">
         <div className="max-w-[1200px] mx-auto px-6">
           <FadeInSection>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-center mb-6" style={{ letterSpacing: '-0.03em' }}>
-              רוב העסקים הקטנים פועלים עיוורים לשוק שלהם
+            <h2 className="text-3xl md:text-5xl font-extrabold text-center mb-16" style={{ letterSpacing: '-0.03em', color: '#f0f4ff' }}>
+              בעל עסק טוב לא אמור לנחש
             </h2>
-            <p className="text-center max-w-2xl mx-auto mb-16 leading-relaxed" style={{ color: '#8899aa' }}>
-              מחקר שוק, מעקב אחרי מתחרים וניתוח לידים — עד היום אלה היו כלים של תאגידים גדולים עם מחלקות מחקר שלמות. הבעל מסעדה, סלון היופי או חנות האונליין לא יכלו להרשות לעצמם את זה. Quieteyes שינתה את המשוואה.
-            </p>
           </FadeInSection>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            <FadeInSection delay={100}>
-              <div className="rounded p-8" style={{ background: '#111827', border: '1px solid rgba(30,45,69,0.3)' }}>
-                <h3 className="text-lg font-bold mb-6" style={{ color: '#ff4466' }}>בלי מודיעין עסקי</h3>
-                <ul className="space-y-4">
-                  {[
-                    'מגלים על מתחרה חדש רק אחרי 3 חודשים',
-                    'מפספסים לידים חמים שמחפשים בדיוק את השירות שלכם',
-                    'מקבלים החלטות שיווקיות על בסיס תחושת בטן',
-                    'המתחרה יודע מה אתם עושים — אתם לא יודעים מה הוא עושה',
-                  ].map((t, i) => (
-                    <li key={i} className="flex items-start gap-3" style={{ color: '#8899aa' }}>
-                      <span style={{ color: '#ff4466', marginTop: 2 }}>&#10005;</span>
-                      <span>{t}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </FadeInSection>
-
-            <FadeInSection delay={200}>
-              <div className="rounded p-8" style={{ background: '#111827', border: '1px solid rgba(0,212,255,0.2)' }}>
-                <h3 className="text-lg font-bold mb-6" style={{ color: '#00ff88' }}>עם Quieteyes</h3>
-                <ul className="space-y-4">
-                  {[
-                    'התראה על מתחרה חדש תוך 24 שעות',
-                    'לידים חמים ישירות לוואטסאפ כל בוקר',
-                    'ניתוח שוק שבועי עם המלצות פעולה ספציפיות',
-                    'מעקב מתחרים אוטומטי — 24/7, ללא עבודה ידנית',
-                  ].map((t, i) => (
-                    <li key={i} className="flex items-start gap-3" style={{ color: '#f0f4ff' }}>
-                      <span style={{ color: '#00ff88', marginTop: 2 }}>&#10003;</span>
-                      <span>{t}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </FadeInSection>
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            {[
+              {
+                emoji: '😰',
+                title: 'הבוקר מתחיל בחוסר ודאות',
+                desc: 'אתה קם בבוקר ולא יודע אם היום יהיה טוב או רע. אין לך מושג מה קרה בשוק בזמן שישנת.',
+              },
+              {
+                emoji: '📵',
+                title: 'לידים בורחים לך מהידיים',
+                desc: 'מישהו כתב בפייסבוק שהוא מחפש בדיוק מה שאתה נותן. אתה לא ראית. המתחרה כן.',
+              },
+              {
+                emoji: '😔',
+                title: 'מתחרה חדש — והפתעה',
+                desc: 'פתחו עסק חדש ליד שלך. כולם כבר יודעים חוץ ממך. שמת לב רק כשהלקוחות התחילו להיעלם.',
+              },
+            ].map((card, i) => (
+              <FadeInSection key={i} delay={i * 100}>
+                <div
+                  className="rounded p-8 h-full transition-colors duration-300"
+                  style={{ background: '#111827', border: '1px solid rgba(30,45,69,0.3)' }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(0,212,255,0.3)')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(30,45,69,0.3)')}
+                >
+                  <span className="text-4xl block mb-4">{card.emoji}</span>
+                  <h3 className="text-lg font-bold mb-3" style={{ color: '#f0f4ff' }}>{card.title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: '#8899aa' }}>{card.desc}</p>
+                </div>
+              </FadeInSection>
+            ))}
           </div>
+
+          <FadeInSection delay={400}>
+            <p className="text-center text-lg md:text-xl leading-relaxed max-w-2xl mx-auto" style={{ color: '#8899aa' }}>
+              זה לא חוסר מזל. זה חוסר מידע.
+              <br />
+              <span style={{ color: '#00d4ff', fontWeight: 700 }}>ו-Quieteyes פותרת את זה.</span>
+            </p>
+          </FadeInSection>
         </div>
       </section>
 
@@ -243,16 +332,28 @@ export default function Home() {
       <section className="py-24" style={{ background: '#0d1526' }}>
         <div className="max-w-[1200px] mx-auto px-6">
           <FadeInSection>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-center mb-16" style={{ letterSpacing: '-0.03em' }}>
-              מהגדרה לתובנות — תוך 3 דקות
+            <h2 className="text-3xl md:text-5xl font-extrabold text-center mb-16" style={{ letterSpacing: '-0.03em', color: '#f0f4ff' }}>
+              3 דקות הגדרה. תוצאות כל החיים.
             </h2>
           </FadeInSection>
 
           <div className="grid md:grid-cols-3 gap-12">
             {[
-              { num: '01', title: 'מגדיר את העסק שלך', desc: 'הכנס שם עסק, סוג וכתובת. Quieteyes מזהה אוטומטית את המתחרים הרלוונטיים, האזור הגיאוגרפי ומילות המפתח שקהל היעד שלך מחפש.' },
-              { num: '02', title: 'הפלטפורמה סורקת את השוק', desc: 'כל 12 שעות — סריקה אוטומטית של פייסבוק, גוגל, מפות ועוד 20 מקורות. מתחרים, לידים, ביקורות, מחירים, מודעות. הכל נאסף, מנותח ומסוכם על ידי AI.' },
-              { num: '03', title: 'מקבל תובנות ופועל', desc: 'כל בוקר — 3 פעולות עדיפות לעסק שלך. כל שינוי מהותי — התראה מיידית לוואטסאפ. לא צריך לדעת OSINT. לא צריך מחקר ידני. רק לפתוח ולפעול.' },
+              {
+                num: '01',
+                title: 'ספר לנו על העסק שלך',
+                desc: 'שם העסק, סוג, כתובת. זהו.',
+              },
+              {
+                num: '02',
+                title: '6 העוזרים מתחילים לעבוד',
+                desc: 'הם סורקים, מנתחים, ומכינים הכל בשבילך — בלי שתצטרך לעשות כלום.',
+              },
+              {
+                num: '03',
+                title: 'אתה מקבל רק מה שחשוב',
+                desc: 'בוקר טוב עם סיכום יומי. התראה מיידית כשמשהו חשוב קורה. הכל לוואטסאפ שלך.',
+              },
             ].map((step, i) => (
               <FadeInSection key={i} delay={i * 150}>
                 <div className="text-center">
@@ -266,116 +367,67 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── FEATURES PREVIEW ─── */}
+      {/* ─── 6 HELPERS ─── */}
       <section className="py-24">
         <div className="max-w-[1200px] mx-auto px-6">
           <FadeInSection>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-center mb-16" style={{ letterSpacing: '-0.03em' }}>
-              מה רואים בתוך Quieteyes
+            <h2 className="text-3xl md:text-5xl font-extrabold text-center mb-16" style={{ letterSpacing: '-0.03em', color: '#f0f4ff' }}>
+              הכר את 6 העוזרים שלך
             </h2>
           </FadeInSection>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { icon: '\uD83C\uDFAF', title: 'צלף לידים', desc: 'סורק שיחות ופוסטים ברשתות החברתיות ומוצא אנשים שמחפשים בדיוק את מה שאתה מציע. כל ליד מקבל ציון רלוונטיות 0-100 ותיאור הפעולה המומלצת.' },
-              { icon: '\uD83D\uDC41\uFE0F', title: 'מודיעין מתחרים', desc: 'עוקב אחרי כל מתחרה שבחרת — שינויי מחירים, ביקורות חדשות, פרסומות, פתיחות וסגירות. מקבל התראה לפני שמישהו אחר בשוק שלך יודע.' },
-              { icon: '\uD83E\uDDE0', title: 'מיקוד יומי מבוסס AI', desc: 'AI שמכיר את העסק שלך, את המתחרים ואת הנתונים — מייצר כל בוקר תוכנית פעולה מותאמת אישית. עדיפות 1, 2, 3 — ולא יותר.' },
-              { icon: '\uD83D\uDCCA', title: 'ניתוח שוק שבועי', desc: 'כל שבוע — דוח PDF מלא עם מגמות השוק, השוואה למתחרים, ניתוח לידים ותוכנית פעולה לשבוע הבא. כלי שעד היום עלה עשרות אלפי שקלים.' },
-              { icon: '\uD83D\uDCF1', title: 'התראות וואטסאפ', desc: 'ליד חם? מתחרה שינה מחיר? עסק חדש פתח באזורך? מגיע לוואטסאפ שלך תוך דקות. לא צריך להיכנס לפלטפורמה — המידע בא אליך.' },
-              { icon: '\uD83D\uDDFA\uFE0F', title: 'מפת נוף תחרותי', desc: 'ראה את כל המתחרים שלך על מפה אינטראקטיבית. דירוג, ביקורות, מרחק, חולשות. דע מי איום אמיתי ומי לא רלוונטי.' },
-            ].map((f, i) => (
+            {helpers.map((h, i) => (
               <FadeInSection key={i} delay={i * 80}>
                 <div
-                  className="rounded p-8 transition-colors duration-300 h-full"
+                  className="rounded p-8 transition-colors duration-300 h-full flex flex-col"
                   style={{ background: '#111827', border: '1px solid rgba(30,45,69,0.3)' }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(0,212,255,0.3)')}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(30,45,69,0.3)')}
                 >
-                  <span className="text-3xl block mb-4">{f.icon}</span>
-                  <h3 className="text-lg font-bold mb-3" style={{ color: '#f0f4ff' }}>{f.title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: '#8899aa' }}>{f.desc}</p>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-3xl">{h.emoji}</span>
+                    <div>
+                      <h3 className="text-lg font-bold" style={{ color: '#f0f4ff' }}>{h.name}</h3>
+                      <p className="text-xs" style={{ color: '#00d4ff' }}>{h.tagline}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm leading-relaxed mb-auto" style={{ color: '#8899aa' }}>{h.desc}</p>
+                  <WhatsAppBubble message={h.whatsapp} />
                 </div>
               </FadeInSection>
             ))}
           </div>
-
-          <div className="text-center mt-10">
-            <Link to="/features" className="text-sm font-medium" style={{ color: '#00d4ff' }}>
-              ראה את כל התכונות בפירוט &larr;
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* ─── SOCIAL PROOF ─── */}
+      {/* ─── TESTIMONIALS ─── */}
       <section className="py-24" style={{ background: '#0d1526' }}>
         <div className="max-w-[1200px] mx-auto px-6">
           <FadeInSection>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-center mb-16" style={{ letterSpacing: '-0.03em' }}>
-              מה אומרים עסקים שכבר עובדים עם מודיעין עסקי אמיתי
+            <h2 className="text-3xl md:text-5xl font-extrabold text-center mb-16" style={{ letterSpacing: '-0.03em', color: '#f0f4ff' }}>
+              מה אומרים בעלי העסקים
             </h2>
           </FadeInSection>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { quote: 'בשבוע הראשון מצאנו 8 לידים חמים — אנשים שכתבו בפייסבוק שהם מחפשים בדיוק את מה שאנחנו מציעים. זה שינה לגמרי איך אנחנו חושבים על שיווק.', name: 'רועי כ.', role: 'בעל מסעדה', location: 'חיפה' },
-              { quote: 'לסוף אני יודעת מה המתחרות עושות. ראיתי שסלון ליד אליי הוריד מחיר מניקור ב-30% — ויכולתי להגיב לפני שאיבדתי לקוחות. זה שווה כל שקל.', name: 'מיה ל.', role: 'בעלת סלון יופי', location: 'תל אביב' },
-              { quote: 'אנחנו סוכנות שיווק. Quieteyes נותנת ללקוחות שלנו נתוני שוק שאף מתחרה שלנו לא יכול לספק. זה הפך לחלק מרכזי בשירות שלנו.', name: 'דני ב.', role: 'מנכ"ל סוכנות שיווק', location: 'ירושלים' },
-            ].map((t, i) => (
+            {testimonials.map((t, i) => (
               <FadeInSection key={i} delay={i * 100}>
-                <div className="rounded p-8" style={{ background: '#111827', border: '1px solid rgba(30,45,69,0.3)' }}>
+                <div className="rounded p-8 h-full flex flex-col" style={{ background: '#111827', border: '1px solid rgba(30,45,69,0.3)' }}>
                   <div className="mb-4" style={{ color: '#ffaa00', fontSize: 14 }}>&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-                  <p className="leading-relaxed mb-6" style={{ color: '#f0f4ff' }}>"{t.quote}"</p>
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: '#f0f4ff' }}>{t.name}, {t.role}</p>
-                    <p className="text-xs" style={{ color: '#8899aa' }}>{t.location}</p>
-                  </div>
-                </div>
-              </FadeInSection>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── PRICING PREVIEW ─── */}
-      <section className="py-24">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <FadeInSection>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-center mb-4" style={{ letterSpacing: '-0.03em' }}>
-              תוכניות מודיעין עסקי
-            </h2>
-            <p className="text-center mb-12" style={{ color: '#8899aa' }}>ליד אחד שתפסת בזכות Quieteyes שווה יותר מכל עלות המנוי</p>
-          </FadeInSection>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-[900px] mx-auto">
-            {[
-              { name: 'חינמי', price: '0', desc: '3 סריקות \u00B7 3 מתחרים \u00B7 10 הודעות AI', popular: false },
-              { name: 'Basic', price: '149', desc: '20 סריקות \u00B7 10 מתחרים \u00B7 התראות וואטסאפ', popular: false },
-              { name: 'Pro', price: '299', desc: '100 סריקות \u00B7 25 מתחרים \u00B7 דוחות שבועיים', popular: true },
-            ].map((p, i) => (
-              <FadeInSection key={i} delay={i * 100}>
-                <div className="rounded p-8 text-center relative" style={{ background: '#111827', border: p.popular ? '1px solid rgba(0,212,255,0.4)' : '1px solid rgba(30,45,69,0.3)' }}>
-                  {p.popular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded" style={{ background: '#00d4ff', color: '#0a0e1a' }}>
-                      הכי פופולרי
+                  <p className="leading-relaxed mb-6 flex-1" style={{ color: '#f0f4ff' }}>"{t.quote}"</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: '#f0f4ff' }}>{t.name}, {t.role}</p>
+                      <p className="text-xs" style={{ color: '#8899aa' }}>{t.city}</p>
+                    </div>
+                    <span className="text-[10px] font-bold px-3 py-1 rounded" style={{ background: 'rgba(0,212,255,0.1)', color: '#00d4ff', border: '1px solid rgba(0,212,255,0.2)' }}>
+                      {t.badge}
                     </span>
-                  )}
-                  <h3 className="text-lg font-bold mb-2" style={{ color: '#f0f4ff' }}>{p.name}</h3>
-                  <div className="mb-4">
-                    <span className="text-3xl font-extrabold" style={{ color: '#f0f4ff', fontFamily: "'JetBrains Mono', monospace" }}>&#8362;{p.price}</span>
-                    <span className="text-sm" style={{ color: '#8899aa' }}>/חודש</span>
                   </div>
-                  <p className="text-sm mb-6" style={{ color: '#8899aa' }}>{p.desc}</p>
-                  <Link to="/pricing" className="block py-2.5 rounded text-sm font-semibold transition-colors duration-200" style={p.popular ? { background: '#00d4ff', color: '#0a0e1a' } : { border: '1px solid rgba(30,45,69,0.5)', color: '#8899aa' }}>
-                    {p.price === '0' ? 'התחל חינם' : 'בחר תוכנית'}
-                  </Link>
                 </div>
               </FadeInSection>
             ))}
-          </div>
-
-          <div className="text-center mt-8">
-            <Link to="/pricing" className="text-sm font-medium" style={{ color: '#00d4ff' }}>ראה את כל התוכניות &larr;</Link>
           </div>
         </div>
       </section>
@@ -385,15 +437,24 @@ export default function Home() {
         <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(0,212,255,0.08) 0%, transparent 60%)' }} />
         <div className="max-w-[700px] mx-auto px-6 text-center relative z-10">
           <FadeInSection>
-            <h2 className="text-3xl md:text-5xl font-extrabold mb-4" style={{ letterSpacing: '-0.03em' }}>
-              מוכן לראות את השוק שלך?
+            <h2 className="text-3xl md:text-5xl font-extrabold mb-4" style={{ letterSpacing: '-0.03em', color: '#f0f4ff' }}>
+              תפסיק לנחש. תתחיל לדעת.
             </h2>
             <p className="mb-8 leading-relaxed" style={{ color: '#8899aa' }}>
-              הצטרף ל-2,847 עסקים שכבר מקבלים מודיעין עסקי אוטומטי כל בוקר. 14 יום חינם. ביטול בכל עת. הגדרה תוך 3 דקות.
+              14 יום חינם. ללא כרטיס אשראי. בלי התחייבות. רק תוצאות.
             </p>
-            <Link to="/register" className="inline-block px-8 py-4 font-bold rounded text-base transition-colors duration-200" style={{ background: '#00d4ff', color: '#0a0e1a' }} onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')} onMouseLeave={e => (e.currentTarget.style.background = '#00d4ff')}>
-              התחל עכשיו — חינם ל-14 יום &larr;
+            <Link
+              to="/register"
+              className="inline-block px-8 py-4 font-bold rounded text-base transition-colors duration-200"
+              style={{ background: '#00d4ff', color: '#0a0e1a' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#00bfe6')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#00d4ff')}
+            >
+              {'התחל עכשיו — זה לוקח 3 דקות'}
             </Link>
+            <p className="mt-6 text-sm" style={{ color: '#4a5568' }}>
+              {'🔒 מאובטח | 🇮🇱 שרתים בישראל | ❌ ללא ספאם | ✅ ביטול בכל עת'}
+            </p>
           </FadeInSection>
         </div>
       </section>

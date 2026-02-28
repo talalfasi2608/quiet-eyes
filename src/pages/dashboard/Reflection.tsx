@@ -135,7 +135,7 @@ export default function Reflection() {
   // Loading state
   if (!currentProfile) {
     return (
-      <PageLoader message="טוען ביקורות..." />
+      <PageLoader message="👂 האוזן מקשיב לביקורות..." />
     );
   }
 
@@ -237,15 +237,15 @@ export default function Reflection() {
   return (
     <div className="space-y-6 fade-in" dir="rtl">
       <header>
-        <h1 className="text-3xl font-bold text-white mb-1">איך נראה בעיני הלקוחות?</h1>
-        <p className="text-gray-400">{nameHebrew} {emoji} — ניתוח מוניטין ותחרות</p>
+        <h1 className="text-3xl font-bold text-white mb-1">אני מול המתחרים 📊</h1>
+        <p className="text-gray-400">👂 האוזן מקשיב — ניתוח מוניטין וביקורות עבור {nameHebrew} {emoji}</p>
       </header>
 
       {/* Loading overlay */}
       {isLoading && (
         <div className="glass-card flex items-center justify-center gap-3 py-8">
           <Loader2 className="w-6 h-6 text-cyan-500 animate-spin" />
-          <p className="text-gray-400">מנתח ביקורות ומתחרים עם AI...</p>
+          <p className="text-gray-400">👂 האוזן מנתח ביקורות ומתחרים...</p>
         </div>
       )}
 
@@ -262,7 +262,7 @@ export default function Reflection() {
             {/* Sentiment Gauge */}
             <div className="lg:col-span-1">
               <div className="glass-card text-center">
-                <h2 className="text-lg font-semibold text-white mb-4">ציון בריאות המותג</h2>
+                <h2 className="text-lg font-semibold text-white mb-4">איך הלקוחות רואים אותך</h2>
 
                 <div className="relative w-36 h-36 mx-auto mb-4">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -349,7 +349,7 @@ export default function Reflection() {
                 </div>
 
                 {sortedCompetitors.length === 0 ? (
-                  <EmptyState icon={Users} title="אין מתחרים שנסרקו עדיין" description="הוסף מתחרים כדי להשוות" actionLabel="הוסף מתחרים" onAction={() => navigate('/dashboard/landscape')} />
+                  <EmptyState icon={Users} title="עדיין לא מצאתי מתחרים" description="ברגע שעיני יסרוק את האזור — תוכל להשוות 👀" actionLabel="סרוק מתחרים" onAction={() => navigate('/dashboard/landscape')} />
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -399,9 +399,9 @@ export default function Reflection() {
                             <td className="text-center text-gray-400 py-3 px-2">{comp.google_reviews_count || '-'}</td>
                             <td className="text-center py-3 px-2">
                               <span className={`text-xs font-medium ${threatLevelColor(comp.perceived_threat_level)}`}>
-                                {comp.perceived_threat_level === 'high' ? 'גבוה' :
-                                 comp.perceived_threat_level === 'medium' ? 'בינוני' :
-                                 comp.perceived_threat_level === 'low' ? 'נמוך' : '-'}
+                                {comp.perceived_threat_level === 'high' ? 'מתחרה חזק 💪' :
+                                 comp.perceived_threat_level === 'medium' ? 'כדאי לעקוב 👀' :
+                                 comp.perceived_threat_level === 'low' ? 'לא מאיים 😌' : '-'}
                               </span>
                             </td>
                             <td className="text-gray-500 py-3 px-2 text-xs max-w-[200px] truncate">
@@ -542,7 +542,7 @@ export default function Reflection() {
             </div>
 
             {(sourceFilter ? reviews.filter(r => r.source === sourceFilter) : reviews).length === 0 ? (
-              <EmptyState icon={MessageCircleOff} title="אין ביקורות להצגה" description="ביקורות מ-Google יופיעו כאן בקרוב" />
+              <EmptyState icon={MessageCircleOff} title="עדיין אין ביקורות" description="האוזן ימשיך להקשיב — ברגע שיהיו ביקורות חדשות, תראה אותן כאן 👂" />
             ) : (
               <div className="space-y-4">
                 {(sourceFilter ? reviews.filter(r => r.source === sourceFilter) : reviews).map((review) => (

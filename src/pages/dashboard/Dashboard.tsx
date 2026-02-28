@@ -87,6 +87,21 @@ interface DashboardData {
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
 
+function getGreeting(): { text: string; sub: string } {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 11) return { text: 'בוקר טוב ☀️', sub: 'בוא נראה מה קרה בלילה' };
+  if (h >= 11 && h < 17) return { text: 'צהריים טובים 🌤️', sub: 'הנה מה שמחכה לך' };
+  if (h >= 17 && h < 21) return { text: 'ערב טוב 🌙', sub: 'סיכום היום שלך' };
+  return { text: 'לילה טוב 🌜', sub: 'הנה מה שקרה היום' };
+}
+
+function getHealthLabel(score: number): { label: string; color: string } {
+  if (score >= 80) return { label: 'מצוין 🚀', color: 'text-emerald-400' };
+  if (score >= 60) return { label: 'טוב 😊', color: 'text-cyan-400' };
+  if (score >= 40) return { label: 'סביר 🤔', color: 'text-amber-400' };
+  return { label: 'צריך תשומת לב ⚠️', color: 'text-red-400' };
+}
+
 const EVENT_COLORS: Record<string, string> = {
   lead_found: 'bg-emerald-500',
   competitor_change: 'bg-amber-500',
@@ -141,7 +156,7 @@ export default function Dashboard() {
         setLastScan(new Date().toISOString());
       }
     } catch {
-      toast.error('שגיאה בטעינת דשבורד');
+      toast.error('אופס, לא הצלחנו לטעון את הנתונים. נסה שוב בעוד רגע');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -160,7 +175,7 @@ export default function Dashboard() {
       setUnreadCount(countRes.unread_count || 0);
       setEventsCount(evRes.total ?? evRes.events?.length ?? 0);
     } catch {
-      toast.error('שגיאה בטעינת אירועים');
+      toast.error('לא הצלחנו לטעון אירועים — נסה לרענן');
     }
   }, [currentProfile?.id]);
 
@@ -174,7 +189,7 @@ export default function Dashboard() {
         setLeadsCount(d.total || 0);
       }
     } catch {
-      toast.error('שגיאה בטעינת לידים');
+      toast.error('לא הצלחנו לטעון לידים — נסה לרענן');
     }
   }, [currentProfile?.id]);
 
@@ -196,7 +211,7 @@ export default function Dashboard() {
         await fetchEvents();
       }
     } catch {
-      toast.error('שגיאה בסריקה');
+      toast.error('הסריקה לא הצליחה. נסה שוב בעוד רגע');
     } finally {
       setScanning(false);
     }
@@ -205,8 +220,11 @@ export default function Dashboard() {
   // Loading
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-60px)] md:h-[calc(100vh-60px)]">
-        <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
+      <div className="flex items-center justify-center h-[calc(100vh-60px)] md:h-[calc(100vh-60px)]" dir="rtl">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-12 h-12 text-cyan-500 animate-spin mx-auto" />
+          <p className="text-gray-400 text-sm">👁️ עיני אוסף נתונים...</p>
+        </div>
       </div>
     );
   }
@@ -216,8 +234,8 @@ export default function Dashboard() {
       <div className="flex items-center justify-center h-[calc(100vh-60px)]" dir="rtl">
         <div className="text-center space-y-4">
           <Sparkles className="w-16 h-16 text-cyan-500 mx-auto" />
-          <h2 className="text-2xl font-bold text-white">המערכת אוספת מודיעין...</h2>
-          <p className="text-gray-400">חזור בקרוב</p>
+          <h2 className="text-2xl font-bold text-white">העוזרים שלך מתחילים לעבוד...</h2>
+          <p className="text-gray-400">👁️ עיני סורק את האזור שלך. זה לוקח כמה דקות.</p>
         </div>
       </div>
     );
@@ -225,8 +243,11 @@ export default function Dashboard() {
 
   const { business_info: biz, competitors, strategy_feed, market_stats } = data;
   const healthScore = biz.market_health_score || 0;
+  const healthInfo = getHealthLabel(healthScore);
+  const greeting = getGreeting();
   const topOpportunity = strategy_feed.find(s => s.priority === 'high') || strategy_feed[0];
   const todayTasks = strategy_feed.slice(0, 3);
+  const firstName = user?.email?.split('@')[0] || '';
 
   return (
     <>
@@ -258,9 +279,9 @@ export default function Dashboard() {
               </div>
             )}
             <div>
-              <h1 className="text-lg font-bold text-white leading-tight">{biz.name_hebrew || biz.name}</h1>
+              <h1 className="text-lg font-bold text-white leading-tight">{greeting.text}{firstName ? `, ${firstName}` : ''}</h1>
               <span className="text-xs text-gray-500">
-                {biz.industry || biz.business_type}{biz.city ? ` · ${biz.city}` : biz.address ? ` · ${biz.address}` : ''}
+                {greeting.sub} · {biz.name_hebrew || biz.name}
               </span>
             </div>
           </div>
@@ -282,32 +303,34 @@ export default function Dashboard() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 hover:bg-cyan-500/20 text-xs transition-colors"
             >
               {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Radar className="w-3.5 h-3.5" />}
-              {scanning ? 'סורק...' : 'סריקה'}
+              {scanning ? '👁️ עיני סורק...' : 'סריקה'}
             </button>
           </div>
         </div>
 
         {/* HEALTH GAUGE */}
         <div style={{ gridArea: 'health' }} className="glass-card flex flex-col items-center justify-center p-4">
-          <AnimatedGauge value={healthScore} size={180} label="ציון בריאות השוק" />
+          <AnimatedGauge value={healthScore} size={180} label="בריאות העסק" />
           <div className="mt-3 text-center">
-            <div className="flex items-center justify-center gap-1 text-sm">
+            <span className={`text-sm font-bold ${healthInfo.color}`}>{healthInfo.label}</span>
+            <div className="flex items-center justify-center gap-1 text-sm mt-1">
               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
               <span className="text-white font-bold">{market_stats.your_rating > 0 ? market_stats.your_rating.toFixed(1) : '—'}</span>
               <span className="text-gray-500 text-xs">מול {market_stats.avg_market_rating > 0 ? market_stats.avg_market_rating.toFixed(1) : '—'} שוק</span>
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              #{market_stats.high_threat_competitors || 0} איומים מתוך {market_stats.total_competitors || 0}
+              {market_stats.high_threat_competitors || 0} מתחרים חזקים מתוך {market_stats.total_competitors || 0}
             </div>
           </div>
         </div>
 
         {/* TODAY'S MISSION */}
         <div style={{ gridArea: 'mission' }} className="glass-card p-4 flex flex-col overflow-hidden">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3 flex-shrink-0">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-1 flex-shrink-0">
             <Target className="w-4 h-4 text-cyan-400" />
-            משימות היום
+            3 דברים שיזיזו את היום שלך
           </h3>
+          <p className="text-[10px] text-gray-500 mb-3 flex-shrink-0">🧠 המוח הכין אלה בשבילך הבוקר</p>
           <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
             {todayTasks.length > 0 ? todayTasks.map((task) => (
               <div
@@ -328,7 +351,7 @@ export default function Dashboard() {
             )) : (
               <div className="flex items-center justify-center h-full text-gray-500 text-sm">
                 <CheckCircle2 className="w-4 h-4 ml-2 text-emerald-400" />
-                אין משימות דחופות
+                הכל מסודר! אין משימות דחופות 🎉
               </div>
             )}
           </div>
@@ -344,7 +367,7 @@ export default function Dashboard() {
             <>
               <div className="flex items-center gap-2 mb-2">
                 <Flame className="w-4 h-4 text-orange-400" />
-                <span className="text-xs font-semibold text-orange-400 uppercase tracking-wider">הזדמנות היום</span>
+                <span className="text-xs font-semibold text-orange-400 uppercase tracking-wider">ההזדמנות שלך היום 🔥</span>
               </div>
               <h3 className="text-white font-bold text-base mb-1 line-clamp-2">{topOpportunity.title}</h3>
               <p className="text-gray-400 text-xs line-clamp-2 mb-3">{topOpportunity.description}</p>
@@ -356,13 +379,13 @@ export default function Dashboard() {
                 className="w-full py-2.5 rounded-lg font-bold text-sm transition-all"
                 style={{ background: '#00d4ff', color: '#0a0f1e' }}
               >
-                פעל עכשיו →
+                תפוס את ההזדמנות →
               </button>
             </>
           ) : (
             <div className="text-center text-gray-500 text-sm">
               <Sparkles className="w-8 h-8 mx-auto mb-2 text-cyan-500/50" />
-              סורק הזדמנויות...
+              👁️ עיני מחפש הזדמנויות...
             </div>
           )}
         </div>
@@ -372,7 +395,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-3 flex-shrink-0">
             <h4 className="text-sm font-semibold text-white flex items-center gap-2">
               {unreadCount > 0 ? <BellDot className="w-4 h-4 text-red-400" /> : <Bell className="w-4 h-4 text-gray-500" />}
-              מודיעין אחרון
+              מה קרה בזמן שלא הסתכלת 💡
               {unreadCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px]">{unreadCount}</span>
               )}
@@ -394,7 +417,7 @@ export default function Dashboard() {
               );
             }) : (
               <div className="flex items-center justify-center h-full text-gray-500 text-xs">
-                אין אירועים אחרונים
+                הכל שקט כרגע 😌
               </div>
             )}
           </div>
@@ -403,9 +426,9 @@ export default function Dashboard() {
         {/* KPI ROW */}
         <div style={{ gridArea: 'kpi' }} className="grid grid-cols-4 gap-3">
           {[
-            { label: 'לידים', value: leadsCount, link: '/dashboard/sniper', icon: '🎯', color: 'text-cyan-400' },
-            { label: 'מתחרים', value: market_stats.total_competitors || 0, link: '/dashboard/landscape', icon: '👁️', color: 'text-blue-400' },
-            { label: 'אירועים', value: eventsCount, link: '/dashboard/intelligence', icon: '⚡', color: 'text-amber-400' },
+            { label: 'מי מחפש אותי', value: leadsCount, link: '/dashboard/sniper', icon: '🎯', color: 'text-cyan-400' },
+            { label: 'מתחרים', value: market_stats.total_competitors || 0, link: '/dashboard/landscape', icon: '👀', color: 'text-blue-400' },
+            { label: 'אירועים', value: eventsCount, link: '/dashboard/intelligence', icon: '💡', color: 'text-amber-400' },
             { label: 'דירוג', value: market_stats.your_rating > 0 ? market_stats.your_rating.toFixed(1) : '—', link: '/dashboard/reflection', icon: '⭐', color: 'text-emerald-400' },
           ].map(kpi => (
             <div
@@ -440,9 +463,9 @@ export default function Dashboard() {
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="text-base font-bold text-white leading-tight truncate">{biz.name_hebrew || biz.name}</h1>
+              <h1 className="text-base font-bold text-white leading-tight truncate">{greeting.text}{firstName ? `, ${firstName}` : ''}</h1>
               <span className="text-[11px] text-gray-500 truncate block">
-                {biz.industry || biz.business_type}{biz.city ? ` · ${biz.city}` : ''}
+                {greeting.sub}
               </span>
             </div>
           </div>
@@ -460,7 +483,7 @@ export default function Dashboard() {
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 text-xs"
             >
               {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Radar className="w-3.5 h-3.5" />}
-              {scanning ? 'סורק...' : 'סריקה'}
+              {scanning ? '👁️ עיני סורק...' : 'סריקה'}
             </button>
           </div>
         </div>
@@ -468,9 +491,9 @@ export default function Dashboard() {
         {/* KPI Row - 2x2 grid on mobile */}
         <div className="grid grid-cols-2 gap-2">
           {[
-            { label: 'לידים', value: leadsCount, link: '/dashboard/sniper', icon: '🎯', color: 'text-cyan-400' },
-            { label: 'מתחרים', value: market_stats.total_competitors || 0, link: '/dashboard/landscape', icon: '👁️', color: 'text-blue-400' },
-            { label: 'אירועים', value: eventsCount, link: '/dashboard/intelligence', icon: '⚡', color: 'text-amber-400' },
+            { label: 'מי מחפש אותי', value: leadsCount, link: '/dashboard/sniper', icon: '🎯', color: 'text-cyan-400' },
+            { label: 'מתחרים', value: market_stats.total_competitors || 0, link: '/dashboard/landscape', icon: '👀', color: 'text-blue-400' },
+            { label: 'אירועים', value: eventsCount, link: '/dashboard/intelligence', icon: '💡', color: 'text-amber-400' },
             { label: 'דירוג', value: market_stats.your_rating > 0 ? market_stats.your_rating.toFixed(1) : '—', link: '/dashboard/reflection', icon: '⭐', color: 'text-emerald-400' },
           ].map(kpi => (
             <div
@@ -493,14 +516,15 @@ export default function Dashboard() {
         <div className="glass-card p-4 flex items-center gap-4">
           <AnimatedGauge value={healthScore} size={100} label="" />
           <div className="flex-1">
-            <h3 className="text-sm font-bold text-white mb-1">ציון בריאות השוק</h3>
-            <div className="flex items-center gap-1 text-sm">
+            <h3 className="text-sm font-bold text-white mb-1">בריאות העסק</h3>
+            <span className={`text-xs font-bold ${healthInfo.color}`}>{healthInfo.label}</span>
+            <div className="flex items-center gap-1 text-sm mt-1">
               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
               <span className="text-white font-bold">{market_stats.your_rating > 0 ? market_stats.your_rating.toFixed(1) : '—'}</span>
               <span className="text-gray-500 text-xs">מול {market_stats.avg_market_rating > 0 ? market_stats.avg_market_rating.toFixed(1) : '—'} שוק</span>
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              {market_stats.high_threat_competitors || 0} איומים מתוך {market_stats.total_competitors || 0}
+              {market_stats.high_threat_competitors || 0} מתחרים חזקים מתוך {market_stats.total_competitors || 0}
             </div>
           </div>
         </div>
@@ -513,7 +537,7 @@ export default function Dashboard() {
           }}>
             <div className="flex items-center gap-2 mb-2">
               <Flame className="w-4 h-4 text-orange-400" />
-              <span className="text-xs font-semibold text-orange-400 uppercase tracking-wider">הזדמנות היום</span>
+              <span className="text-xs font-semibold text-orange-400 uppercase tracking-wider">ההזדמנות שלך היום 🔥</span>
             </div>
             <h3 className="text-white font-bold text-base mb-1">{topOpportunity.title}</h3>
             <p className="text-gray-400 text-xs mb-3 line-clamp-2">{topOpportunity.description}</p>
@@ -525,17 +549,18 @@ export default function Dashboard() {
               className="w-full py-3 rounded-lg font-bold text-sm transition-all min-h-[48px]"
               style={{ background: '#00d4ff', color: '#0a0f1e' }}
             >
-              פעל עכשיו →
+              תפוס את ההזדמנות →
             </button>
           </div>
         )}
 
         {/* Today's Tasks */}
         <div className="glass-card p-4">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-1">
             <Target className="w-4 h-4 text-cyan-400" />
-            משימות היום
+            3 דברים שיזיזו את היום שלך
           </h3>
+          <p className="text-[10px] text-gray-500 mb-3">🧠 המוח הכין אלה בשבילך הבוקר</p>
           <div className="space-y-2">
             {todayTasks.length > 0 ? todayTasks.map((task) => (
               <div
@@ -556,7 +581,7 @@ export default function Dashboard() {
             )) : (
               <div className="flex items-center justify-center py-4 text-gray-500 text-sm">
                 <CheckCircle2 className="w-4 h-4 ml-2 text-emerald-400" />
-                אין משימות דחופות
+                הכל מסודר! אין משימות דחופות 🎉
               </div>
             )}
           </div>
@@ -567,7 +592,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-white flex items-center gap-2">
               {unreadCount > 0 ? <BellDot className="w-4 h-4 text-red-400" /> : <Bell className="w-4 h-4 text-gray-500" />}
-              מודיעין אחרון
+              מה קרה בזמן שלא הסתכלת 💡
               {unreadCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px]">{unreadCount}</span>
               )}
@@ -589,7 +614,7 @@ export default function Dashboard() {
               );
             }) : (
               <div className="flex items-center justify-center py-4 text-gray-500 text-xs">
-                אין אירועים אחרונים
+                הכל שקט כרגע 😌
               </div>
             )}
           </div>

@@ -136,7 +136,7 @@ export default function Horizon() {
   // Loading state
   if (!currentProfile) {
     return (
-      <PageLoader message="טוען תחזיות..." />
+      <PageLoader message="🔭 הטווח מסתכל קדימה..." />
     );
   }
 
@@ -186,8 +186,8 @@ export default function Horizon() {
   return (
     <div className="space-y-6 fade-in" dir="rtl">
       <header>
-        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: "var(--font-display)" }}>האופק</h1>
-        <p className="text-[var(--text-secondary)]">מגמות, אירועים והזדמנויות עתידיות עבור {nameHebrew} {emoji}</p>
+        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: "var(--font-display)" }}>מה מגיע אליי 🔭</h1>
+        <p className="text-[var(--text-secondary)]">הטווח מסתכל קדימה — מגמות, אירועים והזדמנויות עבור {nameHebrew} {emoji}</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -207,7 +207,7 @@ export default function Horizon() {
             {loading ? (
               <div className="text-center py-12">
                 <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-400">מנתח אירועים...</p>
+                <p className="text-gray-400">🔭 הטווח מנתח אירועים...</p>
               </div>
             ) : error ? (
               <div className="text-center py-12">
@@ -216,7 +216,7 @@ export default function Horizon() {
                 <p className="text-gray-500 text-sm mt-2">{error}</p>
               </div>
             ) : events.length === 0 ? (
-              <EmptyState icon={CalendarX} title="אין אירועים מתוכננים" description="אירועים יופיעו כאן כשנזהה הזדמנויות עסקיות" />
+              <EmptyState icon={CalendarX} title="עדיין לא זיהיתי אירועים" description="הטווח ממשיך לסרוק — ברגע שיהיה משהו רלוונטי, תדע ראשון 🔭" />
             ) : (
               <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
                 {events.map((event, index) => (
@@ -305,7 +305,7 @@ export default function Horizon() {
             {loading ? (
               <div className="text-center py-12">
                 <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-400">מייצר תובנות...</p>
+                <p className="text-gray-400">🔭 הטווח מייצר תובנות...</p>
               </div>
             ) : error ? (
               <div className="text-center py-8">
@@ -313,7 +313,7 @@ export default function Horizon() {
                 <p className="text-gray-400 text-sm">הפעל סריקה לקבלת תובנות</p>
               </div>
             ) : insights.length === 0 && events.length === 0 ? (
-              <EmptyState icon={Sparkles} title="אין תובנות חדשות" description="תובנות יופיעו לאחר ניתוח אירועים קרובים" />
+              <EmptyState icon={Sparkles} title="אין תובנות חדשות" description="הטווח יכין תובנות ברגע שיהיו אירועים לנתח 🔭" />
             ) : (
               <div className="space-y-4">
                 {/* AI General Insights */}
@@ -385,8 +385,8 @@ export default function Horizon() {
             <TrendingUp className="w-5 h-5 text-cyan-400" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">רדאר מגמות</h2>
-            <p className="text-gray-400 text-sm">טרנדים שזוהו ממספר מקורות בזמן אמת</p>
+            <h2 className="text-lg font-semibold text-white">רדאר מגמות 📡</h2>
+            <p className="text-gray-400 text-sm">הטווח סורק טרנדים ממספר מקורות בזמן אמת</p>
           </div>
           {trends.length > 0 && (
             <div className="mr-auto flex items-center gap-2">
@@ -403,10 +403,10 @@ export default function Horizon() {
         {trendsLoading ? (
           <div className="text-center py-12">
             <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-400">סורק מגמות...</p>
+            <p className="text-gray-400">🔭 הטווח סורק מגמות...</p>
           </div>
         ) : trends.length === 0 ? (
-          <EmptyState icon={TrendingUp} title="לא זוהו מגמות עדיין" description="מגמות יופיעו לאחר סריקת רדאר הטרנדים" />
+          <EmptyState icon={TrendingUp} title="עדיין לא זיהיתי מגמות" description="הטווח ימשיך לסרוק — כשמשהו יעלה, תדע ראשון 🔭" />
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

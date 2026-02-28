@@ -26,20 +26,23 @@ import {
   Facebook,
   ChevronDown,
   Smartphone,
+  Zap,
 } from 'lucide-react';
 import { apiFetch } from '../../services/api';
 import { supabase } from '../../lib/supabaseClient';
 import { loadGoogleMaps } from '../../lib/googleMaps';
+import { AGENT_INFO } from '../../lib/features';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const TABS = [
-  { id: 'profile', label: 'פרופיל עסקי', icon: Building },
-  { id: 'alerts', label: 'התראות', icon: Bell },
-  { id: 'account', label: 'חשבון', icon: User },
-  { id: 'subscription', label: 'מנוי', icon: CreditCard },
+  { id: 'profile', label: 'העסק שלי', icon: Building },
+  { id: 'agents', label: 'העוזרים שלי', icon: Zap },
+  { id: 'alerts', label: 'התראות ועדכונים', icon: Bell },
+  { id: 'account', label: 'החשבון שלי', icon: User },
+  { id: 'subscription', label: 'התוכנית שלי', icon: CreditCard },
 ] as const;
 
 const BUSINESS_TYPES = [
@@ -1392,6 +1395,29 @@ export default function Settings() {
     </div>
   );
 
+  const renderAgentsTab = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-bold text-white mb-1">העוזרים שלי 🤖</h2>
+        <p className="text-sm text-gray-400">6 עוזרים חכמים שעובדים בשבילך מאחורי הקלעים</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Object.entries(AGENT_INFO).map(([key, agent]) => (
+          <div key={key} className="glass-card flex gap-4 items-start">
+            <div className="w-12 h-12 rounded-xl bg-[#00d4ff]/10 flex items-center justify-center text-2xl flex-shrink-0">
+              {agent.emoji}
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-white font-semibold text-base">{agent.name}</h3>
+              <p className="text-[#00d4ff] text-sm mb-1">{agent.tagline}</p>
+              <p className="text-gray-400 text-sm leading-relaxed">{agent.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // LOADING STATE
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1437,6 +1463,7 @@ export default function Settings() {
 
       {/* Tab content */}
       {activeTab === 'profile' && renderProfileTab()}
+      {activeTab === 'agents' && renderAgentsTab()}
       {activeTab === 'alerts' && renderAlertsTab()}
       {activeTab === 'account' && renderAccountTab()}
       {activeTab === 'subscription' && renderSubscriptionTab()}

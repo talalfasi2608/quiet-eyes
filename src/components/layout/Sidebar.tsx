@@ -31,28 +31,28 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 const navItems = [
-  { path: '/dashboard', label: 'הקוקפיט', icon: Home, description: 'תדריך יומי ומודיעין', end: true },
-  { path: '/dashboard/focus', label: 'מיקוד', icon: Focus, description: 'מרכז השליטה' },
-  { path: '/dashboard/landscape', label: 'נוף', icon: Map, description: 'מתחרים' },
-  { path: '/dashboard/intelligence', label: 'מודיעין', icon: Radar, description: 'מחירים ופרסום' },
-  { path: '/dashboard/marketing', label: 'שיווק', icon: Megaphone, description: 'אסטרטגיית שיווק AI' },
-  { path: '/dashboard/sniper', label: 'צלף הזדמנויות', icon: Crosshair, description: 'לידים חיים' },
-  { path: '/dashboard/horizon', label: 'אופק', icon: TrendingUp, description: 'מגמות' },
-  { path: '/dashboard/reflection', label: 'השתקפות', icon: MessageSquare, description: 'מוניטין' },
-  { path: '/dashboard/knowledge', label: 'ידע', icon: BookOpen, description: 'בסיס ידע ונישה' },
-  { path: '/dashboard/vault', label: 'הכספת', icon: Archive, description: 'ארכיון מודיעין' },
-  { path: '/dashboard/reports', label: 'דו"חות', icon: FileDown, description: 'דו"ח אסטרטגי שבועי' },
-  { path: '/dashboard/automations', label: 'אוטומציות', icon: Zap, description: 'אוטומציה ומסעות' },
-  { path: '/dashboard/staff', label: 'צוות', icon: Users, description: 'ניהול חברי צוות', minRole: 'admin' as const },
-  { path: '/dashboard/billing', label: 'מנוי', icon: CreditCard, description: 'ניהול תוכנית ותשלום' },
-  { path: '/dashboard/settings', label: 'הגדרות', icon: Settings, description: 'פרופיל העסק' },
+  { path: '/dashboard', label: 'הבית שלי', icon: Home, description: 'סיכום יומי והזדמנויות', end: true, emoji: '🏠' },
+  { path: '/dashboard/focus', label: 'מה לעשות היום', icon: Focus, description: 'המוח הכין לך משימות', emoji: '🧠' },
+  { path: '/dashboard/sniper', label: 'מי מחפש אותי', icon: Crosshair, description: 'לידים שעיני מצא', emoji: '🎯' },
+  { path: '/dashboard/landscape', label: 'המתחרים שלי', icon: Map, description: 'מה הם עושים', emoji: '👀' },
+  { path: '/dashboard/intelligence', label: 'מה קרה בזמן שישנתי', icon: Radar, description: 'עיני עקב בשבילך', emoji: '💡' },
+  { path: '/dashboard/marketing', label: 'הקול שלי', icon: Megaphone, description: 'תוכן ושיווק', emoji: '📢' },
+  { path: '/dashboard/horizon', label: 'מה מגיע אליי', icon: TrendingUp, description: 'הטווח מסתכל קדימה', emoji: '🔭' },
+  { path: '/dashboard/reflection', label: 'אני מול המתחרים', icon: MessageSquare, description: 'מוניטין וביקורות', emoji: '📊' },
+  { path: '/dashboard/knowledge', label: 'שאל אותי כל דבר', icon: BookOpen, description: 'בסיס ידע AI', emoji: '💬' },
+  { path: '/dashboard/vault', label: 'הדוחות שלי', icon: Archive, description: 'ארכיון ודוחות', emoji: '📂' },
+  { path: '/dashboard/reports', label: 'דוח שבועי', icon: FileDown, description: 'דוח מודיעין PDF', emoji: '📊' },
+  { path: '/dashboard/automations', label: 'העוזרים שלי', icon: Zap, description: '6 העוזרים החכמים', emoji: '🤖' },
+  { path: '/dashboard/staff', label: 'צוות', icon: Users, description: 'ניהול חברי צוות', minRole: 'admin' as const, emoji: '👥' },
+  { path: '/dashboard/billing', label: 'התוכנית שלי', icon: CreditCard, description: 'ניהול מנוי ותשלום', emoji: '⭐' },
+  { path: '/dashboard/settings', label: 'הגדרות', icon: Settings, description: 'הגדרות העסק', emoji: '⚙️' },
 ];
 
 // Bottom nav shows these 5 items on mobile
 const BOTTOM_NAV_ITEMS = [
   { path: '/dashboard', label: 'בית', icon: Home, end: true },
   { path: '/dashboard/sniper', label: 'לידים', icon: Crosshair },
-  { path: '/dashboard/landscape', label: 'מפה', icon: Map },
+  { path: '/dashboard/landscape', label: 'מתחרים', icon: Map },
   { path: '/dashboard/intelligence', label: 'מודיעין', icon: Radar },
 ];
 
@@ -100,7 +100,7 @@ export default function Sidebar() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      toast.error('שגיאה בהורדת PDF');
+      toast.error('לא הצלחנו להוריד את הדוח. נסה שוב');
     } finally {
       setDownloading(false);
     }
@@ -118,7 +118,7 @@ export default function Sidebar() {
     try {
       await signOut();
     } catch {
-      toast.error('שגיאה בהתנתקות');
+      toast.error('ההתנתקות לא הצליחה. נסה שוב');
       setSigningOut(false);
     }
   };

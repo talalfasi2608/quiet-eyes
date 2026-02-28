@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const navLinks = [
-  { to: '/features', label: 'תכונות' },
-  { to: '/pricing', label: 'תמחור' },
-  { to: '/about', label: 'אודות' },
-  { to: '/blog', label: 'בלוג' },
+  { to: '/features', label: 'איך זה עובד' },
+  { to: '/features#helpers', label: 'העוזרים' },
+  { to: '/pricing', label: 'מחירים' },
+  { to: '/#testimonials', label: 'סיפורי הצלחה' },
 ];
 
 export default function Navbar() {
@@ -18,7 +18,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-0.5 text-xl font-extrabold tracking-tight" style={{ color: '#f0f4ff' }}>
-            Quiet<span style={{ color: '#00d4ff' }}>eyes</span>
+            Quiet<span style={{ color: '#00d4ff' }}>👁️</span>eyes
           </Link>
 
           {/* Desktop links */}
@@ -55,7 +55,7 @@ export default function Navbar() {
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#00bfe6'}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#00d4ff'}
             >
-              התחל חינם
+              נסה חינם — 14 יום
             </Link>
           </div>
 
@@ -95,7 +95,7 @@ export default function Navbar() {
               className="px-4 py-2.5 text-sm font-semibold rounded text-center"
               style={{ background: '#00d4ff', color: '#0a0e1a' }}
             >
-              התחל חינם
+              נסה חינם — 14 יום
             </Link>
           </div>
         </div>

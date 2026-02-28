@@ -47,38 +47,38 @@ const RADIUS_OPTIONS = [
   { value: 10, label: '10 ק"מ' },
 ];
 
-const STEP_LABELS = ['ברוך הבא', 'פרטי העסק', 'סריקה', 'תגלית', 'תוכנית פעולה'];
+const STEP_LABELS = ['בוא נתחיל', 'ספר לי על העסק', 'העוזרים סורקים', 'מה מצאנו', 'מה לעשות עכשיו'];
 
 const WIZARD_STORAGE_KEY = 'qe_wizard_progress';
 
 const SCAN_STEPS = [
-  { text: 'מחפש עסקים דומים...', icon: '🔍' },
-  { text: 'סורק מתחרים באזור...', icon: '👁️' },
-  { text: 'מנתח דירוגים וביקורות...', icon: '⭐' },
-  { text: 'מחפש לידים ברשתות החברתיות...', icon: '🎯' },
-  { text: 'מנתח מגמות שוק...', icon: '📊' },
-  { text: 'יוצר פרופיל תחרותי...', icon: '🏆' },
-  { text: 'מסכם תובנות עם AI...', icon: '🤖' },
+  { text: '👁️ עיני מחפש עסקים דומים...', icon: '👁️' },
+  { text: '👁️ עיני סורק מתחרים באזור...', icon: '👁️' },
+  { text: '👂 האוזן מנתח ביקורות...', icon: '👂' },
+  { text: '🎯 עיני מחפש לידים ברשתות...', icon: '🎯' },
+  { text: '🔭 הטווח מנתח מגמות שוק...', icon: '🔭' },
+  { text: '🧠 המוח מסכם תובנות...', icon: '🧠' },
+  { text: '📢 הקול מכין את הפרופיל שלך...', icon: '📢' },
 ];
 
 const DEFAULT_ACTIONS = [
   {
-    title: 'בדוק את הלידים שלך',
-    description: 'ראה את הלידים הפוטנציאליים שזיהינו עבורך ותחיל לפעול',
+    title: 'ראה מי מחפש אותך',
+    description: 'עיני מצא לידים שמחפשים בדיוק מה שאתה מציע — פנה אליהם עכשיו',
     time: '5 דקות',
     potential: 'גבוה',
     link: '/dashboard/sniper',
   },
   {
-    title: 'ראה את המתחרים',
-    description: 'סקור את המפה התחרותית שלך ומצא הזדמנויות',
+    title: 'הכר את המתחרים',
+    description: 'ראה מי מתחרה בך ואיפה ההזדמנות שלך',
     time: '3 דקות',
     potential: 'גבוה',
     link: '/dashboard/landscape',
   },
   {
-    title: 'הגדר התראות',
-    description: 'קבל עדכונים אוטומטיים על שינויים בשוק שלך',
+    title: 'הגדר את העוזרים',
+    description: 'בחר אילו התראות לקבל ומתי — כדי שהעוזרים ידעו מה חשוב לך',
     time: '2 דקות',
     potential: 'בינוני',
     link: '/dashboard/settings',
@@ -524,10 +524,10 @@ export default function OnboardingWizard() {
 
       {/* Title */}
       <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3 text-center">
-        ברוך הבא ל-Quieteyes{userName ? `, ${userName}` : ''}
+        שלום{userName ? ` ${userName}` : ''}, בוא נכיר 👋
       </h1>
       <p className="text-gray-400 text-lg text-center mb-10 max-w-lg">
-        בעוד 3 דקות תראה את השוק שלך בצורה שמעולם לא ראית אותו.
+        בעוד 3 דקות, 6 עוזרים חכמים יתחילו לעבוד בשבילך. הם לא ישנים.
       </p>
 
       {/* Feature preview cards */}
@@ -535,23 +535,23 @@ export default function OnboardingWizard() {
         <div className="p-4 rounded-xl bg-gray-800/40 border border-gray-700/30 flex-1">
           <div className="flex items-center gap-3 mb-2">
             <Target className="w-6 h-6 text-cyan-400" />
-            <span className="text-white font-medium">לידים חמים</span>
+            <span className="text-white font-medium">👁️ עיני — מוצא לידים</span>
           </div>
-          <p className="text-gray-400 text-sm">נמצא לידים חמים שמחפשים אותך עכשיו</p>
+          <p className="text-gray-400 text-sm">מוצא אנשים שמחפשים בדיוק מה שאתה מציע</p>
         </div>
         <div className="p-4 rounded-xl bg-gray-800/40 border border-gray-700/30 flex-1">
           <div className="flex items-center gap-3 mb-2">
             <Eye className="w-6 h-6 text-cyan-400" />
-            <span className="text-white font-medium">מתחרים</span>
+            <span className="text-white font-medium">🧠 המוח — מייעץ</span>
           </div>
-          <p className="text-gray-400 text-sm">נזהה את המתחרים שלך אוטומטית</p>
+          <p className="text-gray-400 text-sm">מכין 3 דברים שכדאי לעשות כל בוקר</p>
         </div>
         <div className="p-4 rounded-xl bg-gray-800/40 border border-gray-700/30 flex-1">
           <div className="flex items-center gap-3 mb-2">
             <Zap className="w-6 h-6 text-cyan-400" />
-            <span className="text-white font-medium">תוכנית פעולה</span>
+            <span className="text-white font-medium">+ 4 עוזרים נוספים</span>
           </div>
-          <p className="text-gray-400 text-sm">ניצור תוכנית פעולה אישית לעסק שלך</p>
+          <p className="text-gray-400 text-sm">הקול, הכיס, האוזן, הטווח — עובדים 24/7</p>
         </div>
       </div>
 
@@ -569,7 +569,7 @@ export default function OnboardingWizard() {
         onClick={handleSkip}
         className="mt-6 text-gray-500 hover:text-gray-300 text-sm underline transition-colors"
       >
-        דלג — קח אותי לפלטפורמה
+        דלג — אני אסתדר לבד
       </button>
     </div>
   );
@@ -765,14 +765,13 @@ export default function OnboardingWizard() {
 
         {/* Title */}
         <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 text-center">
-          {isComplete ? 'הסריקה הושלמה!' : 'סורקים את השוק שלך...'}
+          {isComplete ? 'העוזרים סיימו! 🎉' : 'העוזרים שלך סורקים את השוק...'}
         </h2>
 
         {/* Scan teaser on complete */}
         {isComplete && scanResults && (
           <p className="text-cyan-400 text-lg mb-6 text-center animate-fade-in">
-            מצאנו {scanResults.competitors_found} מתחרים ו-{scanResults.leads_found} לידים
-            פוטנציאליים
+            עיני מצא {scanResults.competitors_found} מתחרים ו-{scanResults.leads_found} לידים
           </p>
         )}
 
@@ -781,7 +780,7 @@ export default function OnboardingWizard() {
           {SCAN_STEPS.map((s, i) => {
             const dynamicText =
               i === 0 && formData.business_name
-                ? `מחפש עסקים דומים ל"${formData.business_name}"...`
+                ? `👁️ עיני מחפש עסקים דומים ל"${formData.business_name}"...`
                 : s.text;
             const isVisible = i < visibleScanSteps;
             const isLatest = i === visibleScanSteps - 1 && !scanAnimationDone;
@@ -845,9 +844,9 @@ export default function OnboardingWizard() {
         {renderBackButton()}
 
         <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 text-center">
-          הנה מה שגילינו על השוק שלך
+          הנה מה שהעוזרים מצאו 🔍
         </h2>
-        <p className="text-gray-400 text-center mb-8">תוצאות הסריקה הראשונה שלך</p>
+        <p className="text-gray-400 text-center mb-8">התוצאות הראשונות שלך — ויש עוד הרבה בדרך</p>
 
         {hasData ? (
           <>
@@ -860,9 +859,9 @@ export default function OnboardingWizard() {
                     <Eye className="w-5 h-5 text-cyan-400" />
                   </div>
                   <div>
-                    <h3 className="text-white font-bold">מתחרים</h3>
+                    <h3 className="text-white font-bold">👁️ עיני מצא מתחרים</h3>
                     <p className="text-gray-400 text-sm">
-                      נמצאו {scanResults!.competitors_found} מתחרים באזורך
+                      {scanResults!.competitors_found} מתחרים באזור שלך
                     </p>
                   </div>
                 </div>
@@ -904,9 +903,9 @@ export default function OnboardingWizard() {
                     <Target className="w-5 h-5 text-cyan-400" />
                   </div>
                   <div>
-                    <h3 className="text-white font-bold">לידים</h3>
+                    <h3 className="text-white font-bold">🎯 מי מחפש אותך</h3>
                     <p className="text-gray-400 text-sm">
-                      נמצאו {scanResults!.leads_found} לידים פוטנציאליים
+                      {scanResults!.leads_found} לידים שמחפשים מה שאתה מציע
                     </p>
                   </div>
                 </div>
@@ -938,8 +937,8 @@ export default function OnboardingWizard() {
                     <BarChart3 className="w-5 h-5 text-cyan-400" />
                   </div>
                   <div>
-                    <h3 className="text-white font-bold">ציון בריאות</h3>
-                    <p className="text-gray-400 text-sm">ציון בריאות השוק שלך</p>
+                    <h3 className="text-white font-bold">❤️ בריאות העסק</h3>
+                    <p className="text-gray-400 text-sm">הציון שלך מול השוק</p>
                   </div>
                 </div>
                 <div className="text-center my-4">
@@ -969,10 +968,10 @@ export default function OnboardingWizard() {
           /* Fallback when scan data is empty */
           <div className={`${CARD_CLASS} text-center mb-8`}>
             <p className="text-gray-400 mb-2">
-              לא הצלחנו להשלים את הסריקה. אל דאגה — המערכת תמשיך לסרוק ברקע.
+              העוזרים עדיין עובדים. אל דאגה — הם ימשיכו לסרוק ברקע.
             </p>
             <p className="text-gray-500 text-sm">
-              תוכל לראות את התוצאות בלוח הבקרה בהמשך.
+              תוכל לראות את התוצאות בבית שלך בהמשך.
             </p>
           </div>
         )}
@@ -1004,10 +1003,10 @@ export default function OnboardingWizard() {
         {renderBackButton()}
 
         <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 text-center">
-          3 פעולות לעשות היום
+          3 דברים שכדאי לעשות עכשיו
         </h2>
         <p className="text-gray-400 text-center mb-8">
-          על בסיס הסריקה שלך — הנה מה שיזיז את העסק
+          🧠 המוח הכין את אלה בשבילך — על בסיס מה שהעוזרים מצאו
         </p>
 
         {/* Action cards */}
@@ -1058,7 +1057,7 @@ export default function OnboardingWizard() {
                         }}
                         className={`${GRADIENT_BTN} px-4 py-2 text-sm rounded-xl min-h-[48px]`}
                       >
-                        בצע עכשיו
+                        בוא נעשה את זה
                       </button>
                       <button
                         onClick={() =>
@@ -1087,9 +1086,9 @@ export default function OnboardingWizard() {
               <Smartphone className="w-5 h-5 text-green-400" />
             </div>
             <div className="flex-1">
-              <h3 className="text-white font-bold mb-1">הפעל התראות וואטסאפ</h3>
+              <h3 className="text-white font-bold mb-1">קבל עדכונים לוואטסאפ</h3>
               <p className="text-gray-400 text-sm mb-3">
-                קבל את הפעולות האלה ישירות לוואטסאפ שלך כל בוקר
+                העוזרים ישלחו לך סיכום כל בוקר — ישירות לוואטסאפ
               </p>
               {userPhone ? (
                 <div className="flex items-center gap-2 text-green-400 text-sm">
@@ -1114,7 +1113,7 @@ export default function OnboardingWizard() {
           className={`${GRADIENT_BTN} w-full px-8 py-5 text-lg flex items-center justify-center gap-2`}
         >
           <TrendingUp className="w-5 h-5" />
-          <span>כניסה לפלטפורמה — בוא נראה הכל</span>
+          <span>יאללה, בוא נראה הכל</span>
         </button>
       </div>
     );
@@ -1130,8 +1129,8 @@ export default function OnboardingWizard() {
             <Check className="w-10 h-10 text-cyan-400" />
           </div>
         </div>
-        <h2 className="text-3xl font-bold text-white mb-2">ברוך הבא ל-Quieteyes!</h2>
-        <p className="text-gray-400">מעביר אותך ללוח הבקרה...</p>
+        <h2 className="text-3xl font-bold text-white mb-2">הכל מוכן! 🎉</h2>
+        <p className="text-gray-400">העוזרים שלך כבר עובדים...</p>
       </div>
     </div>
   );

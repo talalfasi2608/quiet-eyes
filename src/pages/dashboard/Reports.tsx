@@ -130,9 +130,9 @@ export default function Reports() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <FileDown className="w-7 h-7 text-cyan-400" />
-            דוח מודיעין שבועי
+            דוח שבועי 📊
           </h1>
-          <p className="text-gray-400 text-sm mt-1">War Room Report — ניתוח שוק ותוכנית פעולה</p>
+          <p className="text-gray-400 text-sm mt-1">סיכום שבועי של כל מה שקרה בעסק</p>
         </div>
         <button
           onClick={handleDownload}
@@ -153,7 +153,7 @@ export default function Reports() {
         </button>
       </div>
 
-      {loading && <PageLoader message='טוען דו"ח מודיעין...' />}
+      {loading && <PageLoader message='📊 מכין את הדוח...' />}
 
       {error && (
         <div className="glass-card p-4 border border-red-500/30 text-red-400 text-center">
@@ -164,8 +164,8 @@ export default function Reports() {
       {!preview && !loading && !error && (
         <EmptyState
           emoji="📊"
-          title="הדוח הראשון שלך בדרך"
-          description={"הדוח השבועי הראשון יהיה מוכן\nביום ראשון הקרוב."}
+          title="הדוח עדיין לא מוכן."
+          description={"העוזרים שלך יכינו אותו בקרוב — בדרך כלל כל יום ראשון 📅"}
           actionLabel="צור דוח ידני עכשיו"
           onAction={async () => {
             if (!currentProfile?.id) return;

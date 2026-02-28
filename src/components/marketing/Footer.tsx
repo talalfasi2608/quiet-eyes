@@ -2,11 +2,11 @@ import { Link } from 'react-router-dom';
 
 const columns = [
   {
-    title: 'מוצר',
+    title: 'המוצר',
     links: [
-      { label: 'תכונות', to: '/features' },
-      { label: 'תמחור', to: '/pricing' },
-      { label: 'לידים', to: '/features' },
+      { label: 'איך זה עובד', to: '/features' },
+      { label: 'העוזרים', to: '/features' },
+      { label: 'מחירים', to: '/pricing' },
     ],
   },
   {
@@ -20,7 +20,7 @@ const columns = [
   {
     title: 'משפטי',
     links: [
-      { label: 'פרטיות', to: '/privacy' },
+      { label: 'מדיניות פרטיות', to: '/privacy' },
       { label: 'תנאי שימוש', to: '/terms' },
     ],
   },
@@ -37,7 +37,9 @@ export default function Footer() {
               Quiet<span style={{ color: '#00d4ff' }}>eyes</span>
             </Link>
             <p className="mt-3 text-sm leading-relaxed" style={{ color: '#8899aa' }}>
-              פלטפורמת מודיעין עסקי מבוססת AI לעסקים קטנים ובינוניים.
+              6 עוזרים חכמים שעובדים בשבילך 24/7.
+              <br />
+              מודיעין עסקי שמרגיש כמו חבר טוב.
             </p>
           </div>
 

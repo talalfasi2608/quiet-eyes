@@ -271,7 +271,7 @@ export default function KnowledgeBase() {
   // Loading state
   if (loading) {
     return (
-      <PageLoader message="טוען בסיס ידע..." />
+      <PageLoader message="🧠 חושב על התשובה..." />
     );
   }
 
@@ -284,8 +284,8 @@ export default function KnowledgeBase() {
             <Brain className="w-7 h-7 text-cyan-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white mb-1">בסיס ידע</h1>
-            <p className="text-gray-400">למד את ה-AI על הנישה הייחודית של העסק שלך</p>
+            <h1 className="text-3xl font-bold text-white mb-1">שאל אותי כל דבר 💬</h1>
+            <p className="text-gray-400">בסיס הידע שלך — שאל ותקבל תשובה מיידית</p>
           </div>
         </div>
 

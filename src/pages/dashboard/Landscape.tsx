@@ -211,12 +211,12 @@ export default function Landscape() {
       marker.addListener('click', () => {
         setHighlightedId(comp.id);
         if (!infoWindowRef.current) infoWindowRef.current = new window.google.maps.InfoWindow();
-        const threatLabel = comp.perceived_threat_level === 'High' ? 'גבוה' : comp.perceived_threat_level === 'Medium' ? 'בינוני' : 'נמוך';
+        const threatLabel = comp.perceived_threat_level === 'High' ? 'מתחרה חזק 💪' : comp.perceived_threat_level === 'Medium' ? 'כדאי לעקוב 👀' : 'לא מאיים כרגע 😌';
         infoWindowRef.current.setContent(`
           <div style="color:#e5e7eb; background:#1f2937; padding:10px; border-radius:8px; min-width:180px; direction:rtl;">
             <strong style="color:white;">${comp.name}</strong>
             ${comp.google_rating ? `<div style="margin-top:4px;">⭐ ${comp.google_rating} (${comp.google_reviews_count || 0})</div>` : ''}
-            <div style="margin-top:4px; font-size:12px; color:${color};">איום: ${threatLabel}</div>
+            <div style="margin-top:4px; font-size:12px; color:${color};">${threatLabel}</div>
           </div>
         `);
         infoWindowRef.current.open(map, marker);
@@ -229,6 +229,7 @@ export default function Landscape() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-60px)]">
         <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
+        <p className="text-gray-400 mr-3">👁️ עיני סורק את האזור...</p>
       </div>
     );
   }
@@ -237,7 +238,7 @@ export default function Landscape() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-60px)]">
         <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
-        <p className="text-gray-400 mr-3">טוען...</p>
+        <p className="text-gray-400 mr-3">👁️ עיני סורק את האזור...</p>
       </div>
     );
   }
@@ -261,9 +262,9 @@ export default function Landscape() {
   };
 
   const getThreatLabel = (level: string) => {
-    if (level === 'High') return 'גבוה';
-    if (level === 'Medium') return 'בינוני';
-    return 'נמוך';
+    if (level === 'High') return 'מתחרה חזק 💪';
+    if (level === 'Medium') return 'כדאי לעקוב 👀';
+    return 'לא מאיים כרגע 😌';
   };
 
   return (
@@ -289,7 +290,7 @@ export default function Landscape() {
             <span className="text-gray-500">·</span>
             <span className="text-gray-400">ממוצע שוק ⭐ {avgRating}</span>
             <span className="text-gray-500">·</span>
-            <span className="text-red-400">{highThreats} איומים גבוהים</span>
+            <span className="text-red-400">{highThreats} מתחרים חזקים 💪</span>
           </div>
           <button
             onClick={handleScan}
@@ -318,15 +319,15 @@ export default function Landscape() {
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                  <span className="text-gray-300">איום גבוה</span>
+                  <span className="text-gray-300">מתחרה חזק 💪</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                  <span className="text-gray-300">בינוני</span>
+                  <span className="text-gray-300">כדאי לעקוב 👀</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-2.5 h-2.5 rounded-full bg-gray-500" />
-                  <span className="text-gray-300">נמוך</span>
+                  <span className="text-gray-300">לא מאיים כרגע 😌</span>
                 </div>
               </div>
               <div className="absolute top-3 left-3 bg-gray-900/90 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-gray-700">
@@ -345,7 +346,7 @@ export default function Landscape() {
         <div style={{ gridArea: 'threats' }} className="glass-card p-3 flex flex-col overflow-hidden">
           <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2 flex-shrink-0">
             <AlertTriangle className="w-4 h-4 text-red-400" />
-            איומים מובילים
+            המתחרים שלי 👀
           </h3>
           <div className="space-y-1.5 flex-1 overflow-y-auto min-h-0">
             {topThreats.map(comp => (
@@ -372,7 +373,7 @@ export default function Landscape() {
               </div>
             ))}
             {topThreats.length === 0 && (
-              <div className="text-gray-500 text-xs text-center py-4">לא נמצאו מתחרים</div>
+              <div className="text-gray-500 text-xs text-center py-4 whitespace-pre-line">{"עדיין לא מצאתי מתחרים.\nברגע שתגדיר את העסק — אתחיל לסרוק את האזור שלך.\nזה לוקח בדרך כלל כמה דקות 🔍"}</div>
             )}
           </div>
         </div>
@@ -391,7 +392,7 @@ export default function Landscape() {
                   <th className="text-center py-1 font-medium">דירוג</th>
                   <th className="text-center py-1 font-medium">ביקורות</th>
                   <th className="text-center py-1 font-medium">מרחק</th>
-                  <th className="text-center py-1 font-medium">איום</th>
+                  <th className="text-center py-1 font-medium">רמת איום</th>
                   <th className="text-center py-1 font-medium">חולשה</th>
                 </tr>
               </thead>
@@ -437,8 +438,8 @@ export default function Landscape() {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-4">
                   <span className="text-3xl">👁️</span>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-1">עדיין מחפשים מתחרים</h3>
-                <p className="text-gray-400 text-sm max-w-sm mx-auto whitespace-pre-line">{"הסריקה הראשונה תושלם תוך 12 שעות.\nניצור לך מפת נוף תחרותי מלאה."}</p>
+                <h3 className="text-lg font-bold text-white mb-1">עדיין לא מצאתי מתחרים.</h3>
+                <p className="text-gray-400 text-sm max-w-sm mx-auto whitespace-pre-line">{"ברגע שתגדיר את העסק — אתחיל לסרוק את האזור שלך.\nזה לוקח בדרך כלל כמה דקות 🔍"}</p>
                 <button
                   onClick={handleScan}
                   disabled={scanning}
@@ -459,7 +460,7 @@ export default function Landscape() {
           <div className="flex items-center gap-2 text-sm">
             <span className="text-white font-bold">{competitors.length} מתחרים</span>
             <span className="text-gray-500">·</span>
-            <span className="text-red-400 text-xs">{highThreats} איומים</span>
+            <span className="text-red-400 text-xs">{highThreats} חזקים 💪</span>
           </div>
           <button
             onClick={handleScan}
@@ -512,11 +513,11 @@ export default function Landscape() {
                   </div>
                   <div className="flex items-center gap-1 text-[10px]">
                     <div className="w-2 h-2 rounded-full bg-red-500" />
-                    <span className="text-gray-400">גבוה</span>
+                    <span className="text-gray-400">חזק 💪</span>
                   </div>
                   <div className="flex items-center gap-1 text-[10px]">
                     <div className="w-2 h-2 rounded-full bg-amber-500" />
-                    <span className="text-gray-400">בינוני</span>
+                    <span className="text-gray-400">לעקוב 👀</span>
                   </div>
                 </div>
               </>
@@ -536,8 +537,8 @@ export default function Landscape() {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-4">
                   <span className="text-3xl">👁️</span>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-1">עדיין מחפשים מתחרים</h3>
-                <p className="text-gray-400 text-sm whitespace-pre-line">{"הסריקה הראשונה תושלם תוך 12 שעות.\nניצור לך מפת נוף תחרותי מלאה."}</p>
+                <h3 className="text-lg font-bold text-white mb-1">עדיין לא מצאתי מתחרים.</h3>
+                <p className="text-gray-400 text-sm whitespace-pre-line">{"ברגע שתגדיר את העסק — אתחיל לסרוק את האזור שלך.\nזה לוקח בדרך כלל כמה דקות 🔍"}</p>
                 <button
                   onClick={handleScan}
                   disabled={scanning}
@@ -593,7 +594,7 @@ export default function Landscape() {
         <div className="glass-card p-3">
           <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-red-400" />
-            איומים מובילים
+            המתחרים שלי 👀
           </h3>
           <div className="space-y-1.5">
             {topThreats.slice(0, 5).map(comp => (
@@ -618,7 +619,7 @@ export default function Landscape() {
               </div>
             ))}
             {topThreats.length === 0 && (
-              <div className="text-gray-500 text-xs text-center py-4">לא נמצאו מתחרים</div>
+              <div className="text-gray-500 text-xs text-center py-4 whitespace-pre-line">{"עדיין לא מצאתי מתחרים.\nברגע שתגדיר את העסק — אתחיל לסרוק את האזור שלך.\nזה לוקח בדרך כלל כמה דקות 🔍"}</div>
             )}
           </div>
         </div>

@@ -30,9 +30,9 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-[60vh] flex items-center justify-center">
           <div className="glass-card p-12 text-center max-w-md">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">אופס! משהו השתבש</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">אופס, משהו לא עבד</h2>
             <p className="text-gray-400 mb-6">
-              אירעה שגיאה בלתי צפויה. נסה לרענן את הדף או לחזור מאוחר יותר.
+              קרתה תקלה קטנה. העוזרים שלך עדיין כאן — נסה לרענן את הדף.
             </p>
             <div className="flex gap-3 justify-center">
               <button

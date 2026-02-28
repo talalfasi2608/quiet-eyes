@@ -63,9 +63,9 @@ function FreshBadge() {
 
 function PriorityIndicator({ priority }: { priority: 'high' | 'medium' | 'low' }) {
   const config = {
-    high: { color: 'bg-red-500', label: 'דחוף' },
-    medium: { color: 'bg-amber-500', label: 'חשוב' },
-    low: { color: 'bg-blue-500', label: 'מידע' },
+    high: { color: 'bg-red-500', label: 'דחוף ❗' },
+    medium: { color: 'bg-amber-500', label: 'שווה לדעת' },
+    low: { color: 'bg-blue-500', label: 'לידיעה' },
   };
   const { color } = config[priority];
   return <span className={`w-2 h-2 rounded-full ${color} ${priority === 'high' ? 'animate-pulse' : ''}`} />;
@@ -285,7 +285,7 @@ export default function MarketIntelligence() {
   if (loading) {
     return (
       <div dir="rtl" style={{ height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
-        <PageLoader message="טוען מודיעין שוק..." />
+        <PageLoader message="👁️ עיני אוסף מודיעין..." />
       </div>
     );
   }
@@ -310,9 +310,9 @@ export default function MarketIntelligence() {
     return (
       <div dir="rtl" className="flex items-center justify-center min-h-[50vh]">
         <EmptyState
-          emoji="🧠"
-          title="אין עדיין מודיעין"
-          description={"לאחר הסריקה הראשונה, תראה כאן\nהתראות ותובנות על השוק שלך."}
+          emoji="😌"
+          title="הכל שקט כרגע"
+          description={"הכל שקט כרגע 😌\nעיני ממשיך לעקוב — ברגע שיהיה משהו חדש, תדע."}
           actionLabel="הפעל סריקה ידנית"
           onAction={triggerScan}
           actionIcon={Radar}
@@ -361,7 +361,8 @@ export default function MarketIntelligence() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-md flex-shrink-0">
               <Shield className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-lg font-bold text-white whitespace-nowrap">מי מאיים עליי?</h1>
+            <h1 className="text-lg font-bold text-white whitespace-nowrap">מה קרה בזמן שישנתי 💡</h1>
+            <span className="text-xs text-gray-400 whitespace-nowrap">עיני עוקב 24/7 — הנה מה שתפס</span>
             {scanning && (
               <span className="text-xs font-normal text-cyan-400 flex items-center gap-1 flex-shrink-0">
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -431,7 +432,7 @@ export default function MarketIntelligence() {
           <div className="flex items-center justify-between px-3 py-2 bg-red-500/10 border-b-2 border-red-500/60 flex-shrink-0">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400" />
-              <span className="text-sm font-bold text-red-400">דחוף</span>
+              <span className="text-sm font-bold text-red-400">דחוף ❗</span>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-semibold">{totals.urgent}</span>
           </div>
@@ -439,7 +440,7 @@ export default function MarketIntelligence() {
             {urgentItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
                 <CheckCircle2 className="w-8 h-8 mb-2 text-gray-600" />
-                <span className="text-sm">אין התראות דחופות</span>
+                <span className="text-sm">הכל שקט כרגע 😌</span>
               </div>
             ) : (
               urgentItems.map(({ item, category }) => {
@@ -455,7 +456,7 @@ export default function MarketIntelligence() {
           <div className="flex items-center justify-between px-3 py-2 bg-amber-500/10 border-b-2 border-amber-500/60 flex-shrink-0">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-bold text-amber-400">חשוב</span>
+              <span className="text-sm font-bold text-amber-400">שווה לדעת</span>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-semibold">{totals.important}</span>
           </div>
@@ -463,7 +464,7 @@ export default function MarketIntelligence() {
             {importantItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
                 <CheckCircle2 className="w-8 h-8 mb-2 text-gray-600" />
-                <span className="text-sm">אין פריטים חשובים</span>
+                <span className="text-sm">הכל שקט כרגע 😌</span>
               </div>
             ) : (
               importantItems.map(({ item, category }) => {
@@ -479,7 +480,7 @@ export default function MarketIntelligence() {
           <div className="flex items-center justify-between px-3 py-2 bg-blue-500/10 border-b-2 border-blue-500/60 flex-shrink-0">
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-bold text-blue-400">מעקב</span>
+              <span className="text-sm font-bold text-blue-400">לידיעה</span>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs font-semibold">{totals.monitoring}</span>
           </div>
@@ -487,7 +488,7 @@ export default function MarketIntelligence() {
             {monitoringItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
                 <CheckCircle2 className="w-8 h-8 mb-2 text-gray-600" />
-                <span className="text-sm">אין פריטים למעקב</span>
+                <span className="text-sm">הכל שקט כרגע 😌</span>
               </div>
             ) : (
               monitoringItems.map(({ item, category }) => {
@@ -507,7 +508,7 @@ export default function MarketIntelligence() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-md">
               <Shield className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-base font-bold text-white">מודיעין שוק</h1>
+            <h1 className="text-base font-bold text-white">מה קרה בזמן שישנתי 💡</h1>
             {scanning && (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
             )}
@@ -548,7 +549,7 @@ export default function MarketIntelligence() {
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            דחוף ({totals.urgent})
+            דחוף ❗ ({totals.urgent})
           </button>
           <button
             onClick={() => setMobileTab('important')}
@@ -557,7 +558,7 @@ export default function MarketIntelligence() {
             }`}
           >
             <AlertCircle className="w-3.5 h-3.5" />
-            חשוב ({totals.important})
+            שווה לדעת ({totals.important})
           </button>
           <button
             onClick={() => setMobileTab('monitoring')}
@@ -566,7 +567,7 @@ export default function MarketIntelligence() {
             }`}
           >
             <Eye className="w-3.5 h-3.5" />
-            מעקב ({totals.monitoring})
+            לידיעה ({totals.monitoring})
           </button>
         </div>
 
@@ -576,9 +577,7 @@ export default function MarketIntelligence() {
             <div className="glass-card p-8 text-center text-gray-500">
               <CheckCircle2 className="w-8 h-8 mb-2 mx-auto text-gray-600" />
               <span className="text-sm">
-                {mobileTab === 'urgent' ? 'אין התראות דחופות' :
-                 mobileTab === 'important' ? 'אין פריטים חשובים' :
-                 'אין פריטים למעקב'}
+                הכל שקט כרגע 😌
               </span>
             </div>
           ) : (

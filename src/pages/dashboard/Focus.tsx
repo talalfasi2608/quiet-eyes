@@ -71,9 +71,9 @@ const PRIORITY_BADGE: Record<string, string> = {
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
-  high: 'דחוף',
-  medium: 'חשוב',
-  low: 'שגרתי',
+  high: 'דחוף 🔴',
+  medium: 'חשוב 🟡',
+  low: 'כדאי 🔵',
 };
 
 export default function Focus() {
@@ -120,8 +120,9 @@ export default function Focus() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-60px)]">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-60px)]">
         <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
+        <p className="text-gray-400 mt-4 text-sm">🧠 המוח חושב...</p>
       </div>
     );
   }
@@ -148,9 +149,9 @@ export default function Focus() {
         <div style={{ gridArea: 'header' }} className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white leading-tight">
-              {getGreeting()}{businessName ? `, ${businessName}` : ''}
+              מה לעשות היום 🧠
             </h1>
-            <p className="text-sm text-gray-500">מה אני עושה היום?</p>
+            <p className="text-sm text-gray-500">המוח הכין לך את 3 הדברים הכי חשובים להיום</p>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1.5">
@@ -190,8 +191,9 @@ export default function Focus() {
             {(!data?.tasks || data.tasks.length === 0) ? (
               <div className="glass-card p-6 text-center flex-1 flex flex-col items-center justify-center">
                 <Sparkles className="w-8 h-8 text-cyan-500 mb-2" />
-                <h3 className="text-white font-semibold">הכל מסודר!</h3>
-                <p className="text-gray-400 text-sm">אין משימות דחופות כרגע</p>
+                <h3 className="text-white font-semibold">המוח עדיין לא הספיק להכין משימות.</h3>
+                <p className="text-gray-400 text-sm">זה לוקח בדרך כלל כמה שעות אחרי ההגדרה הראשונית.</p>
+                <p className="text-gray-400 text-sm">בינתיים — הגדר את העסק שלך בהגדרות 🔧</p>
               </div>
             ) : (
               <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
@@ -304,9 +306,9 @@ export default function Focus() {
         {/* Header */}
         <div>
           <h1 className="text-xl font-bold text-white leading-tight">
-            {getGreeting()}{businessName ? `, ${businessName}` : ''}
+            מה לעשות היום 🧠
           </h1>
-          <p className="text-sm text-gray-500">מה אני עושה היום?</p>
+          <p className="text-sm text-gray-500">המוח הכין לך את 3 הדברים הכי חשובים להיום</p>
         </div>
 
         {/* Quick stats */}
@@ -346,8 +348,9 @@ export default function Focus() {
             {(!data?.tasks || data.tasks.length === 0) ? (
               <div className="glass-card p-6 text-center">
                 <Sparkles className="w-8 h-8 text-cyan-500 mb-2 mx-auto" />
-                <h3 className="text-white font-semibold">הכל מסודר!</h3>
-                <p className="text-gray-400 text-sm">אין משימות דחופות כרגע</p>
+                <h3 className="text-white font-semibold">המוח עדיין לא הספיק להכין משימות.</h3>
+                <p className="text-gray-400 text-sm">זה לוקח בדרך כלל כמה שעות אחרי ההגדרה הראשונית.</p>
+                <p className="text-gray-400 text-sm">בינתיים — הגדר את העסק שלך בהגדרות 🔧</p>
               </div>
             ) : (
               <div className="space-y-2">

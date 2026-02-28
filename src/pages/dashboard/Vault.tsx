@@ -173,8 +173,8 @@ export default function Vault() {
             <Archive className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>הכספת</h1>
-            <p className="text-[var(--text-secondary)] text-sm">ארכיון מודיעין היסטורי</p>
+            <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>הדוחות שלי 📂</h1>
+            <p className="text-[var(--text-secondary)] text-sm">כל הדוחות והנתונים שלך במקום אחד</p>
           </div>
         </div>
       </header>
@@ -254,12 +254,12 @@ export default function Vault() {
 
       {/* ── Loading state ───────────────────────────────────────────────────── */}
       {loading && (
-        <PageLoader message="טוען ארכיון מודיעין..." />
+        <PageLoader message="📂 טוען דוחות..." />
       )}
 
       {/* ── Empty state ─────────────────────────────────────────────────────── */}
       {!loading && events.length === 0 && (
-        <EmptyState icon={Archive} title="אין אירועים בכספת" description="לא נמצאו אירועי מודיעין עבור הסינון שנבחר. נסה לשנות את טווח התאריכים או להסיר את הסינון." />
+        <EmptyState icon={Archive} title="עדיין אין דוחות." description={"העוזרים שלך ייצרו דוחות ברגע שיהיה מספיק מידע 📊"} />
       )}
 
       {/* ── Timeline ────────────────────────────────────────────────────────── */}

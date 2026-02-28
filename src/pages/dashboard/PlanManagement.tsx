@@ -212,7 +212,7 @@ export default function PlanManagement() {
     }
   })();
 
-  if (isLoadingTiers) return <PageLoader message="טוען תוכניות..." />;
+  if (isLoadingTiers) return <PageLoader message="טוען פרטי מנוי..." />;
 
   return (
     <div className="space-y-8" dir="rtl">
@@ -222,7 +222,7 @@ export default function PlanManagement() {
           <CreditCard className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-white">ניהול מנוי</h1>
+          <h1 className="text-3xl font-bold text-white">התוכנית שלי ⭐</h1>
           <p className="text-gray-400">שדרגו את התוכנית שלכם וצפו בשימוש קרדיטים</p>
         </div>
       </div>

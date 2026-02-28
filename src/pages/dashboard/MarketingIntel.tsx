@@ -665,7 +665,7 @@ export default function MarketingIntel() {
         <EmptyState
           icon={AlertCircle}
           iconColor="text-red-400"
-          title="טעינת המודיעין השיווקי נכשלה"
+          title="📢 הקול מכין תוכן..."
           description={error}
           actionLabel="נסה שוב"
           onAction={fetchReport}
@@ -685,8 +685,8 @@ export default function MarketingIntel() {
         <EmptyState
           icon={Megaphone}
           iconColor="text-cyan-400"
-          title="אין דוח מודיעין שיווקי עדיין"
-          description="צור דוח מודיעין שיווקי כדי לקבל המלצות מותאמות לעסק שלך — קהל יעד, ערוצים, מסרים ותוכנית שבועית."
+          title="הקול עדיין לא הכין תוכן."
+          description={"ברגע שיהיה מספיק מידע על העסק — הוא יתחיל לכתוב בשבילך ✍️"}
           actionLabel="צור דוח שיווקי"
           onAction={handleRefresh}
           actionIcon={Megaphone}
@@ -712,9 +712,9 @@ export default function MarketingIntel() {
               <Megaphone className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-white">מודיעין שיווקי</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-white">הקול שלי 📢</h1>
               <p className="text-sm text-gray-400">
-                {businessName ? `המלצות מותאמות אישית ל${businessName}` : 'המלצות מותאמות אישית לעסק שלך על בסיס ניתוח השוק שלנו'}
+                הקול מדבר ללקוחות שלך כשאין לך זמן
               </p>
             </div>
             {cached && (
@@ -735,7 +735,7 @@ export default function MarketingIntel() {
             }`}
           >
             {refreshing ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> מנתח שוק...</>
+              <><Loader2 className="w-4 h-4 animate-spin" /> 📢 הקול מכין תוכן...</>
             ) : (
               <><RefreshCw className="w-4 h-4" /> רענן דוח</>
             )}

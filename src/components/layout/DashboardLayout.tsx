@@ -53,14 +53,14 @@ export default function DashboardLayout() {
                   isTrialExpired ? 'text-red-300' : 'text-amber-300'
                 }`}>
                   {isTrialExpired
-                    ? 'הניסיון החינמי שלך הסתיים'
-                    : `נותרו ${trialDaysRemaining} ימים בניסיון החינמי שלך`
+                    ? 'הניסיון שלך הסתיים — העוזרים עצרו'
+                    : `נותרו ${trialDaysRemaining} ימים — העוזרים עדיין עובדים`
                   }
                 </p>
                 <p className="text-gray-400 text-xs mt-0.5">
                   {isTrialExpired
-                    ? 'אל תאבד את הלידים והמעקבים שלך'
-                    : 'שדרג כדי להמשיך לקבל מודיעין עסקי מלא'
+                    ? 'שדרג כדי שהעוזרים ימשיכו לעבוד בשבילך'
+                    : 'שדרג כדי שהעוזרים ימשיכו לעבוד גם אחרי הניסיון'
                   }
                 </p>
               </div>

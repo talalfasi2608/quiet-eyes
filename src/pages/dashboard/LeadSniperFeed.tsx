@@ -173,12 +173,20 @@ function PlatformBadge({ platform }: { platform: string }) {
 function RelevanceBar({ score }: { score: number }) {
   const pct = Math.round(score * 100);
   const color = pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-amber-500' : 'bg-red-500';
+  const scoreLabel = pct >= 85
+    ? 'חם מאוד 🔥'
+    : pct >= 70
+    ? 'שווה לפנות 👍'
+    : pct >= 50
+    ? 'אולי מתאים 🤷'
+    : 'פחות רלוונטי';
   return (
     <div className="flex items-center gap-2" dir="ltr">
       <div className="flex-1 h-1 bg-gray-700/50 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
       </div>
       <span className="text-[10px] text-gray-500 w-7 text-left">{pct}%</span>
+      <span className="text-[10px] text-gray-400">{scoreLabel}</span>
     </div>
   );
 }
@@ -438,7 +446,7 @@ function LeadFlashCard({
                 className="flex items-center gap-1 text-[11px] text-red-400/70 hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
               >
                 <ThumbsDown className="w-3 h-3" />
-                לא רלוונטי
+                לא מתאים לי
               </button>
               <div className="flex items-center gap-1.5">
                 <button
@@ -453,7 +461,7 @@ function LeadFlashCard({
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all active:scale-95"
                 >
                   <ThumbsUp className="w-3.5 h-3.5" />
-                  ליד טוב
+                  פנה עכשיו
                 </button>
               </div>
             </>
@@ -461,7 +469,7 @@ function LeadFlashCard({
             <div className="w-full flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-emerald-400 text-xs">
                 <ThumbsUp className="w-3.5 h-3.5" />
-                ליד אושר
+                שמור לטיפול
               </span>
               <div className="flex items-center gap-1.5">
                 <button
@@ -737,12 +745,13 @@ export default function LeadSniperFeed() {
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/30 flex-shrink-0">
             <Crosshair className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-base md:text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>צלף לידים</h1>
+          <h1 className="text-base md:text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>מי מחפש אותי עכשיו? 🎯</h1>
+          <span className="hidden md:inline text-xs text-gray-400">עיני מצא את האנשים שמחפשים בדיוק מה שאתה מציע</span>
           <LiveBadge />
           {scanning && (
             <span className="text-xs font-normal text-orange-400 flex items-center gap-1.5">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              סורק...
+              👁️ עיני סורק עכשיו...
             </span>
           )}
         </div>
@@ -777,8 +786,8 @@ export default function LeadSniperFeed() {
             {scanning ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="hidden md:inline">משימה פעילה...</span>
-                <span className="md:hidden">סורק...</span>
+                <span className="hidden md:inline">👁️ עיני סורק עכשיו...</span>
+                <span className="md:hidden">👁️ עיני סורק עכשיו...</span>
               </>
             ) : (
               <>
@@ -915,14 +924,14 @@ export default function LeadSniperFeed() {
                     </div>
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">
-                    עדיין לא מצאנו לידים
+                    עיני עדיין לא מצא לידים חדשים
                   </h3>
                   <p className="text-gray-400 mb-4 max-w-md mx-auto whitespace-pre-line leading-relaxed">
-                    {"הסריקה הראשונה לוקחת עד 12 שעות.\nבינתיים, וודא שמילות המפתח שלך מוגדרות נכון."}
+                    {"עיני עדיין לא מצא לידים חדשים.\nזה בדרך כלל לוקח כמה שעות אחרי ההגדרה הראשונית.\nבינתיים, וודא שהגדרת את מילות המפתח בהגדרות 🔧"}
                   </p>
                   <div className="flex items-center justify-center gap-2 text-sm text-orange-400 mb-4">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    מתרענן אוטומטית כל 15 שניות
+                    👁️ עיני סורק עכשיו...
                   </div>
                   <button
                     onClick={() => window.location.href = '/dashboard/settings'}
@@ -938,11 +947,11 @@ export default function LeadSniperFeed() {
                     <span className="text-4xl">🎯</span>
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">
-                    {activeFilter === 'all' ? 'לא נמצאו לידים רלוונטיים' : `אין ${filterLabels[activeFilter]}`}
+                    {activeFilter === 'all' ? 'עיני עדיין לא מצא לידים חדשים' : `אין ${filterLabels[activeFilter]}`}
                   </h3>
                   <p className="text-gray-400 mb-6 max-w-md mx-auto whitespace-pre-line leading-relaxed">
                     {activeFilter === 'all'
-                      ? 'נסה להרחיב את מילות המפתח\nאו את אזור החיפוש'
+                      ? 'עיני עדיין לא מצא לידים חדשים.\nזה בדרך כלל לוקח כמה שעות אחרי ההגדרה הראשונית.\nבינתיים, וודא שהגדרת את מילות המפתח בהגדרות 🔧'
                       : 'נסה לשנות את הסינון או להפעיל משימה חדשה.'}
                   </p>
                   {activeFilter === 'all' ? (

@@ -281,7 +281,7 @@ export default function LeadDetailModal({
                 className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-red-400/70 text-sm font-medium border border-gray-700/50 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all"
               >
                 <ThumbsDown className="w-4 h-4" />
-                לא רלוונטי
+                לא מתאים לי
               </button>
               <button
                 onClick={() => {
@@ -291,7 +291,7 @@ export default function LeadDetailModal({
                 className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all active:scale-95"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                סמן כטופל
+                הבנתי, תודה
               </button>
             </div>
           )}
