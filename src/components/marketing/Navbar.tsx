@@ -29,8 +29,8 @@ export default function Navbar() {
                 to={l.to}
                 className="text-sm font-medium transition-colors duration-200"
                 style={{ color: pathname === l.to ? '#00d4ff' : '#8899aa' }}
-                onMouseEnter={e => { if (pathname !== l.to) (e.target as HTMLElement).style.color = '#f0f4ff'; }}
-                onMouseLeave={e => { if (pathname !== l.to) (e.target as HTMLElement).style.color = '#8899aa'; }}
+                onMouseEnter={e => { if (pathname !== l.to) (e.currentTarget as HTMLElement).style.color = '#f0f4ff'; }}
+                onMouseLeave={e => { if (pathname !== l.to) (e.currentTarget as HTMLElement).style.color = '#8899aa'; }}
               >
                 {l.label}
               </Link>
@@ -43,8 +43,8 @@ export default function Navbar() {
               to="/login"
               className="px-4 py-1.5 text-sm transition-colors duration-200"
               style={{ color: '#8899aa' }}
-              onMouseEnter={e => (e.target as HTMLElement).style.color = '#f0f4ff'}
-              onMouseLeave={e => (e.target as HTMLElement).style.color = '#8899aa'}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#f0f4ff'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#8899aa'}
             >
               התחבר
             </Link>

@@ -140,7 +140,7 @@ export default function Horizon() {
     );
   }
 
-  const { trendingTopics, nameHebrew, emoji } = currentProfile;
+  const { nameHebrew, emoji } = currentProfile;
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
@@ -266,6 +266,10 @@ export default function Horizon() {
                         </span>
                       )}
                     </div>
+
+                    {event.description && (
+                      <p className="text-gray-400 text-sm mb-2">{event.description}</p>
+                    )}
 
                     {event.recommendations && event.recommendations.length > 0 && (
                       <div className="mt-3 space-y-2 border-t border-gray-700/50 pt-3">
@@ -429,7 +433,9 @@ export default function Horizon() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       trend.level === 'breakout'
                         ? 'bg-red-500/20 text-red-300'
-                        : 'bg-amber-500/20 text-amber-300'
+                        : trend.level === 'emerging'
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-gray-500/20 text-gray-400'
                     }`}>
                       {(trend.change_pct || 0) > 0 ? '+' : ''}{(trend.change_pct || 0).toFixed(0)}%
                     </span>

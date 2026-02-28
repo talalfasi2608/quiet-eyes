@@ -167,11 +167,22 @@ const mockups: Record<string, () => JSX.Element> = {
   health: HealthGaugeMockup,
   whatsapp: WhatsAppMockup,
   pdf: PdfMockup,
+  map: CompetitorMapMockup,
 };
 
 /* ═══════════════════════════════════════ */
 
-const features = [
+interface Feature {
+  id: string;
+  title: string;
+  bullets: string[];
+  details: string[];
+  summary: string;
+  examples?: string[];
+  alerts?: { color: string; label: string; text: string }[];
+}
+
+const features: Feature[] = [
   {
     id: 'lead',
     title: 'צלף לידים — מוצא את הלקוחות הבאים שלך',
@@ -248,6 +259,22 @@ const features = [
     details: [],
     summary: 'הודעת בוקר יומית — סיכום 3 דקות של מה שקרה. התראות מיידיות — רק כשמשהו חשוב קורה. לא ספאם. לא רעש. רק מה שחשוב לפעול עליו.',
   },
+  {
+    id: 'map',
+    title: 'מפת נוף תחרותי — ראה את כולם על מפה אחת',
+    bullets: [
+      'תמונה שלמה של הזירה העסקית שלך. כל המתחרים על מפה אינטראקטיבית — עם דירוג, ביקורות ורמת איום.',
+      'זהה מי באזור שלך מתחזק ומי נחלש. גלה אזורים "ריקים" שבהם אין תחרות — והזדמנות לצמוח.',
+    ],
+    details: [
+      'מפה אינטראקטיבית עם כל המתחרים',
+      'צביעה לפי רמת איום — גבוה, בינוני, נמוך',
+      'דירוג Google ומספר ביקורות לכל מתחרה',
+      'זיהוי מתחרים חדשים אוטומטית',
+      'חולשות מזוהות — איפה אתה יכול לנצח',
+    ],
+    summary: 'כמו חדר מלחמה — אבל בענן. ראה את המפה, קבל החלטות חכמות.',
+  },
 ];
 
 export default function Features() {
@@ -317,20 +344,20 @@ export default function Features() {
                   </ul>
                 )}
 
-                {'examples' in feat && feat.examples && (
+                {feat.examples && feat.examples.length > 0 && (
                   <div className="rounded p-4 mb-6" style={{ background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)' }}>
                     <p className="text-xs font-semibold mb-3" style={{ color: '#00d4ff' }}>דוגמאות אמיתיות:</p>
                     <ul className="space-y-2">
-                      {(feat as any).examples.map((ex: string, j: number) => (
+                      {feat.examples.map((ex, j) => (
                         <li key={j} className="text-sm" style={{ color: '#f0f4ff' }}>{ex}</li>
                       ))}
                     </ul>
                   </div>
                 )}
 
-                {'alerts' in feat && feat.alerts && (
+                {feat.alerts && feat.alerts.length > 0 && (
                   <div className="space-y-3 mb-6">
-                    {(feat as any).alerts.map((a: any, j: number) => (
+                    {feat.alerts.map((a, j) => (
                       <div key={j} className="flex items-start gap-3 text-sm">
                         <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: a.color }} />
                         <span style={{ color: '#f0f4ff' }}><span className="font-semibold" style={{ color: a.color }}>{a.label}:</span> {a.text}</span>

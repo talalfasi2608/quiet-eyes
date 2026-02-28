@@ -177,6 +177,11 @@ export default function Pricing() {
                         </span>
                       ) : (
                         <>
+                          {annual && plan.monthlyPrice > 0 && (
+                            <span className="text-lg line-through mr-1" style={{ color: '#4a5568', fontFamily: "'JetBrains Mono', monospace" }}>
+                              &#8362;{plan.monthlyPrice}
+                            </span>
+                          )}
                           <span className="text-4xl font-extrabold" style={{ color: '#f0f4ff', fontFamily: "'JetBrains Mono', monospace" }}>
                             &#8362;{price}
                           </span>
@@ -196,16 +201,26 @@ export default function Pricing() {
                       ))}
                     </ul>
 
-                    <Link
-                      to={plan.monthlyPrice === 599 ? '/about' : '/login'}
-                      className="block py-2.5 rounded text-sm font-semibold text-center transition-colors duration-200"
-                      style={plan.popular
-                        ? { background: '#00d4ff', color: '#0a0e1a' }
-                        : { border: '1px solid rgba(30,45,69,0.5)', color: '#8899aa' }
-                      }
-                    >
-                      {plan.cta}
-                    </Link>
+                    {plan.monthlyPrice === 599 ? (
+                      <a
+                        href="mailto:hello@quieteyes.co.il?subject=Business Plan Inquiry"
+                        className="block py-2.5 rounded text-sm font-semibold text-center transition-colors duration-200"
+                        style={{ border: '1px solid rgba(30,45,69,0.5)', color: '#8899aa' }}
+                      >
+                        {plan.cta}
+                      </a>
+                    ) : (
+                      <Link
+                        to="/register"
+                        className="block py-2.5 rounded text-sm font-semibold text-center transition-colors duration-200"
+                        style={plan.popular
+                          ? { background: '#00d4ff', color: '#0a0e1a' }
+                          : { border: '1px solid rgba(30,45,69,0.5)', color: '#8899aa' }
+                        }
+                      >
+                        {plan.cta}
+                      </Link>
+                    )}
                   </div>
                 </FadeInSection>
               );

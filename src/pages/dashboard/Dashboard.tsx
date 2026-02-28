@@ -5,11 +5,9 @@ import { useSimulation } from '../../context/SimulationContext';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../services/api';
 import AnimatedGauge from '../../components/AnimatedGauge';
-import CompetitorDrawer from '../../components/ui/CompetitorDrawer';
 import {
-  Radar, Target, Zap, AlertTriangle, TrendingUp, Users,
-  MapPin, RefreshCw, Loader2, Star, Bell, BellDot,
-  ChevronRight, Flame, Sparkles, CheckCircle2, AlertCircle,
+  Radar, Target, RefreshCw, Loader2, Star, Bell, BellDot,
+  ChevronRight, Flame, Sparkles, CheckCircle2,
   Clock,
 } from 'lucide-react';
 
@@ -127,7 +125,6 @@ export default function Dashboard() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [leadsCount, setLeadsCount] = useState(0);
   const [eventsCount, setEventsCount] = useState(0);
-  const [selectedCompetitorId, setSelectedCompetitorId] = useState<string | null>(null);
   const [lastScan, setLastScan] = useState<string | null>(null);
 
   // Fetch dashboard
@@ -144,7 +141,7 @@ export default function Dashboard() {
         setLastScan(new Date().toISOString());
       }
     } catch {
-      // silent
+      toast.error('שגיאה בטעינת דשבורד');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -161,9 +158,9 @@ export default function Dashboard() {
       ]);
       setEvents(evRes.events || []);
       setUnreadCount(countRes.unread_count || 0);
-      setEventsCount(evRes.events?.length || 0);
+      setEventsCount(evRes.total ?? evRes.events?.length ?? 0);
     } catch {
-      // silent
+      toast.error('שגיאה בטעינת אירועים');
     }
   }, [currentProfile?.id]);
 
@@ -177,7 +174,7 @@ export default function Dashboard() {
         setLeadsCount(d.total || 0);
       }
     } catch {
-      // silent
+      toast.error('שגיאה בטעינת לידים');
     }
   }, [currentProfile?.id]);
 
@@ -237,7 +234,6 @@ export default function Dashboard() {
           DESKTOP LAYOUT — 3-column grid (hidden on mobile)
          ═══════════════════════════════════════════════════════════ */}
       <div dir="rtl" className="cockpit-grid fade-in hidden md:grid" style={{
-        display: undefined, // let className control
         height: 'calc(100vh - 60px)',
         gridTemplateAreas: `
           "header header header"
@@ -606,13 +602,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Competitor Drawer */}
-      {selectedCompetitorId && (
-        <CompetitorDrawer
-          competitorId={selectedCompetitorId}
-          onClose={() => setSelectedCompetitorId(null)}
-        />
-      )}
     </>
   );
 }

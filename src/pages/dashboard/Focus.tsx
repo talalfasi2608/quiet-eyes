@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSimulation } from '../../context/SimulationContext';
-import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../services/api';
 import {
   Target, Shield, Radio, TrendingUp, Search, Zap,
   ChevronLeft, Loader2, Sparkles, Clock, CheckCircle2,
-  AlertTriangle, ArrowUpRight, Calendar, ExternalLink, Flame,
+  Calendar, Flame,
 } from 'lucide-react';
 
 interface DailyTask {
@@ -79,16 +78,10 @@ const PRIORITY_LABELS: Record<string, string> = {
 
 export default function Focus() {
   const { currentProfile } = useSimulation();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState<DailyFocusData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user?.id) { setLoading(false); return; }
-    fetchDailyFocus();
-  }, [user?.id]);
 
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 10000);
@@ -96,11 +89,11 @@ export default function Focus() {
   }, []);
 
   const fetchDailyFocus = async () => {
-    if (!user?.id) return;
+    if (!currentProfile?.id) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch(`/business/daily-focus/${user.id}`);
+      const res = await apiFetch(`/business/daily-focus/${currentProfile.id}`);
       if (!res.ok) throw new Error(`${res.status}`);
       setData(await res.json());
     } catch (e: unknown) {
@@ -109,6 +102,11 @@ export default function Focus() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!currentProfile?.id) { setLoading(false); return; }
+    fetchDailyFocus();
+  }, [currentProfile?.id]);
 
   const getGreeting = () => {
     const h = new Date().getHours();

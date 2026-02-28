@@ -8,7 +8,9 @@ import { useState } from 'react';
 
 export default function DashboardLayout() {
   const { isTrial, isTrialExpired, trialDaysRemaining } = useSubscription();
-  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    try { return localStorage.getItem('qe_banner_dismissed') === '1'; } catch { return false; }
+  });
 
   // Show urgency banner from day 12 onward (3 days or less remaining)
   const showBanner = !bannerDismissed && (
@@ -72,7 +74,7 @@ export default function DashboardLayout() {
               </NavLink>
               {!isTrialExpired && (
                 <button
-                  onClick={() => setBannerDismissed(true)}
+                  onClick={() => { setBannerDismissed(true); try { localStorage.setItem('qe_banner_dismissed', '1'); } catch {} }}
                   className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
                   <X className="w-4 h-4" />

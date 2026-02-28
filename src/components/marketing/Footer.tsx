@@ -6,7 +6,7 @@ const columns = [
     links: [
       { label: 'תכונות', to: '/features' },
       { label: 'תמחור', to: '/pricing' },
-      { label: 'API', to: '/features' },
+      { label: 'לידים', to: '/features' },
     ],
   },
   {
@@ -14,7 +14,7 @@ const columns = [
     links: [
       { label: 'אודות', to: '/about' },
       { label: 'בלוג', to: '/blog' },
-      { label: 'קריירה', to: '/about' },
+      { label: 'צור קשר', to: '/about' },
     ],
   },
   {
@@ -52,8 +52,8 @@ export default function Footer() {
                       to={l.to}
                       className="text-sm transition-colors duration-200"
                       style={{ color: '#8899aa' }}
-                      onMouseEnter={e => (e.target as HTMLElement).style.color = '#00d4ff'}
-                      onMouseLeave={e => (e.target as HTMLElement).style.color = '#8899aa'}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#00d4ff'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#8899aa'}
                     >
                       {l.label}
                     </Link>

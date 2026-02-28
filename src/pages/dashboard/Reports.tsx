@@ -60,6 +60,7 @@ export default function Reports() {
     if (currentProfile?.id) {
       loadPreview();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProfile?.id]);
 
   const loadPreview = async () => {
@@ -173,7 +174,7 @@ export default function Reports() {
               const res = await apiFetch(`/reports/generate/${currentProfile.id}`, { method: 'POST' });
               if (res.ok) {
                 toast.success('הדוח נוצר בהצלחה!', { id: 'gen-report' });
-                window.location.reload();
+                await loadPreview();
               } else {
                 toast.error('שגיאה ביצירת הדוח', { id: 'gen-report' });
               }

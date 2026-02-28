@@ -48,17 +48,6 @@ interface Competitor {
   created_at: string;
 }
 
-interface TimelineEvent {
-  id: string;
-  title: string;
-  description: string;
-  event_type: string;
-  severity: string;
-  source: string;
-  created_at: string;
-  is_read: boolean;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // SMALL COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -128,6 +117,9 @@ function IntelCard({ item, borderColor, iconBg, icon: Icon, actionPath, actionTe
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <SourceIcon source={item.source} />
           <span>{item.source}</span>
+          {item.timestamp && (
+            <span className="text-gray-600">· {new Date(item.timestamp).toLocaleDateString('he-IL')}</span>
+          )}
         </div>
         <span className="flex items-center gap-1 text-cyan-400 text-xs group-hover:text-cyan-300 transition-colors">
           {actionText}
@@ -182,7 +174,6 @@ export default function MarketIntelligence() {
   const navigate = useNavigate();
 
   const [feed, setFeed] = useState<IntelligenceFeed | null>(null);
-  const [_timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
@@ -216,7 +207,6 @@ export default function MarketIntelligence() {
 
       if (historyRes.status === 'fulfilled' && historyRes.value.ok) {
         const data = await historyRes.value.json();
-        setTimeline(data.timeline || []);
         setCompetitors(data.competitors || []);
       }
     } catch {
@@ -232,7 +222,9 @@ export default function MarketIntelligence() {
     setScanning(true);
     try {
       await apiFetch(`/intelligence/scan/${currentProfile.id}`, { method: 'POST' });
+      toast.loading('סריקה פעילה...', { id: 'scan-progress' });
       setTimeout(async () => {
+        toast.dismiss('scan-progress');
         await fetchFeed();
         setScanning(false);
         toast.success('סריקה הושלמה');

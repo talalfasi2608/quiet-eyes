@@ -125,7 +125,7 @@ export default function Home() {
         "name": "Quieteyes",
         "description": "פלטפורמת מודיעין עסקי לעסקים קטנים ובינוניים בישראל",
         "applicationCategory": "BusinessApplication",
-        "offers": { "@type": "Offer", "price": "149", "priceCurrency": "ILS" },
+        "offers": { "@type": "AggregateOffer", "lowPrice": "0", "highPrice": "599", "priceCurrency": "ILS" },
         "inLanguage": "he",
         "availableLanguage": "Hebrew",
       })}} />

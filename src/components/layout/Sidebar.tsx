@@ -115,7 +115,12 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     setSigningOut(true);
-    await signOut();
+    try {
+      await signOut();
+    } catch {
+      toast.error('שגיאה בהתנתקות');
+      setSigningOut(false);
+    }
   };
 
   return (

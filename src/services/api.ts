@@ -17,8 +17,10 @@ export async function apiFetch(
   path: string,
   options: RequestInit = {}
 ): Promise<Response> {
+  const method = (options.method || 'GET').toUpperCase();
+  const needsContentType = ['POST', 'PUT', 'PATCH'].includes(method) && !(options.body instanceof FormData);
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(needsContentType ? { 'Content-Type': 'application/json' } : {}),
     ...(options.headers as Record<string, string> || {}),
   };
 

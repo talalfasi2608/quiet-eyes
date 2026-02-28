@@ -374,7 +374,11 @@ export default function Reflection() {
                           <td className="text-center py-3 px-2">
                             <div className="flex items-center justify-center gap-1">
                               <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                              <span className="text-white font-medium">{(sentimentScore / 20).toFixed(1)}</span>
+                              <span className="text-white font-medium">
+                                {reviewData?.reviews?.length
+                                  ? (reviewData.reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewData.reviews.length).toFixed(1)
+                                  : '—'}
+                              </span>
                             </div>
                           </td>
                           <td className="text-center text-white py-3 px-2">{reviewData?.reviews_count || '-'}</td>
@@ -524,19 +528,16 @@ export default function Reflection() {
                 <h2 className="text-lg font-semibold text-white">ביקורות אחרונות</h2>
               </div>
               <div className="flex gap-2">
-                {['google', 'facebook'].map((source) => (
-                  <button
-                    key={source}
-                    onClick={() => setSourceFilter(sourceFilter === source ? null : source)}
-                    className={"px-3 py-1 rounded-full text-sm transition-colors " + (
-                      sourceFilter === source
-                        ? "bg-cyan-500/30 text-cyan-300 ring-1 ring-cyan-500/50"
-                        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                    )}
-                  >
-                    {getSourceIcon(source)}
-                  </button>
-                ))}
+                <button
+                  onClick={() => setSourceFilter(sourceFilter === 'google' ? null : 'google')}
+                  className={"px-3 py-1 rounded-full text-sm transition-colors " + (
+                    sourceFilter === 'google'
+                      ? "bg-cyan-500/30 text-cyan-300 ring-1 ring-cyan-500/50"
+                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  )}
+                >
+                  {getSourceIcon('google')} Google
+                </button>
               </div>
             </div>
 
