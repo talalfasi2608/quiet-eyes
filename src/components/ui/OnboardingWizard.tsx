@@ -6,18 +6,12 @@ import { apiFetch } from '../../services/api';
 import { loadGoogleMaps } from '../../lib/googleMaps';
 import {
   Eye,
-  Target,
-  Zap,
   ArrowLeft,
   ArrowRight,
   Loader2,
   Check,
-  Clock,
-  TrendingUp,
-  Lightbulb,
+  Target,
   Smartphone,
-  BarChart3,
-  Star,
 } from 'lucide-react';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -47,7 +41,13 @@ const RADIUS_OPTIONS = [
   { value: 10, label: '10 ק"מ' },
 ];
 
-const STEP_LABELS = ['בוא נתחיל', 'ספר לי על העסק', 'העוזרים סורקים', 'מה מצאנו', 'מה לעשות עכשיו'];
+const WHATSAPP_TIMES = [
+  { value: '07:00', label: '07:00' },
+  { value: '08:00', label: '08:00' },
+  { value: '09:00', label: '09:00' },
+];
+
+const STEP_LABELS = ['פרטי העסק', 'סריקה ראשונה', 'הגדרת וואטסאפ'];
 
 const WIZARD_STORAGE_KEY = 'qe_wizard_progress';
 
@@ -59,30 +59,6 @@ const SCAN_STEPS = [
   { text: '🔭 הטווח מנתח מגמות שוק...', icon: '🔭' },
   { text: '🧠 המוח מסכם תובנות...', icon: '🧠' },
   { text: '📢 הקול מכין את הפרופיל שלך...', icon: '📢' },
-];
-
-const DEFAULT_ACTIONS = [
-  {
-    title: 'ראה מי מחפש אותך',
-    description: 'עיני מצא לידים שמחפשים בדיוק מה שאתה מציע — פנה אליהם עכשיו',
-    time: '5 דקות',
-    potential: 'גבוה',
-    link: '/dashboard/sniper',
-  },
-  {
-    title: 'הכר את המתחרים',
-    description: 'ראה מי מתחרה בך ואיפה ההזדמנות שלך',
-    time: '3 דקות',
-    potential: 'גבוה',
-    link: '/dashboard/landscape',
-  },
-  {
-    title: 'הגדר את העוזרים',
-    description: 'בחר אילו התראות לקבל ומתי — כדי שהעוזרים ידעו מה חשוב לך',
-    time: '2 דקות',
-    potential: 'בינוני',
-    link: '/dashboard/settings',
-  },
 ];
 
 // ── Shared Styles ────────────────────────────────────────────────────────────
@@ -103,7 +79,6 @@ interface FormData {
   business_type: string;
   address: string;
   activity_radius_km: number;
-  business_description: string;
   latitude: number | null;
   longitude: number | null;
 }
@@ -111,17 +86,8 @@ interface FormData {
 interface ScanResults {
   competitors_found: number;
   leads_found: number;
-  top_competitors: Array<{ name: string; rating?: number; distance?: string }>;
-  top_leads: Array<{ summary: string; score: number }>;
   health_score: number;
   insight: string;
-  actions: Array<{
-    title: string;
-    description: string;
-    time: string;
-    potential: string;
-    link: string;
-  }>;
 }
 
 interface WizardProgress {
@@ -129,6 +95,7 @@ interface WizardProgress {
   formData: FormData;
   businessId: string | null;
   scanResults: ScanResults | null;
+  whatsappTime: string;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -145,12 +112,12 @@ export default function OnboardingWizard() {
     business_type: '',
     address: '',
     activity_radius_km: 2,
-    business_description: '',
     latitude: null,
     longitude: null,
   });
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [scanResults, setScanResults] = useState<ScanResults | null>(null);
+  const [whatsappTime, setWhatsappTime] = useState('08:00');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -159,7 +126,6 @@ export default function OnboardingWizard() {
   const [scanProgress, setScanProgress] = useState(0);
   const [visibleScanSteps, setVisibleScanSteps] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
-  const [dismissedActions, setDismissedActions] = useState<Set<number>>(new Set());
 
   const addressInputRef = useRef<HTMLInputElement>(null);
   const scanTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -175,6 +141,7 @@ export default function OnboardingWizard() {
         if (progress.formData) setFormData(progress.formData);
         if (progress.businessId) setBusinessId(progress.businessId);
         if (progress.scanResults) setScanResults(progress.scanResults);
+        if (progress.whatsappTime) setWhatsappTime(progress.whatsappTime);
       }
     } catch {
       // Corrupted data — start fresh
@@ -189,12 +156,13 @@ export default function OnboardingWizard() {
         formData,
         businessId,
         scanResults,
+        whatsappTime,
       };
       localStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(progress));
     } catch {
       // localStorage full or unavailable — ignore
     }
-  }, [step, formData, businessId, scanResults]);
+  }, [step, formData, businessId, scanResults, whatsappTime]);
 
   useEffect(() => {
     saveProgress();
@@ -202,7 +170,7 @@ export default function OnboardingWizard() {
 
   // ── Google Places Autocomplete ─────────────────────────────────────────────
   useEffect(() => {
-    if (step !== 2) return;
+    if (step !== 1) return;
 
     const initAutocomplete = () => {
       loadGoogleMaps()
@@ -235,16 +203,14 @@ export default function OnboardingWizard() {
         });
     };
 
-    // Small delay to ensure DOM is ready
     const timeout = setTimeout(initAutocomplete, 200);
     return () => clearTimeout(timeout);
   }, [step]);
 
-  // ── Scan animation (Step 3) ────────────────────────────────────────────────
+  // ── Scan animation (Step 2) ────────────────────────────────────────────────
   useEffect(() => {
-    if (step !== 3 || !isScanning) return;
+    if (step !== 2 || !isScanning) return;
 
-    // Progress bar: 0 -> 100 over ~15 seconds
     setScanProgress(0);
     setScanAnimationDone(false);
     setVisibleScanSteps(0);
@@ -260,7 +226,6 @@ export default function OnboardingWizard() {
       setScanProgress(progress);
     }, 100);
 
-    // Log lines appearing one by one
     let stepIndex = 0;
     scanStepTimerRef.current = setInterval(() => {
       stepIndex += 1;
@@ -280,7 +245,7 @@ export default function OnboardingWizard() {
   useEffect(() => {
     if (scanAnimationDone && scanApiDone) {
       const timeout = setTimeout(() => {
-        setStep(4);
+        setStep(3);
         setIsScanning(false);
       }, 2000);
       return () => clearTimeout(timeout);
@@ -289,58 +254,10 @@ export default function OnboardingWizard() {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  const userName = user?.user_metadata?.first_name || '';
-  const userPhone = user?.user_metadata?.phone || user?.phone || '';
-
   const getBusinessTypeLabel = (value: string) =>
     BUSINESS_TYPES.find((t) => t.value === value)?.label || value;
 
-  const completeOnboarding = useCallback(async () => {
-    try {
-      await apiFetch('/onboard/wizard', {
-        method: 'POST',
-        body: JSON.stringify({
-          user_id: user?.id,
-          business_name: formData.business_name || 'העסק שלי',
-          address: formData.address || 'ישראל',
-          industry: formData.business_type || 'services',
-          onboarding_completed: true,
-          onboarding_step: 5,
-        }),
-      });
-    } catch {
-      // Best effort — still continue
-    }
-    localStorage.setItem('qe_onboarding_done', 'true');
-    localStorage.removeItem(WIZARD_STORAGE_KEY);
-    await refreshProfile();
-  }, [user?.id, formData, refreshProfile]);
-
-  const handleSkip = useCallback(async () => {
-    try {
-      await apiFetch('/onboard/wizard', {
-        method: 'POST',
-        body: JSON.stringify({
-          user_id: user?.id,
-          business_name: 'העסק שלי',
-          address: 'ישראל',
-          industry: 'services',
-          onboarding_completed: true,
-        }),
-      });
-    } catch {
-      // Best effort
-    }
-    localStorage.setItem('qe_onboarding_done', 'true');
-    localStorage.removeItem(WIZARD_STORAGE_KEY);
-    await refreshProfile();
-    // Fallback redirect
-    setTimeout(() => {
-      window.location.href = '/dashboard';
-    }, 2000);
-  }, [user?.id, refreshProfile]);
-
-  const validateStep2 = (): boolean => {
+  const validateStep1 = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.business_name.trim()) {
       newErrors.business_name = 'שם העסק הוא שדה חובה';
@@ -355,8 +272,8 @@ export default function OnboardingWizard() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleStep2Submit = async () => {
-    if (!validateStep2()) return;
+  const handleStep1Submit = async () => {
+    if (!validateStep1()) return;
 
     setIsSaving(true);
     try {
@@ -367,18 +284,18 @@ export default function OnboardingWizard() {
           business_name: formData.business_name,
           business_type: formData.business_type,
           address: formData.address,
+          industry: formData.business_type,
           activity_radius_km: formData.activity_radius_km,
-          business_description: formData.business_description,
           latitude: formData.latitude,
           longitude: formData.longitude,
-          onboarding_step: 2,
+          onboarding_step: 1,
         }),
       });
       const data = await res.json();
       if (data.business_id || data.business?.id) {
         setBusinessId(data.business_id || data.business?.id);
       }
-      setStep(3);
+      setStep(2);
     } catch {
       setErrors({ _general: 'שגיאה בשמירת הנתונים. נסה שוב.' });
     } finally {
@@ -404,43 +321,55 @@ export default function OnboardingWizard() {
       setScanResults({
         competitors_found: data.competitors_found ?? 0,
         leads_found: data.leads_found ?? 0,
-        top_competitors: data.top_competitors ?? [],
-        top_leads: data.top_leads ?? [],
         health_score: data.health_score ?? 0,
         insight: data.insight ?? '',
-        actions: data.actions ?? [],
       });
     } catch {
-      // Scan failed — allow user to continue with empty results
       setScanResults({
         competitors_found: 0,
         leads_found: 0,
-        top_competitors: [],
-        top_leads: [],
         health_score: 0,
         insight: '',
-        actions: [],
       });
     } finally {
       setScanApiDone(true);
     }
   }, [businessId, user?.id]);
 
-  // Trigger scan when entering step 3
+  // Trigger scan when entering step 2
   useEffect(() => {
-    if (step === 3 && !isScanning && !scanApiDone) {
+    if (step === 2 && !isScanning && !scanApiDone) {
       startScan();
     }
   }, [step, isScanning, scanApiDone, startScan]);
 
-  const handleFinalComplete = async () => {
+  const handleComplete = async () => {
     setShowCelebration(true);
-    await completeOnboarding();
 
-    // Brief celebration, then let routing handle it
+    try {
+      await apiFetch('/onboard/wizard', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: user?.id,
+          business_name: formData.business_name || 'העסק שלי',
+          address: formData.address || 'ישראל',
+          industry: formData.business_type || 'services',
+          morning_alert_time: whatsappTime,
+          notification_whatsapp: true,
+          onboarding_completed: true,
+          onboarding_step: 3,
+        }),
+      });
+    } catch {
+      // Best effort — still continue
+    }
+
+    localStorage.setItem('qe_onboarding_done', 'true');
+    localStorage.removeItem(WIZARD_STORAGE_KEY);
+    await refreshProfile();
+
     setTimeout(() => {
       setShowCelebration(false);
-      // Fallback redirect if routing doesn't auto-redirect
       setTimeout(() => {
         window.location.href = '/dashboard';
       }, 500);
@@ -455,7 +384,7 @@ export default function OnboardingWizard() {
       <div className="fixed top-0 left-0 right-0 h-1 bg-gray-800 z-50">
         <div
           className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
-          style={{ width: `${(step / 5) * 100}%` }}
+          style={{ width: `${(step / 3) * 100}%` }}
         />
       </div>
 
@@ -498,93 +427,15 @@ export default function OnboardingWizard() {
     </>
   );
 
-  const renderBackButton = () => (
-    <button
-      onClick={() => setStep((s) => Math.max(1, s - 1))}
-      className="text-gray-500 hover:text-white transition-colors flex items-center gap-2 mb-6"
-    >
-      <ArrowRight className="w-4 h-4" />
-      <span>חזרה</span>
-    </button>
-  );
-
-  // ── STEP 1: Welcome ────────────────────────────────────────────────────────
+  // ── STEP 1: Business Info ──────────────────────────────────────────────────
 
   const renderStep1 = () => (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] px-4 animate-fade-in">
-      {/* Pulsing eye icon */}
-      <div className="relative mb-8">
-        <div className="w-28 h-28 rounded-full bg-cyan-500/10 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full bg-cyan-500/20 animate-ping" />
-          <div className="relative w-16 h-16 rounded-full bg-cyan-500/30 flex items-center justify-center">
-            <Eye className="w-8 h-8 text-cyan-400" />
-          </div>
-        </div>
-      </div>
-
-      {/* Title */}
-      <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3 text-center">
-        שלום{userName ? ` ${userName}` : ''}, בוא נכיר 👋
-      </h1>
-      <p className="text-gray-400 text-lg text-center mb-10 max-w-lg">
-        בעוד 3 דקות, 6 עוזרים חכמים יתחילו לעבוד בשבילך. הם לא ישנים.
-      </p>
-
-      {/* Feature preview cards */}
-      <div className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto mb-10 w-full px-4">
-        <div className="p-4 rounded-xl bg-gray-800/40 border border-gray-700/30 flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <Target className="w-6 h-6 text-cyan-400" />
-            <span className="text-white font-medium">👁️ עיני — מוצא לידים</span>
-          </div>
-          <p className="text-gray-400 text-sm">מוצא אנשים שמחפשים בדיוק מה שאתה מציע</p>
-        </div>
-        <div className="p-4 rounded-xl bg-gray-800/40 border border-gray-700/30 flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <Eye className="w-6 h-6 text-cyan-400" />
-            <span className="text-white font-medium">🧠 המוח — מייעץ</span>
-          </div>
-          <p className="text-gray-400 text-sm">מכין 3 דברים שכדאי לעשות כל בוקר</p>
-        </div>
-        <div className="p-4 rounded-xl bg-gray-800/40 border border-gray-700/30 flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <Zap className="w-6 h-6 text-cyan-400" />
-            <span className="text-white font-medium">+ 4 עוזרים נוספים</span>
-          </div>
-          <p className="text-gray-400 text-sm">הקול, הכיס, האוזן, הטווח — עובדים 24/7</p>
-        </div>
-      </div>
-
-      {/* CTA */}
-      <button
-        onClick={() => setStep(2)}
-        className={`${GRADIENT_BTN} px-8 py-4 text-lg flex items-center gap-2`}
-      >
-        <span>בוא נתחיל</span>
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-
-      {/* Skip link */}
-      <button
-        onClick={handleSkip}
-        className="mt-6 text-gray-500 hover:text-gray-300 text-sm underline transition-colors"
-      >
-        דלג — אני אסתדר לבד
-      </button>
-    </div>
-  );
-
-  // ── STEP 2: Business Details ───────────────────────────────────────────────
-
-  const renderStep2 = () => (
     <div className="max-w-xl mx-auto px-4 pb-12 animate-fade-in">
-      {renderBackButton()}
-
       <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 text-center">
         ספר לנו על העסק שלך
       </h2>
       <p className="text-gray-400 text-center mb-8">
-        ככל שנדע יותר — התוצאות יהיו מדויקות יותר
+        ככל שנדע יותר — העוזרים יביאו תוצאות מדויקות יותר
       </p>
 
       <div className={`${CARD_CLASS} space-y-5`}>
@@ -689,25 +540,10 @@ export default function OnboardingWizard() {
           </div>
         </div>
 
-        {/* Description (optional) */}
-        <div>
-          <label className="block text-sm text-gray-300 mb-1.5">תיאור קצר</label>
-          <textarea
-            value={formData.business_description}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, business_description: e.target.value }))
-            }
-            placeholder="מה מייחד את העסק שלך?"
-            rows={3}
-            className={`${INPUT_CLASS} resize-none`}
-          />
-          <p className="text-gray-500 text-xs mt-1">עוזר ל-AI למצוא לידים מדויקים יותר</p>
-        </div>
-
         {/* Live preview */}
         {formData.business_type && formData.address && (
           <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4">
-            <p className="text-cyan-400 font-medium mb-1">Quieteyes תחפש:</p>
+            <p className="text-cyan-400 font-medium mb-1">העוזרים יחפשו:</p>
             <p className="text-gray-300">
               &quot;{getBusinessTypeLabel(formData.business_type)}&quot; ב&quot;
               {formData.address}&quot; ברדיוס {formData.activity_radius_km} ק&quot;מ
@@ -719,7 +555,7 @@ export default function OnboardingWizard() {
       {/* CTA */}
       <div className="mt-6 flex justify-center">
         <button
-          onClick={handleStep2Submit}
+          onClick={handleStep1Submit}
           disabled={isSaving}
           className={`${GRADIENT_BTN} px-8 py-4 text-lg flex items-center gap-2`}
         >
@@ -730,7 +566,7 @@ export default function OnboardingWizard() {
             </>
           ) : (
             <>
-              <span>המשך</span>
+              <span>התחל סריקה</span>
               <ArrowLeft className="w-5 h-5" />
             </>
           )}
@@ -739,16 +575,15 @@ export default function OnboardingWizard() {
     </div>
   );
 
-  // ── STEP 3: Live Scan ──────────────────────────────────────────────────────
+  // ── STEP 2: Live Scan ──────────────────────────────────────────────────────
 
-  const renderStep3 = () => {
+  const renderStep2 = () => {
     const isComplete = scanAnimationDone && scanApiDone;
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] px-4 animate-fade-in">
         {/* Radar animation */}
         <div className="relative w-48 h-48 mb-10 flex items-center justify-center">
-          {/* Pinging rings */}
           {[0, 0.8, 1.6].map((delay, i) => (
             <div
               key={i}
@@ -759,7 +594,6 @@ export default function OnboardingWizard() {
               }}
             />
           ))}
-          {/* Center dot */}
           <div className="relative w-4 h-4 bg-cyan-400 rounded-full shadow-lg shadow-cyan-500/50" />
         </div>
 
@@ -832,292 +666,98 @@ export default function OnboardingWizard() {
     );
   };
 
-  // ── STEP 4: Discovery ──────────────────────────────────────────────────────
+  // ── STEP 3: WhatsApp Setup ─────────────────────────────────────────────────
 
-  const renderStep4 = () => {
-    const hasData =
-      scanResults &&
-      (scanResults.competitors_found > 0 || scanResults.leads_found > 0 || scanResults.health_score > 0);
+  const userPhone = user?.user_metadata?.phone || user?.phone || '';
 
-    return (
-      <div className="max-w-4xl mx-auto px-4 pb-12 animate-fade-in">
-        {renderBackButton()}
+  const renderStep3 = () => (
+    <div className="max-w-xl mx-auto px-4 pb-12 animate-fade-in">
+      <button
+        onClick={() => setStep(2)}
+        className="text-gray-500 hover:text-white transition-colors flex items-center gap-2 mb-6"
+      >
+        <ArrowRight className="w-4 h-4" />
+        <span>חזרה</span>
+      </button>
 
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 text-center">
-          הנה מה שהעוזרים מצאו 🔍
-        </h2>
-        <p className="text-gray-400 text-center mb-8">התוצאות הראשונות שלך — ויש עוד הרבה בדרך</p>
+      <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 text-center">
+        מתי לשלוח לך עדכונים? 📱
+      </h2>
+      <p className="text-gray-400 text-center mb-8">
+        העוזרים ישלחו לך סיכום כל בוקר ישירות לוואטסאפ
+      </p>
 
-        {hasData ? (
-          <>
-            {/* Three result cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              {/* Competitors card */}
-              <div className={CARD_CLASS}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-                    <Eye className="w-5 h-5 text-cyan-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold">👁️ עיני מצא מתחרים</h3>
-                    <p className="text-gray-400 text-sm">
-                      {scanResults!.competitors_found} מתחרים באזור שלך
-                    </p>
-                  </div>
-                </div>
-                {scanResults!.top_competitors.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    {scanResults!.top_competitors.slice(0, 3).map((comp, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between text-sm py-2 border-b border-gray-700/30 last:border-0"
-                      >
-                        <span className="text-gray-300">{comp.name}</span>
-                        <div className="flex items-center gap-2">
-                          {comp.rating && (
-                            <span className="text-yellow-400 flex items-center gap-1">
-                              <Star className="w-3 h-3 fill-yellow-400" />
-                              {comp.rating}
-                            </span>
-                          )}
-                          {comp.distance && (
-                            <span className="text-gray-500 text-xs">{comp.distance}</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <button
-                  onClick={() => navigate('/dashboard/landscape')}
-                  className="text-cyan-400 text-sm hover:text-cyan-300 transition-colors"
-                >
-                  ראה את כולם בעמוד הנוף &larr;
-                </button>
-              </div>
-
-              {/* Leads card */}
-              <div className={CARD_CLASS}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-                    <Target className="w-5 h-5 text-cyan-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold">🎯 מי מחפש אותך</h3>
-                    <p className="text-gray-400 text-sm">
-                      {scanResults!.leads_found} לידים שמחפשים מה שאתה מציע
-                    </p>
-                  </div>
-                </div>
-                {scanResults!.top_leads.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    {scanResults!.top_leads.slice(0, 2).map((lead, i) => (
-                      <div
-                        key={i}
-                        className="text-sm py-2 border-b border-gray-700/30 last:border-0"
-                      >
-                        <p className="text-gray-300 truncate">&quot;{lead.summary}&quot;</p>
-                        <p className="text-gray-500 text-xs mt-1">ציון: {lead.score}/100</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <button
-                  onClick={() => navigate('/dashboard/sniper')}
-                  className="text-cyan-400 text-sm hover:text-cyan-300 transition-colors"
-                >
-                  ראה את כולם בעמוד הלידים &larr;
-                </button>
-              </div>
-
-              {/* Health score card */}
-              <div className={CARD_CLASS}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-                    <BarChart3 className="w-5 h-5 text-cyan-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold">❤️ בריאות העסק</h3>
-                    <p className="text-gray-400 text-sm">הציון שלך מול השוק</p>
-                  </div>
-                </div>
-                <div className="text-center my-4">
-                  <span className="text-5xl font-bold text-cyan-400">
-                    {scanResults!.health_score}
-                  </span>
-                  <span className="text-gray-400 text-lg">/100</span>
-                </div>
-                <div className="w-full h-3 bg-gray-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-1000"
-                    style={{ width: `${scanResults!.health_score}%` }}
-                  />
-                </div>
-              </div>
+      {/* Scan results summary */}
+      {scanResults && (scanResults.competitors_found > 0 || scanResults.leads_found > 0) && (
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className={`${CARD_CLASS} text-center`}>
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center mx-auto mb-2">
+              <Eye className="w-5 h-5 text-cyan-400" />
             </div>
+            <p className="text-2xl font-bold text-white">{scanResults.competitors_found}</p>
+            <p className="text-gray-400 text-sm">מתחרים נמצאו</p>
+          </div>
+          <div className={`${CARD_CLASS} text-center`}>
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center mx-auto mb-2">
+              <Target className="w-5 h-5 text-cyan-400" />
+            </div>
+            <p className="text-2xl font-bold text-white">{scanResults.leads_found}</p>
+            <p className="text-gray-400 text-sm">לידים נמצאו</p>
+          </div>
+        </div>
+      )}
 
-            {/* Insight box */}
-            {scanResults!.insight && (
-              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 mb-8 flex items-start gap-3">
-                <Lightbulb className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
-                <p className="text-gray-300">{scanResults!.insight}</p>
-              </div>
-            )}
-          </>
-        ) : (
-          /* Fallback when scan data is empty */
-          <div className={`${CARD_CLASS} text-center mb-8`}>
-            <p className="text-gray-400 mb-2">
-              העוזרים עדיין עובדים. אל דאגה — הם ימשיכו לסרוק ברקע.
-            </p>
-            <p className="text-gray-500 text-sm">
-              תוכל לראות את התוצאות בבית שלך בהמשך.
+      {/* WhatsApp card */}
+      <div className={`${CARD_CLASS} space-y-5`}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center flex-shrink-0">
+            <Smartphone className="w-5 h-5 text-green-400" />
+          </div>
+          <div>
+            <h3 className="text-white font-bold">סיכום יומי בוואטסאפ</h3>
+            <p className="text-gray-400 text-sm">
+              {userPhone
+                ? `ישלח למספר ${userPhone}`
+                : 'תוכל להגדיר מספר בהגדרות'}
             </p>
           </div>
-        )}
-
-        {/* CTA */}
-        <div className="flex justify-center">
-          <button
-            onClick={() => setStep(5)}
-            className={`${GRADIENT_BTN} px-8 py-4 text-lg flex items-center gap-2`}
-          >
-            <span>מעולה, בוא נראה מה לעשות עם זה</span>
-            <ArrowLeft className="w-5 h-5" />
-          </button>
         </div>
-      </div>
-    );
-  };
 
-  // ── STEP 5: Action Plan ────────────────────────────────────────────────────
-
-  const renderStep5 = () => {
-    const actions =
-      scanResults?.actions && scanResults.actions.length > 0
-        ? scanResults.actions.slice(0, 3)
-        : DEFAULT_ACTIONS;
-
-    return (
-      <div className="max-w-3xl mx-auto px-4 pb-12 animate-fade-in">
-        {renderBackButton()}
-
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 text-center">
-          3 דברים שכדאי לעשות עכשיו
-        </h2>
-        <p className="text-gray-400 text-center mb-8">
-          🧠 המוח הכין את אלה בשבילך — על בסיס מה שהעוזרים מצאו
-        </p>
-
-        {/* Action cards */}
-        <div className="space-y-4 mb-8">
-          {actions.map((action, i) => {
-            const isDismissed = dismissedActions.has(i);
-            return (
-              <div
-                key={i}
-                className={`${CARD_CLASS} transition-all duration-300 ${
-                  isDismissed ? 'opacity-40' : ''
-                }`}
+        {/* Time picker */}
+        <div>
+          <label className="block text-sm text-gray-300 mb-3">באיזו שעה לשלוח?</label>
+          <div className="flex gap-3">
+            {WHATSAPP_TIMES.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setWhatsappTime(t.value)}
+                className={`
+                  flex-1 px-4 py-4 rounded-xl text-lg font-bold transition-all min-h-[56px]
+                  ${
+                    whatsappTime === t.value
+                      ? 'bg-green-500/20 border-2 border-green-500/50 text-green-400'
+                      : 'bg-gray-800/50 border border-gray-700/50 text-gray-400 hover:border-gray-600'
+                  }
+                `}
               >
-                <div className="flex items-start gap-4">
-                  {/* Number badge */}
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-cyan-400 font-bold">{i + 1}</span>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="text-white font-bold">{action.title}</h3>
-                      {action.potential && (
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full ${
-                            action.potential === 'גבוה'
-                              ? 'bg-green-500/20 text-green-400'
-                              : 'bg-yellow-500/20 text-yellow-400'
-                          }`}
-                        >
-                          {action.potential}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-400 text-sm mb-3">{action.description}</p>
-
-                    {action.time && (
-                      <div className="flex items-center gap-1 text-gray-500 text-xs mb-3">
-                        <Clock className="w-3 h-3" />
-                        <span>{action.time}</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          if (action.link) navigate(action.link);
-                        }}
-                        className={`${GRADIENT_BTN} px-4 py-2 text-sm rounded-xl min-h-[48px]`}
-                      >
-                        בוא נעשה את זה
-                      </button>
-                      <button
-                        onClick={() =>
-                          setDismissedActions((prev) => {
-                            const next = new Set(prev);
-                            next.add(i);
-                            return next;
-                          })
-                        }
-                        className="text-gray-500 hover:text-gray-400 text-sm transition-colors min-h-[48px] px-3"
-                      >
-                        אחר כך
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* WhatsApp setup card */}
-        <div className="bg-[#0a1628]/60 backdrop-blur-xl border border-green-500/30 rounded-2xl p-6 mb-8">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center flex-shrink-0">
-              <Smartphone className="w-5 h-5 text-green-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-white font-bold mb-1">קבל עדכונים לוואטסאפ</h3>
-              <p className="text-gray-400 text-sm mb-3">
-                העוזרים ישלחו לך סיכום כל בוקר — ישירות לוואטסאפ
-              </p>
-              {userPhone ? (
-                <div className="flex items-center gap-2 text-green-400 text-sm">
-                  <Check className="w-4 h-4" />
-                  <span>{userPhone}</span>
-                </div>
-              ) : (
-                <button
-                  onClick={() => navigate('/dashboard/settings')}
-                  className="text-green-400 hover:text-green-300 text-sm transition-colors"
-                >
-                  הפעל בהגדרות &larr;
-                </button>
-              )}
-            </div>
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
-
-        {/* Final CTA */}
-        <button
-          onClick={handleFinalComplete}
-          className={`${GRADIENT_BTN} w-full px-8 py-5 text-lg flex items-center justify-center gap-2`}
-        >
-          <TrendingUp className="w-5 h-5" />
-          <span>יאללה, בוא נראה הכל</span>
-        </button>
       </div>
-    );
-  };
+
+      {/* CTA */}
+      <button
+        onClick={handleComplete}
+        className={`${GRADIENT_BTN} w-full mt-6 px-8 py-5 text-lg flex items-center justify-center gap-2`}
+      >
+        <span>סיימנו — קח אותי לדאשבורד</span>
+        <ArrowLeft className="w-5 h-5" />
+      </button>
+    </div>
+  );
 
   // ── Celebration Overlay ────────────────────────────────────────────────────
 
@@ -1161,16 +801,14 @@ export default function OnboardingWizard() {
         }
       `}</style>
 
-      {/* Progress bar (hidden on step 1) */}
-      {step > 1 && renderProgressBar()}
+      {/* Progress bar */}
+      {renderProgressBar()}
 
       {/* Step content */}
-      <div className={step === 1 ? '' : 'pt-4'}>
+      <div className="pt-4">
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
-        {step === 4 && renderStep4()}
-        {step === 5 && renderStep5()}
       </div>
 
       {/* Celebration overlay */}

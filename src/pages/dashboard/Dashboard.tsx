@@ -6,8 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../services/api';
 import AnimatedGauge from '../../components/AnimatedGauge';
 import {
-  Radar, Target, RefreshCw, Loader2, Star, Bell, BellDot,
-  ChevronRight, Flame, Sparkles, CheckCircle2,
+  Radar, Target, RefreshCw, Loader2, Star,
+  ChevronRight, Sparkles,
   Clock,
 } from 'lucide-react';
 
@@ -87,19 +87,19 @@ interface DashboardData {
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-function getGreeting(): { text: string; sub: string } {
+function getGreeting(name: string): string {
   const h = new Date().getHours();
-  if (h >= 5 && h < 11) return { text: 'בוקר טוב ☀️', sub: 'בוא נראה מה קרה בלילה' };
-  if (h >= 11 && h < 17) return { text: 'צהריים טובים 🌤️', sub: 'הנה מה שמחכה לך' };
-  if (h >= 17 && h < 21) return { text: 'ערב טוב 🌙', sub: 'סיכום היום שלך' };
-  return { text: 'לילה טוב 🌜', sub: 'הנה מה שקרה היום' };
+  if (h >= 5 && h < 11) return `בוקר טוב${name ? ` ${name}` : ''} ☀️`;
+  if (h >= 11 && h < 17) return `שלום${name ? ` ${name}` : ''} 👋`;
+  if (h >= 17 && h < 21) return `ערב טוב${name ? ` ${name}` : ''} 🌙`;
+  return `לילה טוב${name ? ` ${name}` : ''} 🌜`;
 }
 
 function getHealthLabel(score: number): { label: string; color: string } {
-  if (score >= 80) return { label: 'מצוין 🚀', color: 'text-emerald-400' };
-  if (score >= 60) return { label: 'טוב 😊', color: 'text-cyan-400' };
-  if (score >= 40) return { label: 'סביר 🤔', color: 'text-amber-400' };
-  return { label: 'צריך תשומת לב ⚠️', color: 'text-red-400' };
+  if (score >= 90) return { label: 'מצוין 🚀', color: 'text-emerald-400' };
+  if (score >= 70) return { label: 'טוב 😊', color: 'text-cyan-400' };
+  if (score >= 50) return { label: 'יש מקום לשיפור 💪', color: 'text-amber-400' };
+  return { label: 'בוא נעבוד על זה 🤝', color: 'text-red-400' };
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -139,6 +139,7 @@ export default function Dashboard() {
   const [events, setEvents] = useState<IntelEvent[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [leadsCount, setLeadsCount] = useState(0);
+  const [topLeads, setTopLeads] = useState<Array<{ id: string; summary: string; relevance_score: number; created_at: string }>>([]);
   const [eventsCount, setEventsCount] = useState(0);
   const [lastScan, setLastScan] = useState<string | null>(null);
 
@@ -179,17 +180,22 @@ export default function Dashboard() {
     }
   }, [currentProfile?.id]);
 
-  // Fetch leads count
+  // Fetch leads (top 3 + count)
   const fetchLeadsCount = useCallback(async () => {
     if (!currentProfile?.id) return;
     try {
-      const res = await apiFetch(`/leads/${currentProfile.id}?limit=1`);
+      const res = await apiFetch(`/leads/${currentProfile.id}?limit=10`);
       if (res.ok) {
         const d = await res.json();
         setLeadsCount(d.total || 0);
+        // Sort by relevance score and take top 3
+        const leads = (d.leads || [])
+          .sort((a: any, b: any) => (b.relevance_score || 0) - (a.relevance_score || 0))
+          .slice(0, 3);
+        setTopLeads(leads);
       }
     } catch {
-      toast.error('לא הצלחנו לטעון לידים — נסה לרענן');
+      // Silent — don't show toast for non-critical data
     }
   }, [currentProfile?.id]);
 
@@ -244,10 +250,11 @@ export default function Dashboard() {
   const { business_info: biz, competitors, strategy_feed, market_stats } = data;
   const healthScore = biz.market_health_score || 0;
   const healthInfo = getHealthLabel(healthScore);
-  const greeting = getGreeting();
+  const firstName = user?.user_metadata?.first_name || '';
+  const greetingText = getGreeting(firstName);
   const topOpportunity = strategy_feed.find(s => s.priority === 'high') || strategy_feed[0];
   const todayTasks = strategy_feed.slice(0, 3);
-  const firstName = user?.email?.split('@')[0] || '';
+  const topCompetitors = competitors.slice(0, 4);
 
   return (
     <>
@@ -279,9 +286,9 @@ export default function Dashboard() {
               </div>
             )}
             <div>
-              <h1 className="text-lg font-bold text-white leading-tight">{greeting.text}{firstName ? `, ${firstName}` : ''}</h1>
+              <h1 className="text-lg font-bold text-white leading-tight">{greetingText}</h1>
               <span className="text-xs text-gray-500">
-                {greeting.sub} · {biz.name_hebrew || biz.name}
+                {biz.name_hebrew || biz.name}
               </span>
             </div>
           </div>
@@ -350,74 +357,85 @@ export default function Dashboard() {
               </div>
             )) : (
               <div className="flex items-center justify-center h-full text-gray-500 text-sm">
-                <CheckCircle2 className="w-4 h-4 ml-2 text-emerald-400" />
-                הכל מסודר! אין משימות דחופות 🎉
+                המוח מכין משימות... ☕
               </div>
             )}
           </div>
         </div>
 
-        {/* HOT OPPORTUNITY */}
-        <div style={{
-          gridArea: 'opportunity',
-          border: '1px solid rgba(0,212,255,0.3)',
-          boxShadow: '0 0 20px rgba(0,212,255,0.1)',
-        }} className="glass-card p-4 flex flex-col justify-center overflow-hidden">
-          {topOpportunity ? (
-            <>
-              <div className="flex items-center gap-2 mb-2">
-                <Flame className="w-4 h-4 text-orange-400" />
-                <span className="text-xs font-semibold text-orange-400 uppercase tracking-wider">ההזדמנות שלך היום 🔥</span>
-              </div>
-              <h3 className="text-white font-bold text-base mb-1 line-clamp-2">{topOpportunity.title}</h3>
-              <p className="text-gray-400 text-xs line-clamp-2 mb-3">{topOpportunity.description}</p>
-              <button
-                onClick={() => {
-                  if (topOpportunity.type === 'lead') navigate('/dashboard/sniper');
-                  else navigate('/dashboard/intelligence');
-                }}
-                className="w-full py-2.5 rounded-lg font-bold text-sm transition-all"
-                style={{ background: '#00d4ff', color: '#0a0f1e' }}
+        {/* TOP LEADS — מי מחפש אותך? */}
+        <div style={{ gridArea: 'opportunity' }} className="glass-card p-4 flex flex-col overflow-hidden">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3 flex-shrink-0">
+            <Target className="w-4 h-4 text-cyan-400" />
+            מי מחפש אותך? 🎯
+          </h3>
+          <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
+            {topLeads.length > 0 ? topLeads.map((lead) => (
+              <div
+                key={lead.id}
+                className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-800/40 hover:bg-gray-800/60 cursor-pointer transition-colors group"
+                onClick={() => navigate('/dashboard/sniper')}
               >
-                תפוס את ההזדמנות →
-              </button>
-            </>
-          ) : (
-            <div className="text-center text-gray-500 text-sm">
-              <Sparkles className="w-8 h-8 mx-auto mb-2 text-cyan-500/50" />
-              👁️ עיני מחפש הזדמנויות...
-            </div>
-          )}
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0 mt-0.5 ${
+                  (lead.relevance_score || 0) >= 80 ? 'bg-emerald-500/20 text-emerald-400' :
+                  (lead.relevance_score || 0) >= 60 ? 'bg-cyan-500/20 text-cyan-400' :
+                  'bg-gray-700 text-gray-400'
+                }`}>
+                  {lead.relevance_score || 0}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-200 line-clamp-2">{(lead.summary || '').slice(0, 100)}</p>
+                  <span className="text-[10px] text-gray-600">{formatTimeAgo(lead.created_at)}</span>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate('/dashboard/sniper'); }}
+                  className="text-[10px] text-cyan-400 hover:text-cyan-300 whitespace-nowrap flex-shrink-0"
+                >
+                  פנה עכשיו
+                </button>
+              </div>
+            )) : (
+              <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+                עיני עוד סורק... בדרך כלל עד כמה שעות 👀
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* INTEL FEED */}
+        {/* TOP COMPETITORS — המתחרים שלך */}
         <div style={{ gridArea: 'intel' }} className="glass-card p-4 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between mb-3 flex-shrink-0">
-            <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-              {unreadCount > 0 ? <BellDot className="w-4 h-4 text-red-400" /> : <Bell className="w-4 h-4 text-gray-500" />}
-              מה קרה בזמן שלא הסתכלת 💡
-              {unreadCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px]">{unreadCount}</span>
-              )}
-            </h4>
-          </div>
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3 flex-shrink-0">
+            <Radar className="w-4 h-4 text-blue-400" />
+            המתחרים שלך 👀
+          </h3>
           <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
-            {events.length > 0 ? events.map((ev) => {
-              const dotColor = EVENT_COLORS[ev.event_type] || 'bg-gray-500';
-              return (
-                <div key={ev.id} className={`flex items-start gap-2.5 p-2 rounded-lg ${!ev.is_read ? 'bg-gray-800/40' : ''}`}>
-                  <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${dotColor}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs leading-relaxed ${!ev.is_read ? 'text-white font-medium' : 'text-gray-400'}`}>
-                      {ev.title}
-                    </p>
-                    <span className="text-[10px] text-gray-600">{formatTimeAgo(ev.created_at)}</span>
+            {topCompetitors.length > 0 ? topCompetitors.map((comp) => (
+              <div
+                key={comp.id}
+                className="flex items-center gap-3 p-2.5 rounded-lg bg-gray-800/40 hover:bg-gray-800/60 cursor-pointer transition-colors"
+                onClick={() => navigate('/dashboard/landscape')}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-200 truncate">{comp.name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="flex items-center gap-0.5 text-xs">
+                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                      <span className="text-gray-300">{comp.google_rating > 0 ? comp.google_rating.toFixed(1) : '—'}</span>
+                    </span>
+                    <span className="text-[10px] text-gray-500">{comp.google_reviews_count} ביקורות</span>
                   </div>
                 </div>
-              );
-            }) : (
-              <div className="flex items-center justify-center h-full text-gray-500 text-xs">
-                הכל שקט כרגע 😌
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                  comp.threat_level === 'high' ? 'bg-red-500/20 text-red-400' :
+                  comp.threat_level === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                  'bg-gray-700 text-gray-400'
+                }`}>
+                  {comp.threat_level === 'high' ? 'חזק' : comp.threat_level === 'medium' ? 'בינוני' : 'נמוך'}
+                </span>
+              </div>
+            )) : (
+              <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+                עיני מציר את המפה... מחר תראה הכל 🗺️
               </div>
             )}
           </div>
@@ -463,9 +481,9 @@ export default function Dashboard() {
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="text-base font-bold text-white leading-tight truncate">{greeting.text}{firstName ? `, ${firstName}` : ''}</h1>
+              <h1 className="text-base font-bold text-white leading-tight truncate">{greetingText}</h1>
               <span className="text-[11px] text-gray-500 truncate block">
-                {greeting.sub}
+                {biz.name_hebrew || biz.name}
               </span>
             </div>
           </div>
@@ -529,30 +547,80 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Hot Opportunity */}
-        {topOpportunity && (
-          <div className="glass-card p-4" style={{
-            border: '1px solid rgba(0,212,255,0.3)',
-            boxShadow: '0 0 20px rgba(0,212,255,0.1)',
-          }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Flame className="w-4 h-4 text-orange-400" />
-              <span className="text-xs font-semibold text-orange-400 uppercase tracking-wider">ההזדמנות שלך היום 🔥</span>
-            </div>
-            <h3 className="text-white font-bold text-base mb-1">{topOpportunity.title}</h3>
-            <p className="text-gray-400 text-xs mb-3 line-clamp-2">{topOpportunity.description}</p>
-            <button
-              onClick={() => {
-                if (topOpportunity.type === 'lead') navigate('/dashboard/sniper');
-                else navigate('/dashboard/intelligence');
-              }}
-              className="w-full py-3 rounded-lg font-bold text-sm transition-all min-h-[48px]"
-              style={{ background: '#00d4ff', color: '#0a0f1e' }}
-            >
-              תפוס את ההזדמנות →
-            </button>
+        {/* Top Leads — מי מחפש אותך? */}
+        <div className="glass-card p-4">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+            <Target className="w-4 h-4 text-cyan-400" />
+            מי מחפש אותך? 🎯
+          </h3>
+          <div className="space-y-2">
+            {topLeads.length > 0 ? topLeads.map((lead) => (
+              <div
+                key={lead.id}
+                className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/40 active:bg-gray-800/60 cursor-pointer transition-colors min-h-[48px]"
+                onClick={() => navigate('/dashboard/sniper')}
+              >
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0 mt-0.5 ${
+                  (lead.relevance_score || 0) >= 80 ? 'bg-emerald-500/20 text-emerald-400' :
+                  (lead.relevance_score || 0) >= 60 ? 'bg-cyan-500/20 text-cyan-400' :
+                  'bg-gray-700 text-gray-400'
+                }`}>
+                  {lead.relevance_score || 0}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-200 line-clamp-2">{(lead.summary || '').slice(0, 100)}</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-[10px] text-gray-600">{formatTimeAgo(lead.created_at)}</span>
+                    <span className="text-[10px] text-cyan-400">פנה עכשיו</span>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="flex items-center justify-center py-4 text-gray-500 text-sm">
+                עיני עוד סורק... בדרך כלל עד כמה שעות 👀
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Top Competitors — המתחרים שלך */}
+        <div className="glass-card p-4">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+            <Radar className="w-4 h-4 text-blue-400" />
+            המתחרים שלך 👀
+          </h3>
+          <div className="space-y-2">
+            {topCompetitors.length > 0 ? topCompetitors.map((comp) => (
+              <div
+                key={comp.id}
+                className="flex items-center gap-3 p-3 rounded-lg bg-gray-800/40 active:bg-gray-800/60 cursor-pointer transition-colors min-h-[48px]"
+                onClick={() => navigate('/dashboard/landscape')}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-200 truncate">{comp.name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="flex items-center gap-0.5 text-xs">
+                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                      <span className="text-gray-300">{comp.google_rating > 0 ? comp.google_rating.toFixed(1) : '—'}</span>
+                    </span>
+                    <span className="text-[10px] text-gray-500">{comp.google_reviews_count} ביקורות</span>
+                  </div>
+                </div>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                  comp.threat_level === 'high' ? 'bg-red-500/20 text-red-400' :
+                  comp.threat_level === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                  'bg-gray-700 text-gray-400'
+                }`}>
+                  {comp.threat_level === 'high' ? 'חזק' : comp.threat_level === 'medium' ? 'בינוני' : 'נמוך'}
+                </span>
+              </div>
+            )) : (
+              <div className="flex items-center justify-center py-4 text-gray-500 text-sm">
+                עיני מציר את המפה... מחר תראה הכל 🗺️
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Today's Tasks */}
         <div className="glass-card p-4">
@@ -580,41 +648,7 @@ export default function Dashboard() {
               </div>
             )) : (
               <div className="flex items-center justify-center py-4 text-gray-500 text-sm">
-                <CheckCircle2 className="w-4 h-4 ml-2 text-emerald-400" />
-                הכל מסודר! אין משימות דחופות 🎉
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Intel Feed */}
-        <div className="glass-card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-              {unreadCount > 0 ? <BellDot className="w-4 h-4 text-red-400" /> : <Bell className="w-4 h-4 text-gray-500" />}
-              מה קרה בזמן שלא הסתכלת 💡
-              {unreadCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px]">{unreadCount}</span>
-              )}
-            </h4>
-          </div>
-          <div className="space-y-2">
-            {events.length > 0 ? events.map((ev) => {
-              const dotColor = EVENT_COLORS[ev.event_type] || 'bg-gray-500';
-              return (
-                <div key={ev.id} className={`flex items-start gap-2.5 p-2 rounded-lg ${!ev.is_read ? 'bg-gray-800/40' : ''}`}>
-                  <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${dotColor}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs leading-relaxed ${!ev.is_read ? 'text-white font-medium' : 'text-gray-400'}`}>
-                      {ev.title}
-                    </p>
-                    <span className="text-[10px] text-gray-600">{formatTimeAgo(ev.created_at)}</span>
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="flex items-center justify-center py-4 text-gray-500 text-xs">
-                הכל שקט כרגע 😌
+                המוח מכין משימות... ☕
               </div>
             )}
           </div>
