@@ -296,6 +296,24 @@ class GlobalRadar:
                 elif job_type == JobType.DAILY_FULL_SCAN:
                     self._handle_daily_full_scan(business_id)
 
+                elif job_type == "daily_task_generation":
+                    from services.daily_task_generator import generate_daily_tasks
+                    from config import supabase
+                    generate_daily_tasks(business_id, supabase)
+                    logger.info(f"[GlobalRadar] Daily tasks generated for {business_id}")
+
+                elif job_type == "health_score_recalculation":
+                    from services.health_score_engine import get_health_score_engine
+                    from config import supabase
+                    get_health_score_engine().calculate_health_score(business_id, supabase)
+                    logger.info(f"[GlobalRadar] Health score recalculated for {business_id}")
+
+                elif job_type == "re_engagement_checks":
+                    from services.re_engagement_checker import run_re_engagement_checks
+                    from config import supabase
+                    run_re_engagement_checks(supabase)
+                    logger.info(f"[GlobalRadar] Re-engagement checks completed")
+
                 elif job_type in ("intel_trends", "audience_scan", "daily_summary"):
                     logger.debug(
                         f"[GlobalRadar] Skipping unimplemented job_type: {job_type}"
@@ -787,6 +805,7 @@ from routers.whatsapp_webhook import router as whatsapp_webhook_router
 from routers.waitlist import router as waitlist_router
 from routers.feedback import router as feedback_router
 from routers.marketing_intel import router as marketing_intel_router
+from routers.daily_tasks import router as daily_tasks_router
 app.include_router(admin_router)
 app.include_router(crm_router)
 app.include_router(auditor_router)
@@ -814,6 +833,7 @@ app.include_router(whatsapp_webhook_router)
 app.include_router(waitlist_router)
 app.include_router(feedback_router)
 app.include_router(marketing_intel_router)
+app.include_router(daily_tasks_router)
 
 
 # =============================================================================

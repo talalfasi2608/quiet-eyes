@@ -86,17 +86,20 @@ function SourceIcon({ source }: { source: string }) {
 // INTEL CARD
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function IntelCard({ item, borderColor, iconBg, icon: Icon, actionPath, actionText }: {
+function IntelCard({ item, borderColor, iconBg, icon: Icon, actionPath, actionText, isRead, onMarkRead, onAskAI }: {
   item: IntelItem;
   borderColor: string;
   iconBg: string;
   icon: typeof Users;
   actionPath: string;
   actionText: string;
+  isRead?: boolean;
+  onMarkRead?: () => void;
+  onAskAI?: () => void;
 }) {
   const navigate = useNavigate();
   return (
-    <div className={`glass-card p-4 border-r-4 ${borderColor} hover:bg-gray-800/50 active:bg-gray-800/50 transition-all cursor-pointer group`}
+    <div className={`glass-card p-4 border-r-4 ${borderColor} hover:bg-gray-800/50 active:bg-gray-800/50 transition-all cursor-pointer group ${isRead ? 'opacity-50' : ''}`}
       onClick={() => navigate(actionPath)}
     >
       <div className="flex items-start justify-between mb-2">
@@ -104,11 +107,11 @@ function IntelCard({ item, borderColor, iconBg, icon: Icon, actionPath, actionTe
           <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center`}>
             <Icon className="w-4 h-4" />
           </div>
-          {item.is_fresh && <FreshBadge />}
+          {item.is_fresh && !isRead && <FreshBadge />}
         </div>
         <PriorityIndicator priority={item.priority} />
       </div>
-      <h4 className="font-semibold text-white text-sm mb-1 group-hover:text-cyan-300 transition-colors">{item.title}</h4>
+      <h4 className={`font-semibold text-white text-sm mb-1 group-hover:text-cyan-300 transition-colors ${isRead ? 'line-through text-gray-500' : ''}`}>{item.title}</h4>
       {item.competitor_name && (
         <span className="inline-block px-2 py-0.5 rounded bg-gray-800 text-gray-300 text-xs mb-2">{item.competitor_name}</span>
       )}
@@ -121,10 +124,28 @@ function IntelCard({ item, borderColor, iconBg, icon: Icon, actionPath, actionTe
             <span className="text-gray-600">· {new Date(item.timestamp).toLocaleDateString('he-IL')}</span>
           )}
         </div>
-        <span className="flex items-center gap-1 text-cyan-400 text-xs group-hover:text-cyan-300 transition-colors">
-          {actionText}
-          <ArrowUpRight className="w-3 h-3" />
-        </span>
+        <div className="flex items-center gap-2">
+          {!isRead && onMarkRead && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onMarkRead(); }}
+              className="text-[10px] text-gray-500 hover:text-emerald-400 transition-colors"
+            >
+              סימנתי ✓
+            </button>
+          )}
+          {onAskAI && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onAskAI(); }}
+              className="text-[10px] text-amber-400 hover:text-amber-300 transition-colors"
+            >
+              מה אני עושה עם זה?
+            </button>
+          )}
+          <span className="flex items-center gap-1 text-cyan-400 text-xs group-hover:text-cyan-300 transition-colors">
+            {actionText}
+            <ArrowUpRight className="w-3 h-3" />
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -179,6 +200,22 @@ export default function MarketIntelligence() {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<'urgent' | 'important' | 'monitoring'>('urgent');
+  const [readItems, setReadItems] = useState<Set<string>>(new Set());
+
+  const handleMarkRead = (itemId: string) => {
+    setReadItems(prev => new Set(prev).add(itemId));
+    toast.success('סימנת כנקרא ✓');
+  };
+
+  const handleAskAI = (category: string) => {
+    const suggestions: Record<string, string> = {
+      opportunities: 'כדאי לפנות ללקוח הזה היום — הנה הזדמנות חמה 🔥',
+      price_alerts: 'בדוק אם המחיר שלך תחרותי מול השינוי הזה 💰',
+      ad_insights: 'שקול להריץ מודעה דומה או להבדיל את ההצעה שלך 📢',
+      other_alerts: 'שמור על מעקב — זה יכול להשפיע בעתיד 👀',
+    };
+    toast(suggestions[category] || 'עיני מנתח... 🧠', { icon: '🧠', duration: 4000 });
+  };
 
   // Safety timeout
   useEffect(() => {
@@ -432,7 +469,7 @@ export default function MarketIntelligence() {
           <div className="flex items-center justify-between px-3 py-2 bg-red-500/10 border-b-2 border-red-500/60 flex-shrink-0">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400" />
-              <span className="text-sm font-bold text-red-400">דחוף ❗</span>
+              <span className="text-sm font-bold text-red-400">כדאי לטפל היום 🔴</span>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-semibold">{totals.urgent}</span>
           </div>
@@ -445,7 +482,7 @@ export default function MarketIntelligence() {
             ) : (
               urgentItems.map(({ item, category }) => {
                 const props = cardPropsForCategory(category);
-                return <IntelCard key={item.id} item={item} {...props} />;
+                return <IntelCard key={item.id} item={item} {...props} isRead={readItems.has(item.id)} onMarkRead={() => handleMarkRead(item.id)} onAskAI={() => handleAskAI(category)} />;
               })
             )}
           </div>
@@ -456,7 +493,7 @@ export default function MarketIntelligence() {
           <div className="flex items-center justify-between px-3 py-2 bg-amber-500/10 border-b-2 border-amber-500/60 flex-shrink-0">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-bold text-amber-400">שווה לדעת</span>
+              <span className="text-sm font-bold text-amber-400">שווה לדעת 🟡</span>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-semibold">{totals.important}</span>
           </div>
@@ -469,7 +506,7 @@ export default function MarketIntelligence() {
             ) : (
               importantItems.map(({ item, category }) => {
                 const props = cardPropsForCategory(category);
-                return <IntelCard key={item.id} item={item} {...props} />;
+                return <IntelCard key={item.id} item={item} {...props} isRead={readItems.has(item.id)} onMarkRead={() => handleMarkRead(item.id)} onAskAI={() => handleAskAI(category)} />;
               })
             )}
           </div>
@@ -480,7 +517,7 @@ export default function MarketIntelligence() {
           <div className="flex items-center justify-between px-3 py-2 bg-blue-500/10 border-b-2 border-blue-500/60 flex-shrink-0">
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-bold text-blue-400">לידיעה</span>
+              <span className="text-sm font-bold text-blue-400">עיני עוקב 🟢</span>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs font-semibold">{totals.monitoring}</span>
           </div>
@@ -493,7 +530,7 @@ export default function MarketIntelligence() {
             ) : (
               monitoringItems.map(({ item, category }) => {
                 const props = cardPropsForCategory(category);
-                return <IntelCard key={item.id} item={item} {...props} />;
+                return <IntelCard key={item.id} item={item} {...props} isRead={readItems.has(item.id)} onMarkRead={() => handleMarkRead(item.id)} onAskAI={() => handleAskAI(category)} />;
               })
             )}
           </div>
@@ -549,7 +586,7 @@ export default function MarketIntelligence() {
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            דחוף ❗ ({totals.urgent})
+            לטפל 🔴 ({totals.urgent})
           </button>
           <button
             onClick={() => setMobileTab('important')}
@@ -558,7 +595,7 @@ export default function MarketIntelligence() {
             }`}
           >
             <AlertCircle className="w-3.5 h-3.5" />
-            שווה לדעת ({totals.important})
+            לדעת 🟡 ({totals.important})
           </button>
           <button
             onClick={() => setMobileTab('monitoring')}
@@ -567,7 +604,7 @@ export default function MarketIntelligence() {
             }`}
           >
             <Eye className="w-3.5 h-3.5" />
-            לידיעה ({totals.monitoring})
+            עוקב 🟢 ({totals.monitoring})
           </button>
         </div>
 

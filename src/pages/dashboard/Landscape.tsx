@@ -134,7 +134,7 @@ export default function Landscape() {
     switch (level) {
       case 'High': return '#ef4444';
       case 'Medium': return '#f59e0b';
-      default: return '#6b7280';
+      default: return '#22c55e';
     }
   }, []);
 
@@ -211,7 +211,7 @@ export default function Landscape() {
       marker.addListener('click', () => {
         setHighlightedId(comp.id);
         if (!infoWindowRef.current) infoWindowRef.current = new window.google.maps.InfoWindow();
-        const threatLabel = comp.perceived_threat_level === 'High' ? 'מתחרה חזק 💪' : comp.perceived_threat_level === 'Medium' ? 'כדאי לעקוב 👀' : 'לא מאיים כרגע 😌';
+        const threatLabel = comp.perceived_threat_level === 'High' ? 'שווה לשים לב 👀' : comp.perceived_threat_level === 'Medium' ? 'במעקב 📋' : 'לא דחוף 😌';
         infoWindowRef.current.setContent(`
           <div style="color:#e5e7eb; background:#1f2937; padding:10px; border-radius:8px; min-width:180px; direction:rtl;">
             <strong style="color:white;">${comp.name}</strong>
@@ -262,9 +262,9 @@ export default function Landscape() {
   };
 
   const getThreatLabel = (level: string) => {
-    if (level === 'High') return 'מתחרה חזק 💪';
-    if (level === 'Medium') return 'כדאי לעקוב 👀';
-    return 'לא מאיים כרגע 😌';
+    if (level === 'High') return 'שווה לשים לב 👀';
+    if (level === 'Medium') return 'במעקב 📋';
+    return 'לא דחוף 😌';
   };
 
   return (
@@ -319,15 +319,15 @@ export default function Landscape() {
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                  <span className="text-gray-300">מתחרה חזק 💪</span>
+                  <span className="text-gray-300">שווה לשים לב 👀</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                  <span className="text-gray-300">כדאי לעקוב 👀</span>
+                  <span className="text-gray-300">במעקב 📋</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <div className="w-2.5 h-2.5 rounded-full bg-gray-500" />
-                  <span className="text-gray-300">לא מאיים כרגע 😌</span>
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                  <span className="text-gray-300">לא דחוף 😌</span>
                 </div>
               </div>
               <div className="absolute top-3 left-3 bg-gray-900/90 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-gray-700">
@@ -373,7 +373,7 @@ export default function Landscape() {
               </div>
             ))}
             {topThreats.length === 0 && (
-              <div className="text-gray-500 text-xs text-center py-4 whitespace-pre-line">{"עדיין לא מצאתי מתחרים.\nברגע שתגדיר את העסק — אתחיל לסרוק את האזור שלך.\nזה לוקח בדרך כלל כמה דקות 🔍"}</div>
+              <div className="text-gray-500 text-xs text-center py-4 whitespace-pre-line">{"עיני עוד מציר את המפה באזורך.\nזה לוקח עד 24 שעות בפעם הראשונה.\nמחר בבוקר תראה כאן את כל התמונה 🗺️"}</div>
             )}
           </div>
         </div>
@@ -422,7 +422,7 @@ export default function Landscape() {
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                           comp.perceived_threat_level === 'High' ? 'bg-red-500/20 text-red-400' :
                           comp.perceived_threat_level === 'Medium' ? 'bg-amber-500/20 text-amber-400' :
-                          'bg-gray-500/20 text-gray-400'
+                          'bg-green-500/20 text-green-400'
                         }`}>
                           {getThreatLabel(comp.perceived_threat_level)}
                         </span>
@@ -438,8 +438,8 @@ export default function Landscape() {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-4">
                   <span className="text-3xl">👁️</span>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-1">עדיין לא מצאתי מתחרים.</h3>
-                <p className="text-gray-400 text-sm max-w-sm mx-auto whitespace-pre-line">{"ברגע שתגדיר את העסק — אתחיל לסרוק את האזור שלך.\nזה לוקח בדרך כלל כמה דקות 🔍"}</p>
+                <h3 className="text-lg font-bold text-white mb-1">עיני עוד מציר את המפה באזורך.</h3>
+                <p className="text-gray-400 text-sm max-w-sm mx-auto whitespace-pre-line">{"זה לוקח עד 24 שעות בפעם הראשונה.\nמחר בבוקר תראה כאן את כל התמונה 🗺️"}</p>
                 <button
                   onClick={handleScan}
                   disabled={scanning}
@@ -513,11 +513,11 @@ export default function Landscape() {
                   </div>
                   <div className="flex items-center gap-1 text-[10px]">
                     <div className="w-2 h-2 rounded-full bg-red-500" />
-                    <span className="text-gray-400">חזק 💪</span>
+                    <span className="text-gray-400">שווה לשים לב 👀</span>
                   </div>
                   <div className="flex items-center gap-1 text-[10px]">
                     <div className="w-2 h-2 rounded-full bg-amber-500" />
-                    <span className="text-gray-400">לעקוב 👀</span>
+                    <span className="text-gray-400">במעקב 📋</span>
                   </div>
                 </div>
               </>
@@ -537,8 +537,8 @@ export default function Landscape() {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-4">
                   <span className="text-3xl">👁️</span>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-1">עדיין לא מצאתי מתחרים.</h3>
-                <p className="text-gray-400 text-sm whitespace-pre-line">{"ברגע שתגדיר את העסק — אתחיל לסרוק את האזור שלך.\nזה לוקח בדרך כלל כמה דקות 🔍"}</p>
+                <h3 className="text-lg font-bold text-white mb-1">עיני עוד מציר את המפה באזורך.</h3>
+                <p className="text-gray-400 text-sm whitespace-pre-line">{"זה לוקח עד 24 שעות בפעם הראשונה.\nמחר בבוקר תראה כאן את כל התמונה 🗺️"}</p>
                 <button
                   onClick={handleScan}
                   disabled={scanning}
@@ -564,7 +564,7 @@ export default function Landscape() {
                       <span className={`text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${
                         comp.perceived_threat_level === 'High' ? 'bg-red-500/20 text-red-400' :
                         comp.perceived_threat_level === 'Medium' ? 'bg-amber-500/20 text-amber-400' :
-                        'bg-gray-500/20 text-gray-400'
+                        'bg-green-500/20 text-green-400'
                       }`}>
                         {getThreatLabel(comp.perceived_threat_level)}
                       </span>
@@ -619,7 +619,7 @@ export default function Landscape() {
               </div>
             ))}
             {topThreats.length === 0 && (
-              <div className="text-gray-500 text-xs text-center py-4 whitespace-pre-line">{"עדיין לא מצאתי מתחרים.\nברגע שתגדיר את העסק — אתחיל לסרוק את האזור שלך.\nזה לוקח בדרך כלל כמה דקות 🔍"}</div>
+              <div className="text-gray-500 text-xs text-center py-4 whitespace-pre-line">{"עיני עוד מציר את המפה באזורך.\nזה לוקח עד 24 שעות בפעם הראשונה.\nמחר בבוקר תראה כאן את כל התמונה 🗺️"}</div>
             )}
           </div>
         </div>

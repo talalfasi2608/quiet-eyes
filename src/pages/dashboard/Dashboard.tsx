@@ -142,6 +142,7 @@ export default function Dashboard() {
   const [topLeads, setTopLeads] = useState<Array<{ id: string; summary: string; relevance_score: number; created_at: string }>>([]);
   const [eventsCount, setEventsCount] = useState(0);
   const [lastScan, setLastScan] = useState<string | null>(null);
+  const [healthTrend, setHealthTrend] = useState<{ previous_score: number; trend: string } | null>(null);
 
   // Fetch dashboard
   const fetchDashboard = useCallback(async (showRefresh = false) => {
@@ -199,11 +200,28 @@ export default function Dashboard() {
     }
   }, [currentProfile?.id]);
 
+  // Fetch health score trend
+  const fetchHealthTrend = useCallback(async () => {
+    if (!currentProfile?.id) return;
+    try {
+      const res = await apiFetch(`/tasks/${currentProfile.id}/health-score`);
+      if (res.ok) {
+        const d = await res.json();
+        if (d.success) {
+          setHealthTrend({ previous_score: d.previous_score || 0, trend: d.trend || 'new' });
+        }
+      }
+    } catch {
+      // Silent — non-critical
+    }
+  }, [currentProfile?.id]);
+
   useEffect(() => {
     fetchDashboard();
     fetchEvents();
     fetchLeadsCount();
-  }, [fetchDashboard, fetchEvents, fetchLeadsCount]);
+    fetchHealthTrend();
+  }, [fetchDashboard, fetchEvents, fetchLeadsCount, fetchHealthTrend]);
 
   // Trigger market scan
   const triggerScan = async () => {
@@ -320,6 +338,17 @@ export default function Dashboard() {
           <AnimatedGauge value={healthScore} size={180} label="בריאות העסק" />
           <div className="mt-3 text-center">
             <span className={`text-sm font-bold ${healthInfo.color}`}>{healthInfo.label}</span>
+            {healthTrend && healthTrend.trend !== 'new' && (
+              <div className="text-xs mt-1">
+                {healthTrend.trend === 'up' ? (
+                  <span className="text-emerald-400">↑ עלה מ-{healthTrend.previous_score}</span>
+                ) : healthTrend.trend === 'down' ? (
+                  <span className="text-red-400">↓ ירד מ-{healthTrend.previous_score}</span>
+                ) : (
+                  <span className="text-gray-400">→ יציב</span>
+                )}
+              </div>
+            )}
             <div className="flex items-center justify-center gap-1 text-sm mt-1">
               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
               <span className="text-white font-bold">{market_stats.your_rating > 0 ? market_stats.your_rating.toFixed(1) : '—'}</span>
@@ -536,6 +565,17 @@ export default function Dashboard() {
           <div className="flex-1">
             <h3 className="text-sm font-bold text-white mb-1">בריאות העסק</h3>
             <span className={`text-xs font-bold ${healthInfo.color}`}>{healthInfo.label}</span>
+            {healthTrend && healthTrend.trend !== 'new' && (
+              <span className="text-[10px] mr-1">
+                {healthTrend.trend === 'up' ? (
+                  <span className="text-emerald-400">↑ עלה מ-{healthTrend.previous_score}</span>
+                ) : healthTrend.trend === 'down' ? (
+                  <span className="text-red-400">↓ ירד מ-{healthTrend.previous_score}</span>
+                ) : (
+                  <span className="text-gray-400">→ יציב</span>
+                )}
+              </span>
+            )}
             <div className="flex items-center gap-1 text-sm mt-1">
               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
               <span className="text-white font-bold">{market_stats.your_rating > 0 ? market_stats.your_rating.toFixed(1) : '—'}</span>

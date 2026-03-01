@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSimulation } from '../../context/SimulationContext';
 import { apiFetch } from '../../services/api';
+import toast from 'react-hot-toast';
 import {
   Target, Shield, Radio, TrendingUp, Search, Zap,
   ChevronLeft, Loader2, Sparkles, Clock, CheckCircle2,
-  Calendar, Flame,
+  Calendar, Flame, Check,
 } from 'lucide-react';
 
 interface DailyTask {
@@ -82,6 +83,24 @@ export default function Focus() {
   const [data, setData] = useState<DailyFocusData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
+
+  const handleCompleteTask = async (taskId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCompletedTasks(prev => new Set(prev).add(taskId));
+    toast.success('כל הכבוד! 💪 עוד צעד קדימה.');
+    // Try to persist to backend (best effort)
+    if (currentProfile?.id) {
+      try {
+        await apiFetch(`/tasks/${currentProfile.id}/complete`, {
+          method: 'POST',
+          body: JSON.stringify({ task_id: taskId }),
+        });
+      } catch {
+        // Already marked locally
+      }
+    }
+  };
 
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 10000);
@@ -199,20 +218,21 @@ export default function Focus() {
               <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
                 {data.tasks.slice(0, 3).map((task, idx) => {
                   const Icon = getIcon(task.icon);
+                  const isDone = completedTasks.has(task.id);
                   return (
                     <div
                       key={task.id}
-                      className={`glass-card p-4 border ${PRIORITY_COLORS[task.priority]} transition-all hover:scale-[1.005] cursor-pointer group`}
-                      onClick={() => navigate(task.action_path)}
+                      className={`glass-card p-4 border ${isDone ? 'border-green-500/30 bg-green-500/5 opacity-60' : PRIORITY_COLORS[task.priority]} transition-all hover:scale-[1.005] cursor-pointer group`}
+                      onClick={() => !isDone && navigate(task.action_path)}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-600 to-blue-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                          {idx + 1}
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0 ${isDone ? 'bg-green-600' : 'bg-gradient-to-br from-cyan-600 to-blue-600'}`}>
+                          {isDone ? <Check className="w-4 h-4" /> : idx + 1}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
                             <Icon className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                            <h3 className="text-white font-semibold text-sm truncate">{task.title}</h3>
+                            <h3 className={`font-semibold text-sm truncate ${isDone ? 'text-gray-500 line-through' : 'text-white'}`}>{task.title}</h3>
                             <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${PRIORITY_BADGE[task.priority]}`}>
                               {PRIORITY_LABELS[task.priority]}
                             </span>
@@ -220,10 +240,23 @@ export default function Focus() {
                           <p className="text-gray-400 text-xs line-clamp-1">{task.description}</p>
                           <div className="flex items-center justify-between mt-2">
                             <span className="text-[10px] text-gray-500">{task.metric}</span>
-                            <span className="text-cyan-400 text-xs font-medium flex items-center gap-1 group-hover:gap-1.5 transition-all">
-                              {task.action_label}
-                              <ChevronLeft className="w-3 h-3" />
-                            </span>
+                            <div className="flex items-center gap-3">
+                              {!isDone && (
+                                <button
+                                  onClick={(e) => handleCompleteTask(task.id, e)}
+                                  className="text-emerald-400 text-xs font-medium flex items-center gap-1 hover:text-emerald-300 transition-colors"
+                                >
+                                  <Check className="w-3 h-3" />
+                                  עשיתי
+                                </button>
+                              )}
+                              {!isDone && (
+                                <span className="text-cyan-400 text-xs font-medium flex items-center gap-1 group-hover:gap-1.5 transition-all">
+                                  {task.action_label}
+                                  <ChevronLeft className="w-3 h-3" />
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -356,20 +389,21 @@ export default function Focus() {
               <div className="space-y-2">
                 {data.tasks.slice(0, 3).map((task, idx) => {
                   const Icon = getIcon(task.icon);
+                  const isDone = completedTasks.has(task.id);
                   return (
                     <div
                       key={task.id}
-                      className={`glass-card p-4 border ${PRIORITY_COLORS[task.priority]} active:scale-[0.99] cursor-pointer`}
-                      onClick={() => navigate(task.action_path)}
+                      className={`glass-card p-4 border ${isDone ? 'border-green-500/30 bg-green-500/5 opacity-60' : PRIORITY_COLORS[task.priority]} active:scale-[0.99] cursor-pointer`}
+                      onClick={() => !isDone && navigate(task.action_path)}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-600 to-blue-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                          {idx + 1}
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0 ${isDone ? 'bg-green-600' : 'bg-gradient-to-br from-cyan-600 to-blue-600'}`}>
+                          {isDone ? <Check className="w-4 h-4" /> : idx + 1}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                             <Icon className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                            <h3 className="text-white font-semibold text-sm">{task.title}</h3>
+                            <h3 className={`font-semibold text-sm ${isDone ? 'text-gray-500 line-through' : 'text-white'}`}>{task.title}</h3>
                             <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${PRIORITY_BADGE[task.priority]}`}>
                               {PRIORITY_LABELS[task.priority]}
                             </span>
@@ -377,10 +411,23 @@ export default function Focus() {
                           <p className="text-gray-400 text-xs line-clamp-2 mb-2">{task.description}</p>
                           <div className="flex items-center justify-between">
                             <span className="text-[11px] text-gray-500">{task.metric}</span>
-                            <span className="text-cyan-400 text-xs font-medium flex items-center gap-1">
-                              {task.action_label}
-                              <ChevronLeft className="w-3 h-3" />
-                            </span>
+                            <div className="flex items-center gap-3">
+                              {!isDone && (
+                                <button
+                                  onClick={(e) => handleCompleteTask(task.id, e)}
+                                  className="text-emerald-400 text-xs font-medium flex items-center gap-1 min-h-[44px] px-2"
+                                >
+                                  <Check className="w-3 h-3" />
+                                  עשיתי
+                                </button>
+                              )}
+                              {!isDone && (
+                                <span className="text-cyan-400 text-xs font-medium flex items-center gap-1">
+                                  {task.action_label}
+                                  <ChevronLeft className="w-3 h-3" />
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

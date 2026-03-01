@@ -178,7 +178,7 @@ function RelevanceBar({ score }: { score: number }) {
     : pct >= 70
     ? 'שווה לפנות 👍'
     : pct >= 50
-    ? 'אולי מתאים 🤷'
+    ? 'אולי רלוונטי 🤔'
     : 'פחות רלוונטי';
   return (
     <div className="flex items-center gap-2" dir="ltr">
@@ -636,6 +636,13 @@ export default function LeadSniperFeed() {
         new: Math.max(0, prev.new - 1),
         [newStatus]: prev[newStatus as keyof typeof prev] + 1,
       }));
+
+      // User feedback
+      if (action === 'approve') {
+        toast.success('סימנו שפנית — כל הכבוד! 💪');
+      } else if (action === 'reject' || action === 'dismiss') {
+        toast.success('תודה! עיני ילמד מזה 🎯');
+      }
 
       // Refresh stats after feedback
       fetchFeedbackStats();
