@@ -1,3 +1,6 @@
+# Force Node.js — ignore backend/requirements.txt (Python backend is separate)
+providers = ["node"]
+
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 
