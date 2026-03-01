@@ -565,6 +565,8 @@ export default function MarketingIntel() {
   const [refreshing, setRefreshing] = useState(false);
   const [regeneratingPlan, setRegeneratingPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contentPlan, setContentPlan] = useState<any>(null);
+  const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
 
   const businessId = currentProfile?.id;
   const businessName = currentProfile?.nameHebrew || currentProfile?.name || '';
@@ -643,9 +645,36 @@ export default function MarketingIntel() {
     toast.success('ייצוא PDF יהיה זמין בקרוב');
   }, []);
 
+  // Fetch content plan from hakol agent
+  const fetchContentPlan = useCallback(async () => {
+    if (!businessId || !user?.id) return;
+    try {
+      const res = await apiFetch(`/agents/marketing-plan/${businessId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && data.plan) {
+        setContentPlan(data.plan);
+      }
+    } catch {
+      // Silent — content plan is optional
+    }
+  }, [businessId, user?.id]);
+
+  const handleCopyPost = useCallback(async (postIndex: number, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPostId(String(postIndex));
+      toast.success('הועתק! פרסם אותו עכשיו');
+      setTimeout(() => setCopiedPostId(null), 3000);
+    } catch {
+      toast.error('שגיאה בהעתקה');
+    }
+  }, []);
+
   useEffect(() => {
     fetchReport();
-  }, [fetchReport]);
+    fetchContentPlan();
+  }, [fetchReport, fetchContentPlan]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER — Loading
@@ -774,6 +803,84 @@ export default function MarketingIntel() {
           competitors={report.competitor_table}
           insight={report.competitor_insight}
         />
+
+        {/* ══════════════════════════════════════════════════════════════════
+            CONTENT PLAN FROM HAKOL AGENT
+           ══════════════════════════════════════════════════════════════════ */}
+        {contentPlan && contentPlan.posts && contentPlan.posts.length > 0 && (
+          <div className={`${GLASS} p-6`}>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                  <Megaphone className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">תוכנית השבוע מהקול</h2>
+                  {contentPlan.theme && (
+                    <p className="text-sm text-gray-400">{contentPlan.theme}</p>
+                  )}
+                </div>
+              </div>
+              {contentPlan.week_start && (
+                <span className="text-xs text-gray-500">
+                  שבוע {new Date(contentPlan.week_start).toLocaleDateString('he-IL')}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {contentPlan.posts.map((post: any, idx: number) => (
+                <div key={idx} className="bg-gray-800/40 rounded-xl p-4 border border-gray-700/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      {post.platform && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">
+                          {post.platform === 'facebook' ? 'Facebook' :
+                           post.platform === 'instagram' ? 'Instagram' :
+                           post.platform === 'whatsapp' ? 'WhatsApp' : post.platform}
+                        </span>
+                      )}
+                      {post.day && (
+                        <span className="text-xs text-gray-500">
+                          {DAY_LABELS[post.day.toLowerCase()] || post.day}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleCopyPost(idx, post.content || post.text || '')}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        copiedPostId === String(idx)
+                          ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
+                          : 'bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20'
+                      }`}
+                    >
+                      {copiedPostId === String(idx) ? (
+                        <><Check className="w-3.5 h-3.5" /> הועתק!</>
+                      ) : (
+                        <><Copy className="w-3.5 h-3.5" /> העתק פוסט</>
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-sm text-white leading-relaxed whitespace-pre-wrap mb-3">
+                    {post.content || post.text}
+                  </p>
+
+                  {post.hashtags && (
+                    <p className="text-xs text-cyan-400/70 mb-2">{post.hashtags}</p>
+                  )}
+
+                  {post.cta && (
+                    <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5 w-fit">
+                      <Lightbulb className="w-3.5 h-3.5" />
+                      <span>CTA: {post.cta}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════════
             SECTION 5: WEEKLY CONTENT PLAN

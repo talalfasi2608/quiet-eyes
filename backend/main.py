@@ -319,6 +319,18 @@ class GlobalRadar:
                         f"[GlobalRadar] Skipping unimplemented job_type: {job_type}"
                     )
 
+                # ── Phase 3 Agents ──
+                elif job_type in ("agent_eyeni", "agent_hamoa", "agent_hakol", "agent_hakis", "agent_haozen", "agent_hatavach"):
+                    agent_name = job_type.replace("agent_", "")
+                    from agents.scheduler import run_agent_single
+                    result = run_agent_single(agent_name, business_id)
+                    logger.info(f"[GlobalRadar] Agent {agent_name} completed for {business_id}: {result}")
+
+                elif job_type == "agent_monitor":
+                    from agents.monitor import check_agent_health
+                    check_agent_health()
+                    logger.info("[GlobalRadar] Agent health check completed")
+
                 else:
                     logger.warning(
                         f"[GlobalRadar] Unknown job_type: {job_type}"
@@ -806,6 +818,7 @@ from routers.waitlist import router as waitlist_router
 from routers.feedback import router as feedback_router
 from routers.marketing_intel import router as marketing_intel_router
 from routers.daily_tasks import router as daily_tasks_router
+from routers.agents_api import router as agents_api_router
 app.include_router(admin_router)
 app.include_router(crm_router)
 app.include_router(auditor_router)
@@ -834,6 +847,7 @@ app.include_router(waitlist_router)
 app.include_router(feedback_router)
 app.include_router(marketing_intel_router)
 app.include_router(daily_tasks_router)
+app.include_router(agents_api_router)
 
 
 # =============================================================================

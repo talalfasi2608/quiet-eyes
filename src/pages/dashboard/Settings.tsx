@@ -1395,25 +1395,138 @@ export default function Settings() {
     </div>
   );
 
+  const [agentStatuses, setAgentStatuses] = useState<Record<string, any>>({});
+  const [triggeringAgent, setTriggeringAgent] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeTab === 'agents') {
+      apiFetch('/agents/status').then(r => r.json()).then(d => {
+        if (d.agents) {
+          const map: Record<string, any> = {};
+          for (const a of d.agents) map[a.name] = a;
+          setAgentStatuses(map);
+        }
+      }).catch(() => {});
+    }
+  }, [activeTab]);
+
+  const handleTriggerAgent = async (agentName: string) => {
+    if (!currentProfile?.id || triggeringAgent) return;
+    setTriggeringAgent(agentName);
+    toast.loading(`⟳ ${AGENT_INFO[agentName]?.name || agentName} מתחיל לסרוק...`, { id: `trigger-${agentName}` });
+    try {
+      const res = await apiFetch('/agents/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_name: agentName, business_id: currentProfile.id }),
+      });
+      if (res.ok) {
+        toast.success(`✅ ${AGENT_INFO[agentName]?.name || agentName} התחיל לעבוד!`, { id: `trigger-${agentName}` });
+      } else {
+        toast.error('שגיאה בהפעלת העוזר', { id: `trigger-${agentName}` });
+      }
+    } catch {
+      toast.error('שגיאה בהפעלת העוזר', { id: `trigger-${agentName}` });
+    } finally {
+      setTriggeringAgent(null);
+    }
+  };
+
+  const userPlan = (currentProfile as any)?.subscription_plan || 'free';
+  const planAccessMap: Record<string, string[]> = {
+    eyeni: ['starter', 'growth', 'pro', 'business', 'elite'],
+    hamoa: ['starter', 'growth', 'pro', 'business', 'elite'],
+    hakol: ['growth', 'pro', 'business', 'elite'],
+    hakis: ['pro', 'business', 'elite'],
+    haozen: ['pro', 'business', 'elite'],
+    hatavach: ['pro', 'business', 'elite'],
+  };
+
   const renderAgentsTab = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h2 className="text-xl font-bold text-white mb-1">העוזרים שלי 🤖</h2>
-        <p className="text-sm text-gray-400">6 עוזרים חכמים שעובדים בשבילך מאחורי הקלעים</p>
+        <p className="text-sm text-gray-400">6 עוזרים חכמים שעובדים בשבילך 24/7</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {Object.entries(AGENT_INFO).map(([key, agent]) => (
-          <div key={key} className="glass-card flex gap-4 items-start">
-            <div className="w-12 h-12 rounded-xl bg-[#00d4ff]/10 flex items-center justify-center text-2xl flex-shrink-0">
-              {agent.emoji}
+        {Object.entries(AGENT_INFO).map(([key, agent]) => {
+          const hasAccess = planAccessMap[key]?.includes(userPlan) ?? false;
+          const status = agentStatuses[key];
+          const isActive = status?.status === 'active';
+          const lastRun = status?.last_run_at;
+          const todayItems = status?.today_items || 0;
+
+          if (!hasAccess) {
+            return (
+              <div key={key} className="glass-card p-4 opacity-60 border border-gray-700/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center text-2xl flex-shrink-0">
+                    🔒
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-gray-400 font-semibold text-base">{agent.emoji} {agent.name}</h3>
+                    <p className="text-gray-500 text-sm mb-2">{agent.tagline}</p>
+                    <p className="text-gray-600 text-xs">זמין בתוכנית {key === 'hakol' ? 'GROWTH' : 'PRO'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => window.location.href = '/dashboard/billing'}
+                  className="mt-3 w-full py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm font-medium hover:opacity-90 transition-opacity min-h-[44px]"
+                >
+                  שדרג ועבוד עם כל 6 העוזרים →
+                </button>
+              </div>
+            );
+          }
+
+          return (
+            <div key={key} className="glass-card p-4 border border-gray-700/50">
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-xl bg-[#00d4ff]/10 flex items-center justify-center text-2xl flex-shrink-0">
+                  {agent.emoji}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-white font-semibold text-base">{agent.name}</h3>
+                  <p className="text-[#00d4ff] text-sm mb-1">{agent.tagline}</p>
+                  <p className="text-gray-400 text-xs leading-relaxed">{agent.description}</p>
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="mt-3 space-y-1">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`} />
+                  <span className={isActive ? 'text-emerald-400' : 'text-gray-500'}>
+                    {isActive ? 'עובד עכשיו בשבילך' : 'מחכה לסבב הבא'}
+                  </span>
+                </div>
+                {lastRun && (
+                  <p className="text-[10px] text-gray-600">
+                    עבד לאחרונה: {new Date(lastRun).toLocaleString('he-IL', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+                  </p>
+                )}
+                {todayItems > 0 && (
+                  <p className="text-[10px] text-cyan-400">מצא היום: {todayItems} תוצאות</p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => handleTriggerAgent(key)}
+                  disabled={triggeringAgent === key}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 text-xs font-medium hover:bg-cyan-500/20 transition-colors min-h-[44px]"
+                >
+                  {triggeringAgent === key ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> מפעיל...</>
+                  ) : (
+                    <><Zap className="w-3.5 h-3.5" /> הפעל עכשיו</>
+                  )}
+                </button>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h3 className="text-white font-semibold text-base">{agent.name}</h3>
-              <p className="text-[#00d4ff] text-sm mb-1">{agent.tagline}</p>
-              <p className="text-gray-400 text-sm leading-relaxed">{agent.description}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
