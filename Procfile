@@ -1,1 +1,1 @@
-web: cd backend && python -m uvicorn main:app --host 0.0.0.0 --port ${PORT:-8015}
+web: npx serve -s dist -l ${PORT:-3000}
