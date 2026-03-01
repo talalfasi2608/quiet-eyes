@@ -7,7 +7,7 @@
  *   </FeatureLock>
  */
 
-import { ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Lock, ArrowUpRight } from 'lucide-react';
 import { usePlan } from '../../hooks/usePlan';
 import { FEATURE_LABELS_HE } from '../../lib/planFeatures';

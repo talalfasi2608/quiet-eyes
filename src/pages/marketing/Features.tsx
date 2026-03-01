@@ -1,3 +1,4 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 import FadeInSection from '../../components/marketing/FadeInSection';
 import useSEO from '../../hooks/useSEO';
@@ -161,7 +162,7 @@ function PdfMockup() {
   );
 }
 
-const mockups: Record<string, () => JSX.Element> = {
+const mockups: Record<string, () => React.ReactElement> = {
   lead: LeadCardMockup,
   competitor: CompetitorMapMockup,
   health: HealthGaugeMockup,

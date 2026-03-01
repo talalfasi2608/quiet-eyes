@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { Lock } from 'lucide-react';
 

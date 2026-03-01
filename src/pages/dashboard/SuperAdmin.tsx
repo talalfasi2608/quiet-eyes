@@ -873,10 +873,13 @@ export default function SuperAdmin() {
                     <Tooltip
                       contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
                       labelStyle={{ color: '#fff' }}
-                      formatter={(value: number, name: string) => [
-                        name === 'mrr' ? `${value.toLocaleString()} ₪` : value,
-                        name === 'mrr' ? 'MRR' : name === 'new_subscriptions' ? 'חדשים' : 'נטישה',
-                      ]}
+                      formatter={(value: number | undefined, name: string) => {
+                        if (!value && value !== 0) return ['', name as any];
+                        return [
+                          name === 'mrr' ? `${value.toLocaleString()} ₪` : value,
+                          name === 'mrr' ? 'MRR' : name === 'new_subscriptions' ? 'חדשים' : 'נטישה',
+                        ];
+                      }}
                     />
                     <Bar dataKey="mrr" fill="#6366f1" radius={[4, 4, 0, 0]} name="mrr" />
                     <Bar dataKey="new_subscriptions" fill="#22c55e" radius={[4, 4, 0, 0]} name="new_subscriptions" />
