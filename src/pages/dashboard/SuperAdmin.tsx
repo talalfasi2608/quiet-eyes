@@ -873,11 +873,12 @@ export default function SuperAdmin() {
                     <Tooltip
                       contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
                       labelStyle={{ color: '#fff' }}
-                      formatter={(value: number | undefined, name: string) => {
-                        if (!value && value !== 0) return ['', name as any];
+                      formatter={(value: number | undefined, name: string | undefined) => {
+                        if (value === undefined || value === null) return ['', ''];
+                        const n = name ?? '';
                         return [
-                          name === 'mrr' ? `${value.toLocaleString()} ₪` : value,
-                          name === 'mrr' ? 'MRR' : name === 'new_subscriptions' ? 'חדשים' : 'נטישה',
+                          n === 'mrr' ? `${value.toLocaleString()} ₪` : value,
+                          n === 'mrr' ? 'MRR' : n === 'new_subscriptions' ? 'חדשים' : 'נטישה',
                         ];
                       }}
                     />

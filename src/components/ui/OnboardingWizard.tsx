@@ -178,7 +178,7 @@ export default function OnboardingWizard() {
           if (addressInputRef.current && window.google?.maps?.places) {
             const autocomplete = new window.google.maps.places.Autocomplete(
               addressInputRef.current,
-              { componentRestrictions: { country: 'il' }, language: 'he' }
+              { componentRestrictions: { country: 'il' } }
             );
             autocomplete.addListener('place_changed', () => {
               const place = autocomplete.getPlace();
