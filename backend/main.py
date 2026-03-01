@@ -731,10 +731,15 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Quiet Eyes API...")
 
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        logger.warning("ANTHROPIC_API_KEY not set - AI features will be limited")
+    # Validate environment
+    from config import get_settings
+    settings = get_settings()
+    settings.print_status()
+    missing = settings.validate_required()
+    if missing:
+        logger.warning(f"Missing critical env vars: {', '.join(missing)}")
     else:
-        logger.info("Claude AI client ready")
+        logger.info("All critical env vars configured")
 
     # Start background scheduler
     global_radar.start()
@@ -819,6 +824,10 @@ from routers.feedback import router as feedback_router
 from routers.marketing_intel import router as marketing_intel_router
 from routers.daily_tasks import router as daily_tasks_router
 from routers.agents_api import router as agents_api_router
+from routers.subscription_api import router as subscription_api_router
+from routers.referral_api import router as referral_api_router
+from routers.webhooks_api import router as webhooks_api_router
+from routers.health_api import router as health_api_router
 app.include_router(admin_router)
 app.include_router(crm_router)
 app.include_router(auditor_router)
@@ -848,24 +857,10 @@ app.include_router(feedback_router)
 app.include_router(marketing_intel_router)
 app.include_router(daily_tasks_router)
 app.include_router(agents_api_router)
-
-
-# =============================================================================
-# HEALTH CHECK
-# =============================================================================
-
-@app.get("/health", tags=["System"])
-@limiter.limit("100/minute")
-async def health_check(request: Request):
-    """
-    Health check endpoint for monitoring and load balancers.
-    """
-    return {
-        "status": "healthy",
-        "service": "quiet-eyes-api",
-        "version": "1.0.0",
-        "ai_available": os.getenv("ANTHROPIC_API_KEY") is not None
-    }
+app.include_router(subscription_api_router)
+app.include_router(referral_api_router)
+app.include_router(webhooks_api_router)
+app.include_router(health_api_router)
 
 
 # =============================================================================
