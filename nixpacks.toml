@@ -11,4 +11,4 @@ cmds = ["npm ci --include=dev"]
 cmds = ["npm run build"]
 
 [start]
-cmd = "npx serve -s dist -l $PORT"
+cmd = "npx serve -s dist -l tcp://0.0.0.0:$PORT"
