@@ -1,7 +1,7 @@
+import { useState, useEffect } from 'react';
 import {
   X,
   Copy,
-  MessageCircle,
   CheckCircle2,
   ThumbsDown,
   ExternalLink,
@@ -13,9 +13,14 @@ import {
   Search,
   Hash,
   Globe,
+  MessageCircle,
   BarChart3,
+  Loader2,
+  Sparkles,
+  Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { apiFetch } from '../../services/api';
 
 interface Lead {
   id: string;
@@ -42,7 +47,7 @@ interface LeadDetailModalProps {
   onClose: () => void;
   onMarkHandled: (id: string) => void;
   onDismiss: (id: string) => void;
-  externalUrl: string | null; // pre-validated external URL, or null
+  externalUrl: string | null;
 }
 
 function PlatformIcon({ platform, size = 5 }: { platform: string; size?: number }) {
@@ -93,22 +98,49 @@ export default function LeadDetailModal({
   const relevanceBarColor =
     relevancePct >= 80 ? 'bg-emerald-500' : relevancePct >= 60 ? 'bg-amber-500' : 'bg-red-500';
 
-  const textToCopy = lead.original_text || lead.summary;
+  const [aiReply, setAiReply] = useState<string | null>(null);
+  const [loadingReply, setLoadingReply] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [markedDone, setMarkedDone] = useState(false);
 
-  const handleCopy = async () => {
+  // Auto-generate AI reply when modal opens
+  useEffect(() => {
+    if (lead.status !== 'dismissed') {
+      generateReply();
+    }
+  }, [lead.id]);
+
+  const generateReply = async () => {
+    setLoadingReply(true);
     try {
-      await navigator.clipboard.writeText(textToCopy);
-      toast.success('הטקסט הועתק!');
+      const res = await apiFetch(`/leads/${lead.id}/generate-reply`, {
+        method: 'POST',
+        body: JSON.stringify({ business_id: lead.business_id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAiReply(data.reply || null);
+      }
     } catch {
-      toast.error('לא ניתן להעתיק');
+      // Fallback — don't block the modal
+    } finally {
+      setLoadingReply(false);
     }
   };
 
-  const handleWhatsApp = () => {
-    const text = encodeURIComponent(
-      `ליד חדש מ-${PLATFORM_LABELS[lead.platform.toLowerCase()] || lead.platform}:\n${lead.summary}`
-    );
-    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
+  const handleCopyReply = async () => {
+    if (!aiReply) return;
+    try {
+      await navigator.clipboard.writeText(aiReply);
+      setCopied(true);
+      toast.success('התגובה הועתקה!');
+      // Mark as handled after copy
+      onMarkHandled(lead.id);
+      setMarkedDone(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      toast.error('לא ניתן להעתיק');
+    }
   };
 
   const keywords = [
@@ -137,7 +169,7 @@ export default function LeadDetailModal({
               <PlatformIcon platform={lead.platform} size={5} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">פרטי הליד</h2>
+              <h2 className="text-base font-bold text-white">פנה עכשיו</h2>
               <span className="text-xs text-gray-500">
                 {PLATFORM_LABELS[lead.platform.toLowerCase()] || lead.platform}
               </span>
@@ -153,20 +185,25 @@ export default function LeadDetailModal({
 
         {/* Body — scrollable */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* Summary */}
-          <div>
-            <p className="text-white text-sm font-medium leading-relaxed">{lead.summary}</p>
+          {/* Full post text */}
+          <div className="p-4 bg-gray-800/60 rounded-xl border border-gray-700/30">
+            <p className="text-xs text-gray-500 mb-2 font-medium">הפוסט המקורי</p>
+            <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">
+              {lead.original_text || lead.summary}
+            </p>
           </div>
 
-          {/* Original text */}
-          {lead.original_text && (
-            <div className="p-4 bg-gray-800/60 rounded-xl border border-gray-700/30">
-              <p className="text-xs text-gray-500 mb-2 font-medium">טקסט מקורי</p>
-              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
-                {lead.original_text}
-              </p>
-            </div>
-          )}
+          {/* Source info */}
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {formatDate(lead.created_at)}
+            </span>
+            <span className="flex items-center gap-1">
+              <BarChart3 className="w-3 h-3" />
+              רלוונטיות: <span className={`font-bold ${relevanceColor}`}>{relevancePct}%</span>
+            </span>
+          </div>
 
           {/* Keywords */}
           {keywords.length > 0 && (
@@ -183,118 +220,88 @@ export default function LeadDetailModal({
             </div>
           )}
 
-          {/* Meta info grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Relevance */}
-            <div className="p-3 bg-gray-800/40 rounded-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <BarChart3 className="w-4 h-4 text-gray-500" />
-                <span className="text-xs text-gray-500">רלוונטיות</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-lg font-bold ${relevanceColor}`}>{relevancePct}%</span>
-                <div className="flex-1 h-1.5 bg-gray-700/50 rounded-full overflow-hidden" dir="ltr">
-                  <div
-                    className={`h-full rounded-full ${relevanceBarColor}`}
-                    style={{ width: `${relevancePct}%` }}
-                  />
-                </div>
-              </div>
+          {/* AI-Generated Reply */}
+          <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-bold text-cyan-400">תגובה מוכנה להעתקה</span>
             </div>
-
-            {/* Date */}
-            <div className="p-3 bg-gray-800/40 rounded-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-gray-500" />
-                <span className="text-xs text-gray-500">נמצא בתאריך</span>
+            {loadingReply ? (
+              <div className="flex items-center gap-2 py-4 justify-center">
+                <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
+                <span className="text-sm text-gray-400">המוח כותב תגובה...</span>
               </div>
-              <span className="text-sm text-gray-300">{formatDate(lead.created_at)}</span>
-            </div>
+            ) : aiReply ? (
+              <div className="bg-gray-800/60 rounded-lg p-3 text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">
+                {aiReply}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-2">לא ניתן ליצור תגובה כרגע</p>
+            )}
           </div>
 
-          {/* Search query */}
-          {lead.search_query && (
-            <div className="p-3 bg-gray-800/40 rounded-xl">
-              <div className="flex items-center gap-2 mb-1">
-                <Search className="w-4 h-4 text-gray-500" />
-                <span className="text-xs text-gray-500">שאילתת חיפוש</span>
-              </div>
-              <p className="text-sm text-gray-300">{lead.search_query}</p>
+          {/* Marked done confirmation */}
+          {markedDone && (
+            <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/30 flex items-center gap-2 animate-in fade-in">
+              <Check className="w-5 h-5 text-emerald-400" />
+              <span className="text-sm text-emerald-400 font-medium">סימנו שפנית 💪</span>
             </div>
-          )}
-
-          {/* Location hint from Google Maps URL */}
-          {lead.source_url?.includes('google.com/maps') && (
-            <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-blue-400" />
-                <span className="text-xs text-blue-400">מיקום מגוגל מפות</span>
-              </div>
-            </div>
-          )}
-
-          {/* External URL link */}
-          {externalUrl && (
-            <a
-              href={externalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 p-3 bg-gray-800/40 rounded-xl text-sm text-cyan-400 hover:bg-gray-700/50 transition-colors group"
-            >
-              <ExternalLink className="w-4 h-4 group-hover:translate-x-[-2px] transition-transform" />
-              <span>פתח מקור מקורי</span>
-              <span className="text-xs text-gray-600 truncate flex-1 text-left" dir="ltr">
-                {externalUrl}
-              </span>
-            </a>
           )}
         </div>
 
         {/* Footer — action buttons */}
         <div className="p-5 pt-4 border-t border-gray-700/50 space-y-3">
-          {/* Primary actions row */}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={handleCopy}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800/60 text-gray-300 text-sm font-medium border border-gray-700/50 hover:bg-gray-700/50 hover:text-white transition-all"
-            >
-              <Copy className="w-4 h-4" />
-              העתק טקסט
-            </button>
-            <button
-              onClick={handleWhatsApp}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-green-500/15 text-green-400 text-sm font-medium border border-green-500/30 hover:bg-green-500/25 transition-all"
-            >
-              <MessageCircle className="w-4 h-4" />
-              שלח לוואטסאפ
-            </button>
-          </div>
+          {/* Primary: Copy AI Reply */}
+          <button
+            onClick={handleCopyReply}
+            disabled={!aiReply || loadingReply}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 ${
+              copied
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:shadow-lg hover:shadow-cyan-500/30'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {copied ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                הועתק!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                העתק תגובה
+              </>
+            )}
+          </button>
 
-          {/* Status actions row */}
-          {lead.status === 'new' && (
-            <div className="grid grid-cols-2 gap-2">
+          {/* Secondary row */}
+          <div className="grid grid-cols-2 gap-2">
+            {externalUrl ? (
+              <a
+                href={externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800/60 text-gray-300 text-sm font-medium border border-gray-700/50 hover:bg-gray-700/50 hover:text-white transition-all"
+              >
+                <ExternalLink className="w-4 h-4" />
+                פתח פוסט מקורי
+              </a>
+            ) : (
+              <div />
+            )}
+            {lead.status === 'new' && !markedDone && (
               <button
                 onClick={() => {
                   onDismiss(lead.id);
                   onClose();
                 }}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-red-400/70 text-sm font-medium border border-gray-700/50 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-gray-400 text-sm font-medium border border-gray-700/50 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all"
               >
                 <ThumbsDown className="w-4 h-4" />
-                לא מתאים לי
+                לא רלוונטי
               </button>
-              <button
-                onClick={() => {
-                  onMarkHandled(lead.id);
-                  onClose();
-                }}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all active:scale-95"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                הבנתי, תודה
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

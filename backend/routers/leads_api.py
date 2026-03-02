@@ -267,6 +267,76 @@ async def feedback_stats(business_id: str, request: Request, auth_user_id: str =
         return {"success": True, "total_feedback": 0, "approval_rate": 0, "approvals": 0, "rejections": 0, "dismissals": 0, "top_rejection_reason": None}
 
 
+class GenerateReplyRequest(BaseModel):
+    business_id: str
+
+
+@router.post("/{lead_id}/generate-reply")
+async def generate_reply(lead_id: str, payload: GenerateReplyRequest, request: Request, auth_user_id: str = Depends(require_auth)):
+    """Generate an AI reply suggestion for a lead post."""
+    supabase = _get_service_client() or get_supabase_client(request)
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    _verify_business_owner(supabase, payload.business_id, auth_user_id)
+
+    sb = _get_service_client() or supabase
+
+    # Get lead details
+    try:
+        lead_res = sb.table("leads_discovered").select("*").eq("id", lead_id).limit(1).execute()
+        if not lead_res.data:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        lead = lead_res.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to fetch lead {lead_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch lead")
+
+    # Get business details
+    try:
+        biz_res = sb.table("businesses").select("business_name, industry, business_type, location").eq("id", payload.business_id).limit(1).execute()
+        biz = biz_res.data[0] if biz_res.data else {}
+    except Exception:
+        biz = {}
+
+    biz_name = biz.get("business_name", "")
+    industry = biz.get("industry", "") or biz.get("business_type", "")
+    post_text = lead.get("original_text") or lead.get("summary", "")
+
+    try:
+        from services.claude_client import analyze as claude_analyze
+
+        prompt = f"""אתה עוזר לעסק "{biz_name}" (תחום: {industry}) לענות על פוסט שנמצא ברשת.
+
+הפוסט המקורי:
+"{post_text[:1000]}"
+
+כתוב תגובה קצרה (2-3 משפטים) בעברית שהעסק יכול לפרסם כתשובה.
+התגובה צריכה להיות:
+- חברותית ומקצועית
+- לא מכירתית מדי
+- מציעה עזרה אמיתית
+- מזכירה את שם העסק בצורה טבעית
+
+החזר רק את הטקסט של התגובה, בלי כותרות או הסברים."""
+
+        reply = claude_analyze(
+            prompt=prompt,
+            system="אתה כותב תגובות מקצועיות בעברית לעסקים. ענה רק עם הטקסט של התגובה.",
+            temperature=0.7,
+            max_tokens=300,
+        )
+
+        return {"success": True, "reply": reply.strip()}
+    except Exception as e:
+        logger.error(f"Generate reply failed: {e}")
+        # Fallback generic reply
+        fallback = f"היי, אני מ{biz_name}. ראיתי את הפוסט שלך ואשמח לעזור! אפשר לפנות אלינו בפרטי ונשמח לתת מענה מקצועי."
+        return {"success": True, "reply": fallback}
+
+
 class FeedbackRequest(BaseModel):
     user_id: str
     action: str  # 'approve' | 'reject' | 'dismiss'

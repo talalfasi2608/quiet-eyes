@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700&display=swap');
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: #0a0f1e;
+    color: #e0e6f0;
+    direction: rtl;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* PAGE 1: COVER                                       */
+  /* ═══════════════════════════════════════════════════ */
+
+  .cover {
+    width: 210mm;
+    height: 297mm;
+    background: linear-gradient(135deg, #0a0f1e 0%, #0d1b3e 50%, #0a0f1e 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 80px;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 4px; height: 100%;
+    background: linear-gradient(180deg, #00d4ff 0%, #0066ff 50%, #00d4ff 100%);
+  }
+
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -100px; left: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .cover-logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 100px;
+    letter-spacing: -0.5px;
+  }
+
+  .cover-logo span { color: #00d4ff; }
+
+  .cover-title {
+    font-size: 44px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  .cover-subtitle {
+    font-size: 18px;
+    color: #8899aa;
+    margin-bottom: 80px;
+  }
+
+  .cover-meta {
+    font-size: 14px;
+    color: #00d4ff;
+    letter-spacing: 0.5px;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    padding: 4px 16px;
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 20px;
+    color: #00d4ff;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    margin-top: 12px;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* SECTION LAYOUT                                      */
+  /* ═══════════════════════════════════════════════════ */
+
+  .section {
+    padding: 50px 60px 40px;
+    min-height: 297mm;
+    background: #0a0f1e;
+    page-break-before: always;
+    position: relative;
+  }
+
+  .section::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 3px; height: 100%;
+    background: linear-gradient(180deg, #00d4ff 0%, transparent 100%);
+  }
+
+  .section-tag {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    color: #00d4ff;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .section-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 28px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #1a2a4a;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* KPI CARDS                                           */
+  /* ═══════════════════════════════════════════════════ */
+
+  .kpi-grid {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .kpi-card {
+    flex: 1;
+    background: #0d1b3e;
+    border: 1px solid #1a2a4a;
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 3px; height: 100%;
+    background: #00d4ff;
+  }
+
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .kpi-label {
+    font-size: 11px;
+    color: #8899aa;
+    margin-top: 6px;
+  }
+
+  .kpi-change {
+    font-size: 11px;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  .kpi-change.up { color: #00ff88; }
+  .kpi-change.down { color: #ff4466; }
+  .kpi-change.neutral { color: #8899aa; }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* NARRATIVE BOXES                                     */
+  /* ═══════════════════════════════════════════════════ */
+
+  .narrative {
+    background: #0d1b3e;
+    border: 1px solid #1a2a4a;
+    border-radius: 10px;
+    padding: 22px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.9;
+    color: #c0cce0;
+  }
+
+  .narrative-highlight {
+    background: linear-gradient(135deg, rgba(0,212,255,0.08) 0%, rgba(0,102,255,0.08) 100%);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 10px;
+    padding: 22px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.9;
+    color: #e0e6f0;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* TABLES                                              */
+  /* ═══════════════════════════════════════════════════ */
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+
+  .data-table th {
+    background: #0d1b3e;
+    color: #00d4ff;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-align: right;
+    border-bottom: 1px solid #1a2a4a;
+  }
+
+  .data-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #111d35;
+    font-size: 12px;
+    color: #c0cce0;
+  }
+
+  .data-table tr.highlight td {
+    background: rgba(0, 212, 255, 0.05);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* BADGES                                              */
+  /* ═══════════════════════════════════════════════════ */
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .badge-high { background: rgba(255,68,102,0.2); color: #ff4466; }
+  .badge-medium { background: rgba(255,170,0,0.2); color: #ffaa00; }
+  .badge-low { background: rgba(0,255,136,0.2); color: #00ff88; }
+  .badge-positive { background: rgba(0,255,136,0.15); color: #00ff88; }
+  .badge-negative { background: rgba(255,68,102,0.15); color: #ff4466; }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* BAR CHART                                           */
+  /* ═══════════════════════════════════════════════════ */
+
+  .bar-chart { margin: 20px 0; }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .bar-label {
+    width: 100px;
+    font-size: 11px;
+    color: #8899aa;
+    text-align: left;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 7px;
+    background: #1a2a4a;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00d4ff, #0066ff);
+    border-radius: 4px;
+    min-width: 2px;
+  }
+
+  .bar-value {
+    width: 35px;
+    font-size: 12px;
+    color: #fff;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* ACTION PLAN                                         */
+  /* ═══════════════════════════════════════════════════ */
+
+  .action-item {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    background: #0d1b3e;
+    border-radius: 10px;
+    padding: 18px;
+    border: 1px solid #1a2a4a;
+  }
+
+  .action-number {
+    width: 32px;
+    height: 32px;
+    background: #00d4ff;
+    color: #0a0f1e;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .action-content { flex: 1; }
+
+  .action-content h4 {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .action-content p {
+    color: #8899aa;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .action-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .action-meta span {
+    font-size: 11px;
+    color: #00d4ff;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* STARS RATING                                        */
+  /* ═══════════════════════════════════════════════════ */
+
+  .stars { color: #ffaa00; font-size: 14px; letter-spacing: 2px; }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* SUBSECTION                                          */
+  /* ═══════════════════════════════════════════════════ */
+
+  .subsection-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 14px;
+    margin-top: 24px;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* FOOTER                                              */
+  /* ═══════════════════════════════════════════════════ */
+
+  .page-footer {
+    position: absolute;
+    bottom: 20px;
+    left: 60px;
+    right: 60px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #4a5a6a;
+    border-top: 1px solid #1a2a4a;
+    padding-top: 8px;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* OPPORTUNITY BOX                                     */
+  /* ═══════════════════════════════════════════════════ */
+
+  .opportunity-box {
+    background: linear-gradient(135deg, rgba(0,255,136,0.06) 0%, rgba(0,212,255,0.06) 100%);
+    border: 1px solid rgba(0,255,136,0.2);
+    border-radius: 10px;
+    padding: 22px;
+    margin-top: 20px;
+  }
+
+  .opportunity-box h4 {
+    color: #00ff88;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .opportunity-box p {
+    color: #c0cce0;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 1: COVER                                       -->
+<!-- ═══════════════════════════════════════════════════ -->
+
+<div class="cover">
+  <div class="cover-logo">Quiet<span>eyes</span></div>
+  <div class="cover-title">{{ report_title }}</div>
+  <div class="cover-subtitle">{{ business_name }} · {{ location }}</div>
+  <div class="cover-meta">{{ week_start }} - {{ week_end }}</div>
+  <div class="cover-badge">{{ confidential_label }}</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 2: EXECUTIVE SUMMARY                           -->
+<!-- ═══════════════════════════════════════════════════ -->
+
+<div class="section">
+  <div class="section-tag">{{ section_01_tag }}</div>
+  <div class="section-title">{{ section_01_title }}</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ total_leads }}</div>
+      <div class="kpi-label">{{ leads_label }}</div>
+      <div class="kpi-change {{ leads_change_class }}">{{ leads_change_text }}</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-value">{{ current_rating }}</div>
+      <div class="kpi-label">{{ rating_label }}</div>
+      <div class="kpi-change {{ rating_change_class }}">{{ rating_change_text }}</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-value">#{{ market_position }}</div>
+      <div class="kpi-label">{{ position_label }}</div>
+      <div class="kpi-change neutral">{{ competitor_count }} {{ competitors_word }}</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-value">{{ health_score }}</div>
+      <div class="kpi-label">{{ health_label }}</div>
+      <div class="kpi-change {{ health_change_class }}">{{ health_change_text }}</div>
+    </div>
+  </div>
+
+  <div class="narrative-highlight">{{ executive_summary }}</div>
+
+  {% if opportunity_of_week %}
+  <div class="opportunity-box">
+    <h4>{{ opportunity_title }}</h4>
+    <p>{{ opportunity_of_week }}</p>
+  </div>
+  {% endif %}
+
+  <div class="page-footer">
+    <span>Quieteyes · {{ footer_label }}</span>
+    <span>{{ business_name }} · {{ week_dates }}</span>
+    <span>{{ confidential_label }}</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 3: LEADS REPORT                                -->
+<!-- ═══════════════════════════════════════════════════ -->
+
+<div class="section">
+  <div class="section-tag">{{ section_02_tag }}</div>
+  <div class="section-title">{{ section_02_title }}</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ total_leads }}</div>
+      <div class="kpi-label">{{ total_leads_label }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value">{{ hot_leads_count }}</div>
+      <div class="kpi-label">{{ hot_leads_label }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value">{{ conversion_rate }}%</div>
+      <div class="kpi-label">{{ conversion_label }}</div>
+    </div>
+  </div>
+
+  {% if leads_by_platform %}
+  <div class="subsection-title">{{ leads_by_platform_title }}</div>
+  <div class="bar-chart">
+    {% for platform in leads_by_platform %}
+    <div class="bar-row">
+      <div class="bar-label">{{ platform.name }}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: {{ platform.percent }}%"></div>
+      </div>
+      <div class="bar-value">{{ platform.count }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="narrative">{{ leads_narrative }}</div>
+
+  {% if hot_leads %}
+  <div class="subsection-title">{{ hot_leads_title }}</div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{{ lead_name_header }}</th>
+        <th>{{ lead_platform_header }}</th>
+        <th>{{ lead_score_header }}</th>
+        <th>{{ lead_status_header }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lead in hot_leads %}
+      <tr>
+        <td>{{ lead.name }}</td>
+        <td>{{ lead.platform }}</td>
+        <td>{{ lead.score }}%</td>
+        <td><span class="badge badge-positive">{{ lead.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <div class="page-footer">
+    <span>Quieteyes · {{ footer_label }}</span>
+    <span>{{ business_name }}</span>
+    <span>{{ page_label }} 3</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 4: REPUTATION REPORT                           -->
+<!-- ═══════════════════════════════════════════════════ -->
+
+<div class="section">
+  <div class="section-tag">{{ section_03_tag }}</div>
+  <div class="section-title">{{ section_03_title }}</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-value"><span class="stars">{{ star_display }}</span></div>
+      <div class="kpi-label">{{ current_rating }} {{ of_5 }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value">{{ new_reviews_count }}</div>
+      <div class="kpi-label">{{ new_reviews_label }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value">{{ positive_pct }}%</div>
+      <div class="kpi-label">{{ positive_label }}</div>
+    </div>
+  </div>
+
+  <div class="narrative">{{ reputation_narrative }}</div>
+
+  {% if recent_reviews %}
+  <div class="subsection-title">{{ recent_reviews_title }}</div>
+  {% for review in recent_reviews %}
+  <div class="narrative">
+    <strong>{{ review.stars }}</strong> - "{{ review.text }}"
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="page-footer">
+    <span>Quieteyes · {{ footer_label }}</span>
+    <span>{{ business_name }}</span>
+    <span>{{ page_label }} 4</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 5: COMPETITOR ANALYSIS                         -->
+<!-- ═══════════════════════════════════════════════════ -->
+
+<div class="section">
+  <div class="section-tag">{{ section_04_tag }}</div>
+  <div class="section-title">{{ section_04_title }}</div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{{ comp_name_header }}</th>
+        <th>{{ comp_rating_header }}</th>
+        <th>{{ comp_reviews_header }}</th>
+        <th>{{ comp_change_header }}</th>
+        <th>{{ comp_threat_header }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for comp in competitors %}
+      <tr class="{{ 'highlight' if comp.is_self else '' }}">
+        <td>{{ comp.name }}</td>
+        <td>{{ comp.rating }}</td>
+        <td>{{ comp.review_count }}</td>
+        <td class="{{ comp.change_class }}">{{ comp.change_display }}</td>
+        <td><span class="badge badge-{{ comp.threat_class }}">{{ comp.threat_label }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="narrative">{{ competitor_narrative }}</div>
+
+  <div class="page-footer">
+    <span>Quieteyes · {{ footer_label }}</span>
+    <span>{{ business_name }}</span>
+    <span>{{ page_label }} 5</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 6: ACTION PLAN                                 -->
+<!-- ═══════════════════════════════════════════════════ -->
+
+<div class="section">
+  <div class="section-tag">{{ section_05_tag }}</div>
+  <div class="section-title">{{ section_05_title }}</div>
+
+  {% for action in action_plan %}
+  <div class="action-item">
+    <div class="action-number">{{ action.priority }}</div>
+    <div class="action-content">
+      <h4>{{ action.action }}</h4>
+      <p>{{ action.reason }}</p>
+      <div class="action-meta">
+        <span>{{ time_icon }} {{ action.time_required }}</span>
+        <span>{{ target_icon }} {{ action.expected_result }}</span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="page-footer">
+    <span>Quieteyes · {{ footer_label }}</span>
+    <span>{{ business_name }}</span>
+    <span>{{ page_label }} 6</span>
+  </div>
+</div>
+
+</body>
+</html>

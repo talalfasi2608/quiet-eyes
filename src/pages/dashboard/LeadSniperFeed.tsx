@@ -436,31 +436,35 @@ function LeadFlashCard({
         )}
       </div>
 
-      {/* Card Actions — RLHF Feedback */}
+      {/* Card Actions */}
       {!isDismissed && (
         <div className="px-3 py-1.5 border-t border-gray-700/30 flex items-center justify-between bg-gray-800/20">
           {!isSniped ? (
             <>
               <button
-                onClick={() => setShowRejectPicker(true)}
-                className="flex items-center gap-1 text-[11px] text-red-400/70 hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
+                onClick={() => onDismiss(lead.id)}
+                className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
               >
                 <ThumbsDown className="w-3 h-3" />
-                לא מתאים לי
+                לא רלוונטי
               </button>
               <div className="flex items-center gap-1.5">
+                {lead.source_url && (
+                  <a
+                    href={lead.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-700/40 text-gray-300 text-xs font-medium border border-gray-600/50 hover:bg-gray-700/60 hover:text-white transition-all"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    ראה פוסט
+                  </a>
+                )}
                 <button
                   onClick={() => onView(lead)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-700/40 text-cyan-400 text-xs font-medium border border-gray-600/50 hover:bg-gray-700/60 hover:border-cyan-500/30 transition-all"
-                >
-                  <Eye className="w-3 h-3" />
-                  צפה
-                </button>
-                <button
-                  onClick={() => onApprove(lead.id)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all active:scale-95"
                 >
-                  <ThumbsUp className="w-3.5 h-3.5" />
+                  <Send className="w-3.5 h-3.5" />
                   פנה עכשיו
                 </button>
               </div>
@@ -468,30 +472,16 @@ function LeadFlashCard({
           ) : (
             <div className="w-full flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-emerald-400 text-xs">
-                <ThumbsUp className="w-3.5 h-3.5" />
-                שמור לטיפול
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                טיפלתי
               </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => onView(lead)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-700/40 text-cyan-400 text-[11px] font-medium border border-gray-600/50 hover:bg-gray-700/60 hover:border-cyan-500/30 transition-all"
-                >
-                  <Eye className="w-3 h-3" />
-                  צפה
-                </button>
-                {onPushCRM && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPushCRM(lead.id);
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-400 text-[11px] font-medium hover:bg-blue-500/30 border border-blue-500/30 transition-all"
-                  >
-                    <Send className="w-3 h-3" />
-                    CRM
-                  </button>
-                )}
-              </div>
+              <button
+                onClick={() => onView(lead)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-700/40 text-cyan-400 text-[11px] font-medium border border-gray-600/50 hover:bg-gray-700/60 hover:border-cyan-500/30 transition-all"
+              >
+                <Eye className="w-3 h-3" />
+                צפה
+              </button>
             </div>
           )}
         </div>
@@ -550,9 +540,9 @@ export default function LeadSniperFeed() {
 
     try {
       setLoading(true);
-      const statusParam = activeFilter !== 'all' ? `&status=${activeFilter}` : '';
+      const apiFilter = activeFilter === 'hot' ? '' : activeFilter !== 'all' ? `&status=${activeFilter}` : '';
       const response = await apiFetch(
-        `/leads/${currentProfile.id}?limit=50${statusParam}`
+        `/leads/${currentProfile.id}?limit=50${apiFilter}`
       );
 
       if (!response.ok) throw new Error('שגיאה בטעינת לידים');
@@ -752,8 +742,10 @@ export default function LeadSniperFeed() {
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/30 flex-shrink-0">
             <Crosshair className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-base md:text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>מי מחפש אותי עכשיו? 🎯</h1>
-          <span className="hidden md:inline text-xs text-gray-400">עיני מצא את האנשים שמחפשים בדיוק מה שאתה מציע</span>
+          <div>
+            <h1 className="text-base md:text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>מי מחפש אותך? 🎯</h1>
+            <span className="text-xs text-gray-400">עיני מצא {total} אנשים {counts.new > 0 ? `(${counts.new} חדשים היום)` : ''}</span>
+          </div>
           <LiveBadge />
           {scanning && (
             <span className="text-xs font-normal text-orange-400 flex items-center gap-1.5">
@@ -807,39 +799,29 @@ export default function LeadSniperFeed() {
         </div>
       </header>
 
-      {/* ── Compact Stats Bar ──────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      {/* ── Filter Tabs ──────────────────────────────────────── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {[
-          { key: 'all' as const, label: 'סה״כ לידים', count: total, icon: Radio, activeColor: 'indigo' },
-          { key: 'new' as const, label: 'לידים חדשים', count: counts.new, icon: Zap, activeColor: 'red' },
-          { key: 'sniped' as const, label: 'נתפסו', count: counts.sniped, icon: CheckCircle2, activeColor: 'emerald' },
-          { key: 'dismissed' as const, label: 'נדחו', count: counts.dismissed, icon: X, activeColor: 'gray' },
-        ].map(({ key, label, count, icon: Icon, activeColor }) => (
+          { key: 'all' as const, label: 'הכל', count: total },
+          { key: 'hot' as const, label: 'חמים 🔥', count: leads.filter(l => l.relevance_score >= 0.85).length },
+          { key: 'new' as const, label: 'חדשים', count: counts.new },
+          { key: 'sniped' as const, label: 'טיפלתי', count: counts.sniped },
+        ].map(({ key, label, count }) => (
           <button
             key={key}
-            onClick={() => setActiveFilter(key)}
-            className={`p-2 rounded-lg border transition-all ${
+            onClick={() => setActiveFilter(key as any)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap min-h-[44px] ${
               activeFilter === key
-                ? `bg-${activeColor}-500/20 border-${activeColor}-500/50`
-                : 'bg-gray-800/30 border-gray-700/50 hover:border-gray-600'
+                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
+                : 'bg-gray-800/40 text-gray-400 border border-gray-700/50 hover:text-white hover:border-gray-600'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <Icon
-                className={`w-4 h-4 ${
-                  activeFilter === key ? `text-${activeColor}-400` : 'text-gray-500'
-                }`}
-              />
-              <span
-                className={`text-lg font-bold ${
-                  activeFilter === key ? `text-${activeColor}-400` : 'text-white'
-                }`}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                {count}
-              </span>
-            </div>
-            <span className="text-xs text-gray-400">{label}</span>
+            {label}
+            <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+              activeFilter === key ? 'bg-cyan-500/30 text-cyan-300' : 'bg-gray-700/50 text-gray-500'
+            }`}>
+              {count}
+            </span>
           </button>
         ))}
       </div>
@@ -985,9 +967,13 @@ export default function LeadSniperFeed() {
 
           {/* ── Leads Grid ────────────────────────────────────────── */}
           {!loading && !error && leads.length > 0 && (() => {
-            const filteredLeads = intentFilter === 'all'
-              ? leads
-              : leads.filter(l => l.intent_signals?.intent_category === intentFilter);
+            let filteredLeads = leads;
+            if (activeFilter === 'hot') {
+              filteredLeads = leads.filter(l => l.relevance_score >= 0.85);
+            }
+            if (intentFilter !== 'all') {
+              filteredLeads = filteredLeads.filter(l => l.intent_signals?.intent_category === intentFilter);
+            }
 
             return (
               <>
