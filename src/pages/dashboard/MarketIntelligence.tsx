@@ -398,7 +398,7 @@ export default function MarketIntelligence() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-md flex-shrink-0">
               <Shield className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-lg font-bold text-white whitespace-nowrap">מה קרה בזמן שישנתי 💡</h1>
+            <h1 className="text-lg font-bold text-white whitespace-nowrap">מה שקרה בזמן שלא הסתכלת 💡</h1>
             <span className="text-xs text-gray-400 whitespace-nowrap">עיני עוקב 24/7 — הנה מה שתפס</span>
             {scanning && (
               <span className="text-xs font-normal text-cyan-400 flex items-center gap-1 flex-shrink-0">
@@ -545,7 +545,7 @@ export default function MarketIntelligence() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-md">
               <Shield className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-base font-bold text-white">מה קרה בזמן שישנתי 💡</h1>
+            <h1 className="text-base font-bold text-white">מה שקרה בזמן שלא הסתכלת 💡</h1>
             {scanning && (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
             )}

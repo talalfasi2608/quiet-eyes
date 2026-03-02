@@ -376,7 +376,14 @@ function LeadFlashCard({
       {/* Card Header */}
       <div className="px-3 py-2">
         <div className="flex items-center justify-between mb-1.5">
-          <PlatformBadge platform={lead.platform} />
+          {/* Score label */}
+          {(() => {
+            const pct = Math.round(lead.relevance_score * 100);
+            if (pct >= 85) return <span className="text-xs font-bold text-orange-400">🔥 חם מאוד</span>;
+            if (pct >= 70) return <span className="text-xs font-bold text-emerald-400">👍 שווה לפנות</span>;
+            if (pct >= 50) return <span className="text-xs font-bold text-amber-400">🤔 אולי רלוונטי</span>;
+            return <span className="text-xs font-bold text-gray-500">פחות רלוונטי</span>;
+          })()}
           <div className="flex items-center gap-1.5">
             {lead.status === 'new' && (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] animate-pulse">
@@ -387,7 +394,7 @@ function LeadFlashCard({
             {isSniped && (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px]">
                 <CheckCircle2 className="w-2.5 h-2.5" />
-                אושר
+                טיפלתי
               </span>
             )}
             <span className="text-[10px] text-gray-500 flex items-center gap-0.5">
@@ -397,10 +404,16 @@ function LeadFlashCard({
           </div>
         </div>
 
-        {/* Summary */}
+        {/* Summary — first 150 chars */}
         <p className="text-white text-xs font-medium leading-snug mb-1 line-clamp-2">
-          {lead.summary}
+          &ldquo;{(lead.original_text || lead.summary).slice(0, 150)}{(lead.original_text || lead.summary).length > 150 ? '...' : ''}&rdquo;
         </p>
+
+        {/* Source/platform line */}
+        <div className="flex items-center gap-1.5 mb-1">
+          <PlatformIcon platform={lead.platform} />
+          <span className="text-[10px] text-gray-500">מקור: {lead.search_query || lead.platform}</span>
+        </div>
 
         {/* Intent Signal Badges */}
         <IntentBadges signals={lead.intent_signals} />
@@ -913,10 +926,10 @@ export default function LeadSniperFeed() {
                     </div>
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">
-                    עיני עדיין לא מצא לידים חדשים
+                    עיני עוד לא מצא מישהו שמחפש אותך
                   </h3>
                   <p className="text-gray-400 mb-4 max-w-md mx-auto whitespace-pre-line leading-relaxed">
-                    {"עיני עדיין לא מצא לידים חדשים.\nזה בדרך כלל לוקח כמה שעות אחרי ההגדרה הראשונית.\nבינתיים, וודא שהגדרת את מילות המפתח בהגדרות 🔧"}
+                    {"בדרך כלל עד כמה שעות 👀\nעיני סורק ברקע ויודיע לך ברגע שימצא משהו."}
                   </p>
                   <div className="flex items-center justify-center gap-2 text-sm text-orange-400 mb-4">
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -927,7 +940,7 @@ export default function LeadSniperFeed() {
                     className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-medium hover:from-blue-500 hover:to-cyan-400 transition-all inline-flex items-center gap-2 min-h-[48px]"
                   >
                     <Search className="w-5 h-5" />
-                    ערוך מילות מפתח
+                    הרחב חיפוש
                   </button>
                 </>
               ) : (
@@ -936,11 +949,11 @@ export default function LeadSniperFeed() {
                     <span className="text-4xl">🎯</span>
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">
-                    {activeFilter === 'all' ? 'עיני עדיין לא מצא לידים חדשים' : `אין ${filterLabels[activeFilter]}`}
+                    {activeFilter === 'all' ? 'עיני עוד לא מצא מישהו שמחפש אותך' : `אין ${filterLabels[activeFilter]}`}
                   </h3>
                   <p className="text-gray-400 mb-6 max-w-md mx-auto whitespace-pre-line leading-relaxed">
                     {activeFilter === 'all'
-                      ? 'עיני עדיין לא מצא לידים חדשים.\nזה בדרך כלל לוקח כמה שעות אחרי ההגדרה הראשונית.\nבינתיים, וודא שהגדרת את מילות המפתח בהגדרות 🔧'
+                      ? 'בדרך כלל עד כמה שעות 👀\nעיני סורק ברקע ויודיע לך ברגע שימצא משהו.'
                       : 'נסה לשנות את הסינון או להפעיל משימה חדשה.'}
                   </p>
                   {activeFilter === 'all' ? (
@@ -948,7 +961,8 @@ export default function LeadSniperFeed() {
                       onClick={() => window.location.href = '/dashboard/settings'}
                       className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-medium hover:from-blue-500 hover:to-cyan-400 transition-all inline-flex items-center gap-2 min-h-[48px]"
                     >
-                      שנה הגדרות חיפוש
+                      <Search className="w-5 h-5" />
+                      הרחב חיפוש
                     </button>
                   ) : (
                     <button

@@ -221,7 +221,7 @@ export default function Landscape() {
           </h1>
           <p className="text-sm text-gray-400 mt-1">
             {competitors.length > 0
-              ? `עיני מצא ${competitors.length} מתחרים באזור שלך`
+              ? `עיני עוקב אחרי ${competitors.length} עסקים`
               : 'סרוק כדי לגלות את המתחרים שלך'}
           </p>
         </div>
@@ -310,7 +310,7 @@ export default function Landscape() {
               {/* Card Header */}
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {/* Threat color indicator */}
                     <div
                       className={`w-3 h-3 rounded-full flex-shrink-0 ${
@@ -322,6 +322,12 @@ export default function Landscape() {
                       }`}
                     />
                     <h3 className="text-white font-semibold text-sm truncate">{comp.name}</h3>
+                    {dist !== null && (
+                      <span className="text-[11px] text-gray-500 flex items-center gap-0.5 flex-shrink-0">
+                        <MapPin className="w-3 h-3" />
+                        {dist < 1 ? `${Math.round(dist * 1000)} מטר` : `${dist.toFixed(1)} ק"מ`}
+                      </span>
+                    )}
                   </div>
                   <ThreatBadge level={comp.perceived_threat_level} />
                 </div>
@@ -480,8 +486,8 @@ export default function Landscape() {
             <span className="text-4xl">👁️</span>
           </div>
           <h3 className="text-lg font-bold text-white mb-2">עיני עוד מציר את המפה באזורך</h3>
-          <p className="text-gray-400 text-sm max-w-sm mx-auto mb-6">
-            סרוק כדי לגלות מי המתחרים שלך, מה הדירוג שלהם, ואיפה ההזדמנות שלך
+          <p className="text-gray-400 text-sm max-w-sm mx-auto mb-6 whitespace-pre-line">
+            {"מחר בבוקר תראה כאן את כל התמונה 🗺️"}
           </p>
           <button
             onClick={handleScan}

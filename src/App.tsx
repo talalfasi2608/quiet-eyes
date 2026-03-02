@@ -113,8 +113,19 @@ function ProtectedRoutes() {
         <Route path="upgrade" element={<Upgrade />} />
       </Route>
 
-      {/* Aliases */}
-      <Route path="/app" element={<Navigate to="/dashboard" replace />} />
+      {/* /app/* routes — alias into dashboard layout */}
+      <Route path="/app" element={<DashboardLayout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="leads" element={<LeadSniperFeed />} />
+        <Route path="competitors" element={<Landscape />} />
+        <Route path="intelligence" element={<MarketIntelligence />} />
+        <Route path="focus" element={<Focus />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="*" element={<Navigate to="/app" replace />} />
+      </Route>
+
+      {/* Legacy aliases */}
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route path="/register" element={<Navigate to="/dashboard" replace />} />
       <Route path="/beta" element={<BetaLanding />} />
