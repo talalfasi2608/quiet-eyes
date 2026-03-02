@@ -255,11 +255,14 @@ export default function AuthPage() {
       errors.confirmPassword = 'הסיסמאות אינן תואמות';
     }
 
-    const phoneCleaned = signupData.phone.replace(/[-\s]/g, '');
-    if (!phoneCleaned) {
+    const phoneDigits = signupData.phone.replace(/\D/g, '');
+    if (!phoneDigits) {
       errors.phone = 'שדה חובה';
-    } else if (!/^05\d{7}$/.test(phoneCleaned)) {
-      errors.phone = 'פורמט טלפון לא תקין (05X-XXXXXXX)';
+    } else if (
+      !(phoneDigits.startsWith('0') && phoneDigits.length === 10) &&
+      !(phoneDigits.startsWith('972') && phoneDigits.length === 12)
+    ) {
+      errors.phone = 'מספר טלפון לא תקין';
     }
 
     if (!signupData.agreeTerms) {
