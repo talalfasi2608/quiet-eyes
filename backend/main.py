@@ -1041,11 +1041,13 @@ async def root(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
+    # Railway injects PORT env var — must use it or the service returns 502
+    port = int(os.environ.get("PORT", 8015))
     settings = _get_settings()
     uvicorn.run(
         "main:app",
-        host=settings.host,
-        port=settings.port,
+        host="0.0.0.0",
+        port=port,
         reload=settings.debug,
         log_level="info"
     )
