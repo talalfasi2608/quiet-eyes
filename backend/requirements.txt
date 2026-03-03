@@ -28,8 +28,14 @@ twilio>=9.0.0
 reportlab>=4.0.0
 python-bidi>=0.6.0
 
+# Rate Limiting
+slowapi>=0.1.9
+
 # Apify (Facebook group scraping)
 apify-client>=1.6.0
+
+# Payment Processing (Stripe)
+stripe>=7.0.0
 
 # Development
 pytest==8.3.4
