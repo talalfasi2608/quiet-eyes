@@ -10,10 +10,12 @@ import time
 import logging
 import threading
 import asyncio
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+# Load .env file for local development (not needed on Railway)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional
