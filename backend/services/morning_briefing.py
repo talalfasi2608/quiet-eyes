@@ -146,14 +146,20 @@ class MorningBriefing:
                     continue
 
                 # Check morning_alert_time (stored as HH:MM Israel time)
-                # Convert Israel time to UTC: Israel is UTC+2 (or +3 in DST)
+                # Convert Israel time to UTC using proper timezone
                 alert_time = biz.get("morning_alert_time") or "09:00"
                 try:
                     alert_hour_local = int(str(alert_time).split(":")[0])
-                    # Approximate: Israel is UTC+2 standard, UTC+3 DST
-                    target_hour_utc = alert_hour_local - 2  # conservative
+                    # Israel is UTC+2 (winter) or UTC+3 (summer/DST)
+                    from datetime import datetime, timezone, timedelta
+                    now_utc = datetime.now(timezone.utc)
+                    # March last Friday to October last Sunday = DST (UTC+3)
+                    month = now_utc.month
+                    is_dst = 3 < month < 10 or (month == 3 and now_utc.day >= 25) or (month == 10 and now_utc.day < 25)
+                    israel_offset = 3 if is_dst else 2
+                    target_hour_utc = (alert_hour_local - israel_offset) % 24
                 except (ValueError, IndexError):
-                    target_hour_utc = 7  # default 09:00 Israel = 07:00 UTC
+                    target_hour_utc = 6  # default 09:00 Israel = 06:00 UTC (summer)
 
                 if current_hour != target_hour_utc:
                     continue
