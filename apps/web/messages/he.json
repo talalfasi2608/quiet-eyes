@@ -1,0 +1,70 @@
+{
+  "common": {
+    "appName": "QuietEyes",
+    "tagline": "לראות ברור. לפעול בהחלטיות.",
+    "login": "התחברות",
+    "register": "הרשמה",
+    "logout": "התנתקות",
+    "email": "אימייל",
+    "password": "סיסמה",
+    "submit": "שליחה",
+    "loading": "טוען...",
+    "save": "שמירה",
+    "cancel": "ביטול",
+    "back": "חזרה",
+    "next": "הבא",
+    "getStarted": "בואו נתחיל"
+  },
+  "auth": {
+    "loginTitle": "ברוכים השבים",
+    "loginSubtitle": "התחברו לחשבון שלכם",
+    "registerTitle": "צרו חשבון חדש",
+    "registerSubtitle": "התחילו לנטר את השוק שלכם",
+    "orgName": "שם הארגון",
+    "noAccount": "אין לכם חשבון?",
+    "hasAccount": "כבר יש לכם חשבון?",
+    "invalidCredentials": "אימייל או סיסמה שגויים"
+  },
+  "onboarding": {
+    "title": "הגדרת העסק",
+    "subtitle": "ספרו לנו על העסק שלכם כדי שנוכל להתחיל למצוא הזדמנויות",
+    "businessName": "שם העסק",
+    "category": "קטגוריה",
+    "location": "מיקום",
+    "website": "כתובת אתר",
+    "language": "שפה מועדפת",
+    "competitors": "מתחרים",
+    "competitorName": "שם המתחרה",
+    "competitorUrl": "אתר המתחרה",
+    "addCompetitor": "הוספת מתחרה",
+    "competitorHint": "הוסיפו עד 3 מתחרים למעקב",
+    "finish": "להתחיל!"
+  },
+  "dashboard": {
+    "chatPlaceholder": "שאלו את QuietEyes כל שאלה על השוק שלכם...",
+    "chatTitle": "מרכז פיקוד",
+    "feedTitle": "פיד",
+    "recommended": "מומלצים",
+    "needsApproval": "ממתינים לאישור",
+    "chatThread": "צ׳אט",
+    "approve": "אישור",
+    "reject": "דחייה",
+    "noItems": "אין פריטים עדיין. QuietEyes סורק את השוק שלכם.",
+    "replyDrafts": "טיוטות תגובה",
+    "audienceSegments": "פלחי קהל",
+    "campaigns": "קמפיינים",
+    "exports": "ייצוא וסנכרון",
+    "pendingApprovals": "ממתינים לאישור",
+    "suggestedActions": "פעולות מומלצות",
+    "chips": {
+      "findLeads": "מצאו לידים חדשים",
+      "draftReply": "נסחו תגובה",
+      "showMentions": "הצגת אזכורים אחרונים",
+      "analyzeTrends": "ניתוח מגמות"
+    }
+  },
+  "landing": {
+    "hero": "העוזר החכם שלכם למודיעין שוק",
+    "sub": "QuietEyes מנטר אזכורים, מזהה לידים ומנסח תגובות — כדי שתוכלו להתמקד בסגירה."
+  }
+}

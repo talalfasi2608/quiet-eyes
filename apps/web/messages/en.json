@@ -1,0 +1,70 @@
+{
+  "common": {
+    "appName": "QuietEyes",
+    "tagline": "See clearly. Act decisively.",
+    "login": "Log in",
+    "register": "Sign up",
+    "logout": "Log out",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "getStarted": "Get Started"
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to your account",
+    "registerTitle": "Create your account",
+    "registerSubtitle": "Start monitoring your market",
+    "orgName": "Organization name",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "invalidCredentials": "Invalid email or password"
+  },
+  "onboarding": {
+    "title": "Set up your business",
+    "subtitle": "Tell us about your business so we can start finding opportunities",
+    "businessName": "Business name",
+    "category": "Category",
+    "location": "Location",
+    "website": "Website URL",
+    "language": "Preferred language",
+    "competitors": "Competitors",
+    "competitorName": "Competitor name",
+    "competitorUrl": "Competitor website",
+    "addCompetitor": "Add competitor",
+    "competitorHint": "Add up to 3 competitors to track",
+    "finish": "Launch Dashboard"
+  },
+  "dashboard": {
+    "chatPlaceholder": "Ask QuietEyes anything about your market...",
+    "chatTitle": "Command Center",
+    "feedTitle": "Feed",
+    "recommended": "Recommended",
+    "needsApproval": "Needs Approval",
+    "chatThread": "Chat",
+    "approve": "Approve",
+    "reject": "Reject",
+    "noItems": "No items yet. QuietEyes is scanning your market.",
+    "replyDrafts": "Reply Drafts",
+    "audienceSegments": "Audience Segments",
+    "campaigns": "Campaigns",
+    "exports": "Exports & Syncs",
+    "pendingApprovals": "pending approvals",
+    "suggestedActions": "Suggested actions",
+    "chips": {
+      "findLeads": "Find new leads",
+      "draftReply": "Draft a reply",
+      "showMentions": "Show recent mentions",
+      "analyzeTrends": "Analyze trends"
+    }
+  },
+  "landing": {
+    "hero": "Your AI-powered market intelligence assistant",
+    "sub": "QuietEyes monitors mentions, surfaces leads, and drafts responses — so you can focus on closing."
+  }
+}

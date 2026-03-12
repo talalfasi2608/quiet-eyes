@@ -4,5 +4,10 @@ psycopg2-binary==2.9.10
 redis==5.2.1
 sqlalchemy==2.0.36
 alembic==1.14.1
+pydantic[email]==2.10.4
+pydantic-settings==2.7.1
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.20
 ruff==0.8.6
 black==24.10.0

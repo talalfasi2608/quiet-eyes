@@ -50,6 +50,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-quieteyes}:${POSTGRES_PASSWORD:-quieteyes}@postgres:5432/${POSTGRES_DB:-quieteyes}
       REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
     ports:
       - "8000:8000"
     volumes:

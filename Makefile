@@ -13,8 +13,10 @@ build:
 	docker compose build
 
 db-migrate:
-	@echo "TODO: run migrations (alembic upgrade head)"
-	@echo "Placeholder — will be wired in a future phase."
+	docker compose exec api alembic upgrade head
+
+db-downgrade:
+	docker compose exec api alembic downgrade -1
 
 lint:
 	cd apps/api && ruff check .
