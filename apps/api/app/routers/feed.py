@@ -1,31 +1,68 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.deps import get_business_scoped, get_current_user
-from app.models import Action, Approval, ApprovalStatus, Business, Lead, LeadStatus, User
-from app.schemas import ApprovalOut, LeadOut
+from app.models import (
+    Action,
+    Approval,
+    ApprovalStatus,
+    Business,
+    Lead,
+    LeadStatus,
+    Mention,
+    User,
+)
+from app.schemas import ApprovalOut, LeadOut, MentionOut
 
 router = APIRouter(tags=["feed"])
 
 
-@router.get("/businesses/{business_id}/feed", response_model=list[LeadOut])
+@router.get("/businesses/{business_id}/feed")
 def get_feed(
     tab: str = Query("recommended", pattern="^(recommended|needs_approval)$"),
     biz: Business = Depends(get_business_scoped),
     db: Session = Depends(get_db),
-):
-    query = db.query(Lead).options(joinedload(Lead.mention)).filter(Lead.business_id == biz.id)
-
+) -> list[Any]:
     if tab == "recommended":
-        query = query.filter(Lead.status == LeadStatus.NEW).order_by(Lead.score.desc())
-    else:
-        query = query.filter(Lead.status.in_([LeadStatus.SAVED, LeadStatus.SENT]))
+        # First try leads
+        leads = (
+            db.query(Lead)
+            .options(joinedload(Lead.mention))
+            .filter(Lead.business_id == biz.id, Lead.status == LeadStatus.NEW)
+            .order_by(Lead.score.desc())
+            .limit(50)
+            .all()
+        )
+        if leads:
+            return [LeadOut.model_validate(l) for l in leads]
 
-    return query.limit(50).all()
+        # Fall back to recent mentions as feed cards
+        mentions = (
+            db.query(Mention)
+            .options(joinedload(Mention.source))
+            .filter(Mention.business_id == biz.id)
+            .order_by(Mention.fetched_at.desc())
+            .limit(50)
+            .all()
+        )
+        return [MentionOut.model_validate(m) for m in mentions]
+    else:
+        leads = (
+            db.query(Lead)
+            .options(joinedload(Lead.mention))
+            .filter(
+                Lead.business_id == biz.id,
+                Lead.status.in_([LeadStatus.SAVED, LeadStatus.SENT]),
+            )
+            .limit(50)
+            .all()
+        )
+        return [LeadOut.model_validate(l) for l in leads]
 
 
 @router.get("/businesses/{business_id}/approvals", response_model=list[ApprovalOut])

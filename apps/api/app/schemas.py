@@ -11,6 +11,7 @@ from app.models import (
     LeadIntent,
     LeadStatus,
     RiskLevel,
+    SourceType,
     UserRole,
 )
 
@@ -104,14 +105,34 @@ class CompetitorBulkRequest(BaseModel):
 # ── Feed / Lead ──
 
 
+class SourceOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    type: SourceType
+
+    model_config = {"from_attributes": True}
+
+
 class MentionOut(BaseModel):
     id: uuid.UUID
+    business_id: uuid.UUID
     title: str | None
     snippet: str | None
     url: str | None
     published_at: datetime | None
+    fetched_at: datetime
+    source: SourceOut | None = None
 
     model_config = {"from_attributes": True}
+
+
+class IngestionResultOut(BaseModel):
+    business_id: str
+    business_name: str | None = None
+    search_new: int = 0
+    rss_new: int = 0
+    total_mentions: int = 0
+    error: str | None = None
 
 
 class LeadOut(BaseModel):

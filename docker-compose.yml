@@ -51,6 +51,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-quieteyes}:${POSTGRES_PASSWORD:-quieteyes}@postgres:5432/${POSTGRES_DB:-quieteyes}
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
     ports:
       - "8000:8000"
     volumes:
@@ -58,6 +59,40 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    command: celery -A app.celery_app:celery worker --loglevel=info --concurrency=2
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-quieteyes}:${POSTGRES_PASSWORD:-quieteyes}@postgres:5432/${POSTGRES_DB:-quieteyes}
+      REDIS_URL: redis://redis:6379/0
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+    volumes:
+      - ./apps/api:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    command: celery -A app.celery_app:celery beat --loglevel=info
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-quieteyes}:${POSTGRES_PASSWORD:-quieteyes}@postgres:5432/${POSTGRES_DB:-quieteyes}
+      REDIS_URL: redis://redis:6379/0
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+    volumes:
+      - ./apps/api:/app
+    depends_on:
       redis:
         condition: service_healthy
 

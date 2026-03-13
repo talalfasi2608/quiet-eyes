@@ -15,14 +15,33 @@ interface ChatMsg {
   created_at: string;
 }
 
-interface LeadItem {
+interface MentionItem {
   id: string;
-  intent: string;
-  score: number;
-  confidence: number;
-  status: string;
-  suggested_reply: string | null;
-  mention: { title: string | null; snippet: string | null; url: string | null } | null;
+  business_id: string;
+  title: string | null;
+  snippet: string | null;
+  url: string | null;
+  published_at: string | null;
+  fetched_at: string;
+  source: { id: string; name: string; type: string } | null;
+}
+
+interface FeedItem {
+  id: string;
+  // Mention fields
+  title?: string | null;
+  snippet?: string | null;
+  url?: string | null;
+  published_at?: string | null;
+  fetched_at?: string;
+  source?: { id: string; name: string; type: string } | null;
+  // Lead fields
+  intent?: string;
+  score?: number;
+  confidence?: number;
+  status?: string;
+  suggested_reply?: string | null;
+  mention?: { title: string | null; snippet: string | null; url: string | null } | null;
 }
 
 interface ApprovalItem {
@@ -37,7 +56,14 @@ interface ApprovalItem {
   action: { id: string; type: string; payload: Record<string, unknown> | null } | null;
 }
 
-type FeedTab = "recommended" | "needs_approval";
+interface IngestionResult {
+  business_id: string;
+  search_new: number;
+  rss_new: number;
+  total_mentions: number;
+}
+
+type FeedTab = "recommended" | "needs_approval" | "mentions";
 
 const ACTION_TYPE_GROUPS = [
   { key: "REPLY_DRAFT", label: "replyDrafts" },
@@ -57,9 +83,12 @@ export default function DashboardPage() {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<FeedTab>("recommended");
-  const [leads, setLeads] = useState<LeadItem[]>([]);
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [mentionItems, setMentionItems] = useState<MentionItem[]>([]);
   const [approvals, setApprovals] = useState<ApprovalItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
+  const [ingesting, setIngesting] = useState(false);
+  const [ingestionMsg, setIngestionMsg] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,11 +102,17 @@ export default function DashboardPage() {
     setFeedLoading(true);
     try {
       if (activeTab === "recommended") {
-        const data = await apiFetch<LeadItem[]>(
+        const data = await apiFetch<FeedItem[]>(
           `/businesses/${businessId}/feed?tab=recommended`,
           { token },
         );
-        setLeads(data);
+        setFeedItems(data);
+      } else if (activeTab === "mentions") {
+        const data = await apiFetch<MentionItem[]>(
+          `/businesses/${businessId}/mentions?limit=50`,
+          { token },
+        );
+        setMentionItems(data);
       } else {
         const data = await apiFetch<ApprovalItem[]>(
           `/businesses/${businessId}/approvals?status=PENDING`,
@@ -96,6 +131,25 @@ export default function DashboardPage() {
     loadFeed();
   }, [loadFeed]);
 
+  async function runIngestion() {
+    if (!token || ingesting) return;
+    setIngesting(true);
+    setIngestionMsg("");
+    try {
+      const res = await apiFetch<IngestionResult>(
+        `/businesses/${businessId}/ingest`,
+        { method: "POST", token },
+      );
+      const count = res.search_new + res.rss_new;
+      setIngestionMsg(t("ingestionDone", { count }));
+      loadFeed();
+    } catch {
+      setIngestionMsg("Ingestion failed");
+    } finally {
+      setIngesting(false);
+    }
+  }
+
   async function sendChat(content?: string) {
     const msg = content || chatInput.trim();
     if (!msg || !token) return;
@@ -111,7 +165,10 @@ export default function DashboardPage() {
       /* ignore */
     } finally {
       setChatLoading(false);
-      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      setTimeout(
+        () => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }),
+        50,
+      );
     }
   }
 
@@ -163,7 +220,7 @@ export default function DashboardPage() {
                 {tc("submit")}
               </button>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               {chips.map((chip) => (
                 <button
                   key={chip.key}
@@ -173,6 +230,16 @@ export default function DashboardPage() {
                   {chip.label}
                 </button>
               ))}
+              <button
+                onClick={runIngestion}
+                disabled={ingesting}
+                className="ms-auto rounded-lg border border-blue-700 bg-blue-950 px-3 py-1 text-xs text-blue-300 hover:bg-blue-900 disabled:opacity-50"
+              >
+                {ingesting ? t("ingesting") : t("runIngestion")}
+              </button>
+              {ingestionMsg && (
+                <span className="text-xs text-green-400">{ingestionMsg}</span>
+              )}
             </div>
           </section>
 
@@ -180,18 +247,21 @@ export default function DashboardPage() {
           <section className="flex-1">
             <h2 className="mb-3 text-lg font-semibold">{t("feedTitle")}</h2>
             <div className="mb-4 flex gap-1 border-b border-gray-800">
-              <button
-                onClick={() => setActiveTab("recommended")}
-                className={`px-4 py-2 text-sm font-medium ${activeTab === "recommended" ? "border-b-2 border-white text-white" : "text-gray-500 hover:text-gray-300"}`}
-              >
-                {t("recommended")}
-              </button>
-              <button
-                onClick={() => setActiveTab("needs_approval")}
-                className={`px-4 py-2 text-sm font-medium ${activeTab === "needs_approval" ? "border-b-2 border-white text-white" : "text-gray-500 hover:text-gray-300"}`}
-              >
-                {t("needsApproval")}
-              </button>
+              {(
+                [
+                  ["recommended", t("recommended")],
+                  ["mentions", t("mentions")],
+                  ["needs_approval", t("needsApproval")],
+                ] as const
+              ).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab as FeedTab)}
+                  className={`px-4 py-2 text-sm font-medium ${activeTab === tab ? "border-b-2 border-white text-white" : "text-gray-500 hover:text-gray-300"}`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             {feedLoading ? (
@@ -199,7 +269,9 @@ export default function DashboardPage() {
                 {tc("loading")}
               </p>
             ) : activeTab === "recommended" ? (
-              <RecommendedFeed leads={leads} noItemsText={t("noItems")} />
+              <RecommendedFeed items={feedItems} noItemsText={t("noItems")} />
+            ) : activeTab === "mentions" ? (
+              <MentionsFeed items={mentionItems} noItemsText={t("noItems")} />
             ) : (
               <NeedsApprovalFeed
                 approvals={approvals}
@@ -250,55 +322,137 @@ export default function DashboardPage() {
   );
 }
 
+/* ── Mention Card (shared between Recommended and Mentions tabs) ── */
+
+function MentionCard({ item }: { item: { title?: string | null; snippet?: string | null; url?: string | null; published_at?: string | null; fetched_at?: string; source?: { name: string; type: string } | null } }) {
+  const t = useTranslations("dashboard");
+  return (
+    <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">
+            {item.title || "Untitled mention"}
+          </p>
+          {item.snippet && (
+            <p className="mt-1 line-clamp-2 text-xs text-gray-400">
+              {item.snippet}
+            </p>
+          )}
+        </div>
+        {item.source && (
+          <span className="shrink-0 rounded bg-gray-800 px-2 py-0.5 text-[10px] text-gray-400">
+            {item.source.name}
+          </span>
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
+        {item.url && (
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:underline"
+          >
+            {t("evidence")}
+          </a>
+        )}
+        {item.published_at && (
+          <span>{new Date(item.published_at).toLocaleDateString()}</span>
+        )}
+        {item.fetched_at && (
+          <span className="text-gray-600">
+            {t("fetched")} {new Date(item.fetched_at).toLocaleString()}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Recommended Feed (now shows mentions when no leads) ── */
+
 function RecommendedFeed({
-  leads,
+  items,
   noItemsText,
 }: {
-  leads: LeadItem[];
+  items: FeedItem[];
   noItemsText: string;
 }) {
-  if (leads.length === 0) {
+  if (items.length === 0) {
+    return (
+      <p className="py-8 text-center text-sm text-gray-500">{noItemsText}</p>
+    );
+  }
+
+  // Items could be leads or mentions from the API
+  const isLead = (item: FeedItem) => "intent" in item && item.intent;
+
+  return (
+    <div className="space-y-3">
+      {items.map((item) =>
+        isLead(item) ? (
+          <div
+            key={item.id}
+            className="rounded-lg border border-gray-800 bg-gray-900 p-4"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  {item.mention?.title || item.intent}
+                </p>
+                {item.mention?.snippet && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    {item.mention.snippet}
+                  </p>
+                )}
+              </div>
+              <span className="rounded bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
+                {item.score}%
+              </span>
+            </div>
+            {item.mention?.url && (
+              <a
+                href={item.mention.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 block text-xs text-blue-400 hover:underline"
+              >
+                {item.mention.url}
+              </a>
+            )}
+          </div>
+        ) : (
+          <MentionCard key={item.id} item={item} />
+        ),
+      )}
+    </div>
+  );
+}
+
+/* ── Mentions Tab ── */
+
+function MentionsFeed({
+  items,
+  noItemsText,
+}: {
+  items: MentionItem[];
+  noItemsText: string;
+}) {
+  if (items.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-gray-500">{noItemsText}</p>
     );
   }
   return (
     <div className="space-y-3">
-      {leads.map((lead) => (
-        <div
-          key={lead.id}
-          className="rounded-lg border border-gray-800 bg-gray-900 p-4"
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium">
-                {lead.mention?.title || lead.intent}
-              </p>
-              {lead.mention?.snippet && (
-                <p className="mt-1 text-xs text-gray-400">
-                  {lead.mention.snippet}
-                </p>
-              )}
-            </div>
-            <span className="rounded bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
-              {lead.score}%
-            </span>
-          </div>
-          {lead.mention?.url && (
-            <a
-              href={lead.mention.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block text-xs text-blue-400 hover:underline"
-            >
-              {lead.mention.url}
-            </a>
-          )}
-        </div>
+      {items.map((item) => (
+        <MentionCard key={item.id} item={item} />
       ))}
     </div>
   );
 }
+
+/* ── Needs Approval Feed ── */
 
 function NeedsApprovalFeed({
   approvals,

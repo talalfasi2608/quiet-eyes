@@ -1,4 +1,4 @@
-.PHONY: up down logs build db-migrate lint fmt clean
+.PHONY: up down logs build db-migrate lint fmt clean ingest
 
 up:
 	docker compose up --build -d
@@ -17,6 +17,14 @@ db-migrate:
 
 db-downgrade:
 	docker compose exec api alembic downgrade -1
+
+# Run ingestion for a single business: make ingest BIZ=<business-uuid>
+ingest:
+	docker compose exec api python -m app.cli ingest $(BIZ)
+
+# Run ingestion for all businesses
+ingest-all:
+	docker compose exec api python -m app.cli ingest-all
 
 lint:
 	cd apps/api && ruff check .
