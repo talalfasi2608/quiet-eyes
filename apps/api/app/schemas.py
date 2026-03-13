@@ -150,6 +150,21 @@ class LeadOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class LeadGenerateOut(BaseModel):
+    leads_created: int = 0
+    total_leads: int = 0
+    mentions_processed: int = 0
+    error: str | None = None
+
+
+# ── Action ──
+
+
+class ActionCreateRequest(BaseModel):
+    type: ActionType
+    payload: dict | None = None
+
+
 # ── Approval ──
 
 

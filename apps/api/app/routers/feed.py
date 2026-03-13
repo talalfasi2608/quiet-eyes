@@ -11,6 +11,7 @@ from app.models import (
     Action,
     Approval,
     ApprovalStatus,
+    AuditLog,
     Business,
     Lead,
     LeadStatus,
@@ -32,7 +33,7 @@ def get_feed(
         # First try leads
         leads = (
             db.query(Lead)
-            .options(joinedload(Lead.mention))
+            .options(joinedload(Lead.mention).joinedload("source"))
             .filter(Lead.business_id == biz.id, Lead.status == LeadStatus.NEW)
             .order_by(Lead.score.desc())
             .limit(50)
@@ -96,8 +97,32 @@ def approve(
     if approval.status != ApprovalStatus.PENDING:
         raise HTTPException(status_code=400, detail="Approval is not pending")
 
-    approval.status = ApprovalStatus.APPROVED
-    approval.decided_at = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
+
+    # Mark APPROVED then immediately EXECUTED (stub execution)
+    approval.status = ApprovalStatus.EXECUTED
+    approval.decided_at = now
+
+    # Audit: approval
+    db.add(AuditLog(
+        org_id=biz.org_id,
+        user_id=user.id,
+        event_type="APPROVAL_APPROVED",
+        entity_type="approval",
+        entity_id=approval.id,
+        meta={"action_id": str(approval.action_id)},
+    ))
+
+    # Audit: execution
+    db.add(AuditLog(
+        org_id=biz.org_id,
+        user_id=user.id,
+        event_type="ACTION_EXECUTED",
+        entity_type="action",
+        entity_id=approval.action_id,
+        meta={"approval_id": str(approval.id), "execution": "stub"},
+    ))
+
     db.commit()
     db.refresh(approval)
     return approval
@@ -120,6 +145,17 @@ def reject(
 
     approval.status = ApprovalStatus.REJECTED
     approval.decided_at = datetime.now(timezone.utc)
+
+    # Audit: rejection
+    db.add(AuditLog(
+        org_id=biz.org_id,
+        user_id=user.id,
+        event_type="APPROVAL_REJECTED",
+        entity_type="approval",
+        entity_id=approval.id,
+        meta={"action_id": str(approval.action_id)},
+    ))
+
     db.commit()
     db.refresh(approval)
     return approval

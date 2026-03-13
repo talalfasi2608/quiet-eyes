@@ -23,10 +23,23 @@ def cmd_ingest_all():
     print(json.dumps(results, indent=2))
 
 
+def cmd_generate_leads(business_id_str: str):
+    from app.database import SessionLocal
+    from app.ingestion.lead_engine import generate_leads_for_business
+
+    bid = uuid.UUID(business_id_str)
+    db = SessionLocal()
+    try:
+        result = generate_leads_for_business(db, bid)
+        print(json.dumps(result, indent=2))
+    finally:
+        db.close()
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python -m app.cli <command> [args]")
-        print("Commands: ingest <business-id>, ingest-all")
+        print("Commands: ingest <id>, ingest-all, generate-leads <id>")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -37,6 +50,11 @@ def main():
         cmd_ingest(sys.argv[2])
     elif command == "ingest-all":
         cmd_ingest_all()
+    elif command == "generate-leads":
+        if len(sys.argv) < 3:
+            print("Usage: python -m app.cli generate-leads <business-uuid>")
+            sys.exit(1)
+        cmd_generate_leads(sys.argv[2])
     else:
         print(f"Unknown command: {command}")
         sys.exit(1)

@@ -26,6 +26,10 @@ ingest:
 ingest-all:
 	docker compose exec api python -m app.cli ingest-all
 
+# Generate leads from mentions: make generate-leads BIZ=<business-uuid>
+generate-leads:
+	docker compose exec api python -m app.cli generate-leads $(BIZ)
+
 lint:
 	cd apps/api && ruff check .
 	cd apps/web && npx eslint .
