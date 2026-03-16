@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_business_scoped
 from app.models import Business, ChatMessage, ChatRole
+from app.quota import check_quota, increment_usage
 from app.schemas import ChatMessageCreate, ChatMessageOut
 
 router = APIRouter(tags=["chat"])
@@ -25,6 +26,8 @@ def chat(
     biz: Business = Depends(get_business_scoped),
     db: Session = Depends(get_db),
 ):
+    check_quota(db, biz.org_id, "chat")
+    increment_usage(db, biz.org_id, "chat")
     user_msg = ChatMessage(business_id=biz.id, role=ChatRole.USER, content=body.content)
     db.add(user_msg)
     db.flush()

@@ -7,6 +7,7 @@ from app.database import get_db
 from app.deps import get_business_scoped, get_current_user
 from app.ingestion.engine import ingest_for_business
 from app.models import Business, Mention, User
+from app.quota import check_quota, increment_usage
 from app.schemas import IngestionResultOut, MentionOut
 
 router = APIRouter(tags=["mentions"])
@@ -36,8 +37,12 @@ def list_mentions(
 )
 async def trigger_ingestion(
     biz: Business = Depends(get_business_scoped),
+    db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     """Manually trigger ingestion for a single business."""
+    check_quota(db, biz.org_id, "scan")
     result = await ingest_for_business(biz.id)
+    increment_usage(db, biz.org_id, "scan")
+    db.commit()
     return result

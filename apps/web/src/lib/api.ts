@@ -21,6 +21,22 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    // Surface structured quota errors
+    if (res.status === 402 && body.detail?.code === "QUOTA_EXCEEDED") {
+      const err = new Error(body.detail.detail || "Quota exceeded") as Error & {
+        code: string;
+        resource: string;
+        current: number;
+        limit: number;
+        upgrade_url: string;
+      };
+      err.code = "QUOTA_EXCEEDED";
+      err.resource = body.detail.resource;
+      err.current = body.detail.current;
+      err.limit = body.detail.limit;
+      err.upgrade_url = body.detail.upgrade_url;
+      throw err;
+    }
     throw new Error(body.detail || `API error ${res.status}`);
   }
 

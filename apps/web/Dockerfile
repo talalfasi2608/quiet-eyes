@@ -1,10 +1,16 @@
-FROM node:20-alpine
+FROM node:20-alpine AS base
 
 WORKDIR /app
 
+# Dependencies
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm ci
 
+# Build
 COPY . .
+RUN npm run build
 
-CMD ["npm", "run", "dev"]
+EXPOSE 3000
+
+# Production: serve built app
+CMD ["npm", "start"]

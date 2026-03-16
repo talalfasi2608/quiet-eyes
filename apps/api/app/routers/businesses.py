@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_business_scoped, get_current_user
-from app.models import Business, Competitor, User
+from app.models import Business, BusinessAccess, Competitor, User, UserRole
 from app.schemas import (
     BusinessCreate,
     BusinessOut,
@@ -35,7 +35,18 @@ def list_businesses(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    return db.query(Business).filter(Business.org_id == user.org_id).all()
+    query = db.query(Business).filter(Business.org_id == user.org_id)
+
+    # MEMBER and CLIENT_VIEWER only see businesses they have access to
+    if user.role in (UserRole.MEMBER, UserRole.CLIENT_VIEWER):
+        accessible_ids = (
+            db.query(BusinessAccess.business_id)
+            .filter(BusinessAccess.user_id == user.id)
+            .subquery()
+        )
+        query = query.filter(Business.id.in_(accessible_ids))
+
+    return query.all()
 
 
 @router.get("/{business_id}", response_model=BusinessOut)

@@ -20,6 +20,10 @@ celery.conf.update(
             "task": "app.tasks.ingest_all_task",
             "schedule": crontab(minute=0),  # every hour
         },
+        "optimize-all-businesses-daily": {
+            "task": "app.tasks.optimize_all_task",
+            "schedule": crontab(hour=6, minute=0),  # daily at 06:00 UTC
+        },
     },
 )
 
