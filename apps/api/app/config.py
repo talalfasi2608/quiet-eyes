@@ -21,6 +21,29 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: str = "60/minute"
     CORS_ORIGINS: str = "http://localhost:3000"  # comma-separated allowed origins
 
+    # OpenAI
+    OPENAI_API_KEY: str = ""
+
+    # Supabase
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+
+    # Google APIs
+    GOOGLE_PLACES_API_KEY: str = ""
+    GOOGLE_MAPS_API_KEY: str = ""
+
+    # Intelligence Collector APIs
+    APIFY_API_KEY: str = ""
+    APIFY_API_TOKEN: str = ""
+    SERPAPI_API_KEY: str = ""
+    RAPIDAPI_KEY: str = ""
+
+    # Twilio (WhatsApp & SMS)
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_WHATSAPP_FROM: str = ""
+    TWILIO_SMS_FROM: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

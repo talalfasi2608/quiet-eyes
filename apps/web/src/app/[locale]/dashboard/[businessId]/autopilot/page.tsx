@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { useRouter } from "@/i18n/navigation";
-import Topbar from "@/components/Topbar";
+import { PageHeader, Card, Button, SectionHeader, Badge, EmptyState, Input } from "@/components/ui";
 
 interface AutopilotSettings {
   id: string;
@@ -154,222 +154,168 @@ export default function AutopilotPage() {
   if (!token) return null;
 
   return (
-    <div className="flex h-screen flex-col">
-      <Topbar />
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="mx-auto max-w-3xl">
-          <div className="mb-6 flex items-center justify-between">
+    <div className="space-y-6">
+      <PageHeader
+        title={t("autopilotPage")}
+        description={t("autopilotSubtitle")}
+      />
+
+      {settings && (
+        <Card>
+          <div className="space-y-4">
+            {/* Enable toggle */}
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-100">{t("autopilotEnabled")}</label>
+              <Button
+                variant={settings.is_enabled ? "primary" : "secondary"}
+                size="sm"
+                onClick={() => setSettings({ ...settings, is_enabled: !settings.is_enabled })}
+              >
+                {settings.is_enabled ? t("enabled") : t("disabled")}
+              </Button>
+            </div>
+
+            {/* Mode selector */}
             <div>
-              <h1 className="text-lg font-semibold">{t("autopilotPage")}</h1>
-              <p className="text-xs text-gray-500">{t("autopilotSubtitle")}</p>
-            </div>
-            <button
-              onClick={() => router.push(`/dashboard/${businessId}`)}
-              className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-800"
-            >
-              {tc("back")}
-            </button>
-          </div>
-
-          {settings && (
-            <div className="mb-6 space-y-4 rounded-lg border border-gray-800 bg-gray-900 p-4">
-              {/* Enable toggle */}
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">{t("autopilotEnabled")}</label>
-                <button
-                  onClick={() => setSettings({ ...settings, is_enabled: !settings.is_enabled })}
-                  className={`rounded-full px-4 py-1 text-xs font-medium ${
-                    settings.is_enabled
-                      ? "bg-green-900 text-green-300"
-                      : "bg-gray-800 text-gray-500"
-                  }`}
-                >
-                  {settings.is_enabled ? t("enabled") : t("disabled")}
-                </button>
-              </div>
-
-              {/* Mode selector */}
-              <div>
-                <label className="mb-1 block text-xs text-gray-400">{t("autopilotMode")}</label>
-                <div className="flex gap-2">
-                  {MODE_OPTIONS.map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setSettings({ ...settings, mode })}
-                      className={`flex-1 rounded-lg px-3 py-2 text-xs ${
-                        settings.mode === mode
-                          ? "bg-blue-900 text-blue-300"
-                          : "bg-gray-800 text-gray-500 hover:bg-gray-700"
-                      }`}
-                    >
-                      <div className="font-medium">{t(`mode${mode.charAt(0) + mode.slice(1).toLowerCase()}`)}</div>
-                      <div className="mt-0.5 text-[10px] opacity-70">
-                        {t(`mode${mode.charAt(0) + mode.slice(1).toLowerCase()}Desc`)}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Confidence threshold */}
-              <div>
-                <label className="mb-1 block text-xs text-gray-400">
-                  {t("confidenceThreshold")}: {settings.confidence_threshold}%
-                </label>
-                <input
-                  type="range"
-                  min={50}
-                  max={100}
-                  value={settings.confidence_threshold}
-                  onChange={(e) => setSettings({ ...settings, confidence_threshold: Number(e.target.value) })}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Daily budget cap */}
-              <div>
-                <label className="mb-1 block text-xs text-gray-400">{t("dailyBudgetCap")}</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={settings.daily_budget_cap}
-                  onChange={(e) => setSettings({ ...settings, daily_budget_cap: Number(e.target.value) })}
-                  className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-
-              {/* Risk tolerance */}
-              <div>
-                <label className="mb-1 block text-xs text-gray-400">{t("riskTolerance")}</label>
-                <div className="flex gap-2">
-                  {RISK_OPTIONS.map((risk) => (
-                    <button
-                      key={risk}
-                      onClick={() => setSettings({ ...settings, risk_tolerance: risk })}
-                      className={`rounded-lg px-3 py-1.5 text-xs ${
-                        settings.risk_tolerance === risk
-                          ? risk === "LOW"
-                            ? "bg-green-900 text-green-300"
-                            : risk === "MEDIUM"
-                              ? "bg-yellow-900 text-yellow-300"
-                              : "bg-red-900 text-red-300"
-                          : "bg-gray-800 text-gray-500 hover:bg-gray-700"
-                      }`}
-                    >
-                      {risk}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Allowed actions */}
-              <div>
-                <label className="mb-1 block text-xs text-gray-400">{t("allowedActions")}</label>
-                <div className="flex flex-wrap gap-2">
-                  {ALL_ACTIONS.map((action) => {
-                    const active = (settings.allowed_actions || ALL_ACTIONS).includes(action);
-                    return (
-                      <button
-                        key={action}
-                        onClick={() => toggleAction(action)}
-                        className={`rounded-full px-3 py-1 text-xs ${
-                          active
-                            ? "bg-blue-900 text-blue-300"
-                            : "bg-gray-800 text-gray-600"
-                        }`}
-                      >
-                        {action.replace(/_/g, " ")}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Save + Run */}
-              <div className="flex items-center gap-2 border-t border-gray-800 pt-4">
-                <button
-                  onClick={saveSettings}
-                  disabled={saving}
-                  className="rounded-lg bg-white px-4 py-1.5 text-xs font-semibold text-gray-950 hover:bg-gray-200 disabled:opacity-50"
-                >
-                  {saving ? tc("loading") : tc("save")}
-                </button>
-                <button
-                  onClick={runAutopilot}
-                  disabled={running}
-                  className="rounded-lg border border-blue-700 bg-blue-950 px-4 py-1.5 text-xs text-blue-300 hover:bg-blue-900 disabled:opacity-50"
-                >
-                  {running ? t("runningAutopilot") : t("runAutopilot")}
-                </button>
-                {runMsg && <span className="text-xs text-green-400">{runMsg}</span>}
-              </div>
-            </div>
-          )}
-
-          {/* Digests */}
-          <div>
-            <h2 className="mb-3 text-sm font-semibold">{t("dailyDigest")}</h2>
-            {digests.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-800 px-4 py-12 text-center text-xs text-gray-600">
-                {t("noDigests")}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {digests.map((digest) => (
-                  <div
-                    key={digest.id}
-                    className="rounded-lg border border-gray-800 bg-gray-900 p-4"
+              <label className="mb-1 block text-xs text-gray-400">{t("autopilotMode")}</label>
+              <div className="flex gap-2">
+                {MODE_OPTIONS.map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setSettings({ ...settings, mode })}
+                    className={`flex-1 rounded-lg px-3 py-2 text-xs transition-colors ${
+                      settings.mode === mode
+                        ? "bg-white/10 border border-gray-600 text-gray-100"
+                        : "bg-gray-900/50 border border-gray-800/50 text-gray-500 hover:bg-gray-800/50"
+                    }`}
                   >
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-medium">{t("digestSummary")}</span>
-                      <span className="text-[10px] text-gray-600">
-                        {new Date(digest.date).toLocaleString()}
-                      </span>
+                    <div className="font-medium">{t(`mode${mode.charAt(0) + mode.slice(1).toLowerCase()}`)}</div>
+                    <div className="mt-0.5 text-[10px] opacity-70">
+                      {t(`mode${mode.charAt(0) + mode.slice(1).toLowerCase()}Desc`)}
                     </div>
-                    {digest.summary && (
-                      <p className="mb-2 text-sm text-gray-300">{digest.summary}</p>
-                    )}
-                    {digest.items && (
-                      <div className="flex flex-wrap gap-3 text-xs">
-                        {digest.items.pending_approvals != null && digest.items.pending_approvals > 0 && (
-                          <span className="rounded bg-yellow-900 px-2 py-0.5 text-yellow-300">
-                            {t("pendingApprovalsCount")}: {digest.items.pending_approvals}
-                          </span>
-                        )}
-                        {digest.items.executed_today != null && digest.items.executed_today > 0 && (
-                          <span className="rounded bg-green-900 px-2 py-0.5 text-green-300">
-                            {t("executedToday")}: {digest.items.executed_today}
-                          </span>
-                        )}
-                        {digest.items.new_leads != null && digest.items.new_leads > 0 && (
-                          <span className="rounded bg-emerald-900 px-2 py-0.5 text-emerald-300">
-                            {t("newLeadsCount")}: {digest.items.new_leads}
-                          </span>
-                        )}
-                        {digest.items.new_trends != null && digest.items.new_trends > 0 && (
-                          <span className="rounded bg-amber-900 px-2 py-0.5 text-amber-300">
-                            {t("newTrendsCount")}: {digest.items.new_trends}
-                          </span>
-                        )}
-                        {digest.items.new_reviews != null && digest.items.new_reviews > 0 && (
-                          <span className="rounded bg-yellow-900 px-2 py-0.5 text-yellow-300">
-                            {t("newReviewsCount")}: {digest.items.new_reviews}
-                          </span>
-                        )}
-                        {digest.items.competitor_events != null && digest.items.competitor_events > 0 && (
-                          <span className="rounded bg-rose-900 px-2 py-0.5 text-rose-300">
-                            {t("competitorEventsCount")}: {digest.items.competitor_events}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  </button>
                 ))}
               </div>
-            )}
+            </div>
+
+            {/* Confidence threshold */}
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">
+                {t("confidenceThreshold")}: {settings.confidence_threshold}%
+              </label>
+              <input
+                type="range"
+                min={50}
+                max={100}
+                value={settings.confidence_threshold}
+                onChange={(e) => setSettings({ ...settings, confidence_threshold: Number(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            {/* Daily budget cap */}
+            <Input
+              label={t("dailyBudgetCap")}
+              type="number"
+              min={0}
+              value={settings.daily_budget_cap}
+              onChange={(e) => setSettings({ ...settings, daily_budget_cap: Number(e.target.value) })}
+            />
+
+            {/* Risk tolerance */}
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">{t("riskTolerance")}</label>
+              <div className="flex gap-2">
+                {RISK_OPTIONS.map((risk) => (
+                  <Button
+                    key={risk}
+                    variant={settings.risk_tolerance === risk ? "primary" : "secondary"}
+                    size="sm"
+                    onClick={() => setSettings({ ...settings, risk_tolerance: risk })}
+                  >
+                    {risk}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Allowed actions */}
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">{t("allowedActions")}</label>
+              <div className="flex flex-wrap gap-2">
+                {ALL_ACTIONS.map((action) => {
+                  const active = (settings.allowed_actions || ALL_ACTIONS).includes(action);
+                  return (
+                    <Button
+                      key={action}
+                      variant={active ? "primary" : "ghost"}
+                      size="sm"
+                      onClick={() => toggleAction(action)}
+                    >
+                      {action.replace(/_/g, " ")}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Save + Run */}
+            <div className="flex items-center gap-2 border-t border-gray-800/50 pt-4">
+              <Button onClick={saveSettings} loading={saving}>
+                {saving ? tc("loading") : tc("save")}
+              </Button>
+              <Button variant="secondary" onClick={runAutopilot} loading={running}>
+                {running ? t("runningAutopilot") : t("runAutopilot")}
+              </Button>
+              {runMsg && <span className="text-xs text-green-400">{runMsg}</span>}
+            </div>
           </div>
+        </Card>
+      )}
+
+      {/* Digests */}
+      <SectionHeader title={t("dailyDigest")} />
+      {digests.length === 0 ? (
+        <EmptyState title={t("noDigests")} />
+      ) : (
+        <div className="space-y-3">
+          {digests.map((digest) => (
+            <Card key={digest.id}>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-100">{t("digestSummary")}</span>
+                <span className="text-[10px] text-gray-500">
+                  {new Date(digest.date).toLocaleString()}
+                </span>
+              </div>
+              {digest.summary && (
+                <p className="mb-2 text-sm text-gray-300">{digest.summary}</p>
+              )}
+              {digest.items && (
+                <div className="flex flex-wrap gap-2">
+                  {digest.items.pending_approvals != null && digest.items.pending_approvals > 0 && (
+                    <Badge variant="warning">{t("pendingApprovalsCount")}: {digest.items.pending_approvals}</Badge>
+                  )}
+                  {digest.items.executed_today != null && digest.items.executed_today > 0 && (
+                    <Badge variant="success">{t("executedToday")}: {digest.items.executed_today}</Badge>
+                  )}
+                  {digest.items.new_leads != null && digest.items.new_leads > 0 && (
+                    <Badge variant="success">{t("newLeadsCount")}: {digest.items.new_leads}</Badge>
+                  )}
+                  {digest.items.new_trends != null && digest.items.new_trends > 0 && (
+                    <Badge variant="warning">{t("newTrendsCount")}: {digest.items.new_trends}</Badge>
+                  )}
+                  {digest.items.new_reviews != null && digest.items.new_reviews > 0 && (
+                    <Badge variant="warning">{t("newReviewsCount")}: {digest.items.new_reviews}</Badge>
+                  )}
+                  {digest.items.competitor_events != null && digest.items.competitor_events > 0 && (
+                    <Badge variant="error">{t("competitorEventsCount")}: {digest.items.competitor_events}</Badge>
+                  )}
+                </div>
+              )}
+            </Card>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }

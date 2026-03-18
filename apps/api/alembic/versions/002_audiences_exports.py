@@ -17,8 +17,18 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("CREATE TYPE exporttype AS ENUM ('CSV', 'HASHED_CSV')")
-    op.execute("CREATE TYPE exportstatus AS ENUM ('PENDING', 'READY', 'FAILED')")
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE exporttype AS ENUM ('CSV', 'HASHED_CSV');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE exportstatus AS ENUM ('PENDING', 'READY', 'FAILED');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
+    """)
 
     op.create_table(
         "audiences",
@@ -34,8 +44,8 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
         sa.Column("business_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("businesses.id"), nullable=False),
         sa.Column("audience_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("audiences.id")),
-        sa.Column("type", sa.Enum("CSV", "HASHED_CSV", name="exporttype", create_type=False), nullable=False),
-        sa.Column("status", sa.Enum("PENDING", "READY", "FAILED", name="exportstatus", create_type=False), server_default="PENDING"),
+        sa.Column("type", postgresql.ENUM("CSV", "HASHED_CSV", name="exporttype", create_type=False), nullable=False),
+        sa.Column("status", postgresql.ENUM("PENDING", "READY", "FAILED", name="exportstatus", create_type=False), server_default="PENDING"),
         sa.Column("file_path", sa.String(2048)),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )

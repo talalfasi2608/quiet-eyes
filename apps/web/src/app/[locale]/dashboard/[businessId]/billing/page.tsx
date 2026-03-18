@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { useRouter } from "@/i18n/navigation";
-import Topbar from "@/components/Topbar";
+import { PageHeader, Card, Button, Badge } from "@/components/ui";
 
 interface SubscriptionData {
   id: string;
@@ -51,9 +51,9 @@ interface QuotaStatus {
 }
 
 const PLANS = [
-  { key: "STARTER" as const, color: "border-gray-700" },
-  { key: "PRO" as const, color: "border-blue-700" },
-  { key: "PREMIUM" as const, color: "border-purple-700" },
+  { key: "STARTER" as const },
+  { key: "PRO" as const },
+  { key: "PREMIUM" as const },
 ] as const;
 
 export default function BillingPage() {
@@ -81,7 +81,6 @@ export default function BillingPage() {
       setSub(s);
       setUsage(u);
 
-      // Try to load quota status (may fail if not admin)
       try {
         const q = await apiFetch<QuotaStatus>("/ops/quota/status", { token });
         setQuota(q);
@@ -123,7 +122,6 @@ export default function BillingPage() {
     label,
     current,
     limit,
-    warning,
   }: {
     label: string;
     current: number;
@@ -155,7 +153,7 @@ export default function BillingPage() {
         <div className="h-2 w-full overflow-hidden rounded-full bg-gray-800">
           <div
             className={`h-2 rounded-full transition-all ${
-              isOver ? "bg-red-500" : isWarning ? "bg-yellow-500" : pct > 60 ? "bg-blue-400" : "bg-blue-500"
+              isOver ? "bg-red-500" : isWarning ? "bg-yellow-500" : pct > 60 ? "bg-white/40" : "bg-white/60"
             }`}
             style={{ width: `${pct}%` }}
           />
@@ -167,117 +165,93 @@ export default function BillingPage() {
   if (!token) return null;
 
   return (
-    <div className="flex h-screen flex-col">
-      <Topbar />
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-semibold">{t("billingPage")}</h1>
-              <p className="text-xs text-gray-500">{t("billingSubtitle")}</p>
-            </div>
-            <button
-              onClick={() => router.push(`/dashboard/${businessId}`)}
-              className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-800"
+    <div className="space-y-6">
+      <PageHeader
+        title={t("billingPage")}
+        description={t("billingSubtitle")}
+      />
+
+      {/* Quota warnings */}
+      {quota && quota.warnings.length > 0 && (
+        <Card className="!border-yellow-700/50">
+          <h3 className="mb-2 text-sm font-semibold text-yellow-300">{t("quotaStatus")}</h3>
+          <div className="space-y-1">
+            {quota.warnings.map((w) => (
+              <div key={w.resource} className="flex items-center justify-between text-xs">
+                <span className={w.status === "exceeded" ? "text-red-300" : "text-yellow-300"}>
+                  {w.resource}: {w.current}/{w.limit} ({w.pct_used}%)
+                </span>
+                <Badge variant={w.status === "exceeded" ? "error" : "warning"}>
+                  {w.status === "exceeded" ? t("quotaExceeded_label") : t("quotaWarning")}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Plans */}
+      <div className="grid grid-cols-3 gap-3">
+        {PLANS.map(({ key }) => {
+          const isCurrent = sub?.plan === key;
+          const planLabel = t(`plan${key.charAt(0) + key.slice(1).toLowerCase()}`);
+          const priceLabel = t(`plan${key.charAt(0) + key.slice(1).toLowerCase()}Price`);
+          const descLabel = t(`plan${key.charAt(0) + key.slice(1).toLowerCase()}Desc`);
+          return (
+            <Card
+              key={key}
+              className={isCurrent ? "!border-gray-600 ring-2 ring-white/10" : ""}
             >
-              {tc("back")}
-            </button>
-          </div>
-
-          {/* Quota warnings */}
-          {quota && quota.warnings.length > 0 && (
-            <div className="mb-4 rounded-lg border border-yellow-700 bg-yellow-950 p-4">
-              <h3 className="mb-2 text-sm font-semibold text-yellow-300">{t("quotaStatus")}</h3>
-              <div className="space-y-1">
-                {quota.warnings.map((w) => (
-                  <div key={w.resource} className="flex items-center justify-between text-xs">
-                    <span className={w.status === "exceeded" ? "text-red-300" : "text-yellow-300"}>
-                      {w.resource}: {w.current}/{w.limit} ({w.pct_used}%)
-                    </span>
-                    <span
-                      className={`rounded px-2 py-0.5 text-[10px] ${
-                        w.status === "exceeded"
-                          ? "bg-red-900 text-red-300"
-                          : "bg-yellow-900 text-yellow-300"
-                      }`}
-                    >
-                      {w.status === "exceeded" ? t("quotaExceeded_label") : t("quotaWarning")}
-                    </span>
-                  </div>
-                ))}
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-100">{planLabel}</h3>
+                {isCurrent && (
+                  <Badge variant="success">{t("currentPlanBadge")}</Badge>
+                )}
               </div>
-            </div>
-          )}
-
-          {/* Plans */}
-          <div className="mb-6 grid grid-cols-3 gap-3">
-            {PLANS.map(({ key, color }) => {
-              const isCurrent = sub?.plan === key;
-              const planLabel = t(`plan${key.charAt(0) + key.slice(1).toLowerCase()}`);
-              const priceLabel = t(`plan${key.charAt(0) + key.slice(1).toLowerCase()}Price`);
-              const descLabel = t(`plan${key.charAt(0) + key.slice(1).toLowerCase()}Desc`);
-              return (
-                <div
-                  key={key}
-                  className={`rounded-lg border ${color} ${isCurrent ? "ring-2 ring-white/20" : ""} bg-gray-900 p-4`}
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">{planLabel}</h3>
-                    {isCurrent && (
-                      <span className="rounded bg-green-900 px-2 py-0.5 text-[10px] text-green-300">
-                        {t("currentPlanBadge")}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mb-1 text-lg font-bold">{priceLabel}</p>
-                  <p className="mb-3 text-xs text-gray-500">{descLabel}</p>
-                  {!isCurrent && (
-                    <button
-                      onClick={() => handleUpgrade(key)}
-                      className="w-full rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-950 hover:bg-gray-200"
-                    >
-                      {t("upgrade")}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Usage */}
-          {usage && (
-            <div className="mb-6 rounded-lg border border-gray-800 bg-gray-900 p-4">
-              <h2 className="mb-4 text-sm font-semibold">{t("usageTitle")}</h2>
-              <UsageBar label={t("scansUsage")} current={usage.scans_count} limit={usage.scans_limit} />
-              <UsageBar label={t("chatUsage")} current={usage.chat_tokens} limit={usage.chat_limit} />
-              <UsageBar label={t("exportsUsage")} current={usage.exports_count} limit={usage.exports_limit} />
-              <UsageBar label={t("approvalsUsage")} current={usage.approvals_count} limit={usage.approvals_limit} />
-              <UsageBar label={t("aiCallsUsage")} current={usage.ai_calls_count} limit={usage.ai_calls_limit} />
-            </div>
-          )}
-
-          {/* Cost insight panel */}
-          {usage && (
-            <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-              <h2 className="mb-4 text-sm font-semibold">{t("costBreakdown")}</h2>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-lg border border-gray-700 bg-gray-950 p-3 text-center">
-                  <p className="text-lg font-bold text-blue-400">${usage.estimated_cost_usd.toFixed(4)}</p>
-                  <p className="text-[10px] text-gray-500">{t("estimatedCost")}</p>
-                </div>
-                <div className="rounded-lg border border-gray-700 bg-gray-950 p-3 text-center">
-                  <p className="text-lg font-bold text-purple-400">{usage.ai_calls_count}</p>
-                  <p className="text-[10px] text-gray-500">{t("aiCalls")}</p>
-                </div>
-                <div className="rounded-lg border border-gray-700 bg-gray-950 p-3 text-center">
-                  <p className="text-lg font-bold text-green-400">{usage.ingestion_count}</p>
-                  <p className="text-[10px] text-gray-500">{t("ingestion")}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+              <p className="mb-1 text-lg font-bold text-gray-100">{priceLabel}</p>
+              <p className="mb-3 text-xs text-gray-500">{descLabel}</p>
+              {!isCurrent && (
+                <Button size="sm" className="w-full" onClick={() => handleUpgrade(key)}>
+                  {t("upgrade")}
+                </Button>
+              )}
+            </Card>
+          );
+        })}
       </div>
+
+      {/* Usage */}
+      {usage && (
+        <Card>
+          <h2 className="mb-4 text-sm font-semibold text-gray-100">{t("usageTitle")}</h2>
+          <UsageBar label={t("scansUsage")} current={usage.scans_count} limit={usage.scans_limit} />
+          <UsageBar label={t("chatUsage")} current={usage.chat_tokens} limit={usage.chat_limit} />
+          <UsageBar label={t("exportsUsage")} current={usage.exports_count} limit={usage.exports_limit} />
+          <UsageBar label={t("approvalsUsage")} current={usage.approvals_count} limit={usage.approvals_limit} />
+          <UsageBar label={t("aiCallsUsage")} current={usage.ai_calls_count} limit={usage.ai_calls_limit} />
+        </Card>
+      )}
+
+      {/* Cost insight panel */}
+      {usage && (
+        <Card>
+          <h2 className="mb-4 text-sm font-semibold text-gray-100">{t("costBreakdown")}</h2>
+          <div className="grid grid-cols-3 gap-3">
+            <Card className="!p-3 text-center">
+              <p className="text-lg font-bold text-blue-400">${usage.estimated_cost_usd.toFixed(4)}</p>
+              <p className="text-[10px] text-gray-500">{t("estimatedCost")}</p>
+            </Card>
+            <Card className="!p-3 text-center">
+              <p className="text-lg font-bold text-purple-400">{usage.ai_calls_count}</p>
+              <p className="text-[10px] text-gray-500">{t("aiCalls")}</p>
+            </Card>
+            <Card className="!p-3 text-center">
+              <p className="text-lg font-bold text-green-400">{usage.ingestion_count}</p>
+              <p className="text-[10px] text-gray-500">{t("ingestion")}</p>
+            </Card>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

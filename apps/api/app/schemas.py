@@ -158,6 +158,10 @@ class IngestionResultOut(BaseModel):
     business_name: str | None = None
     search_new: int = 0
     rss_new: int = 0
+    google_reviews_new: int = 0
+    reddit_new: int = 0
+    yelp_reviews_new: int = 0
+    trustpilot_new: int = 0
     total_mentions: int = 0
     error: str | None = None
 

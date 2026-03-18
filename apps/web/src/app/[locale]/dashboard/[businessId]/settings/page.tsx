@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { useRouter } from "@/i18n/navigation";
-import Topbar from "@/components/Topbar";
+import { PageHeader, Card, Button, Input, SectionHeader, Badge, Textarea, EmptyState } from "@/components/ui";
 
 interface IntegrationItem {
   id: string;
@@ -215,320 +215,232 @@ export default function SettingsPage() {
     } catch { /* ignore */ }
   }
 
-  const EVENT_STATUS_COLORS: Record<string, string> = {
-    SENT: "text-green-400",
-    FAILED: "text-red-400",
-    PENDING: "text-yellow-400",
-  };
-
   if (!token) return null;
 
   return (
-    <div className="flex h-screen flex-col">
-      <Topbar />
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="mx-auto max-w-3xl">
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-semibold">{t("integrations")}</h1>
-              <p className="text-xs text-gray-500">{t("integrationsSubtitle")}</p>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("integrations")}
+        description={t("integrationsSubtitle")}
+        actions={
+          <Button size="sm" onClick={() => setShowForm(!showForm)}>
+            {t("addIntegration")}
+          </Button>
+        }
+      />
+
+      {/* Client Notes */}
+      <Card>
+        <SectionHeader title={t("clientNotes")} />
+        <Textarea
+          value={clientNotes}
+          onChange={(e) => setClientNotes(e.target.value)}
+          placeholder={t("clientNotesPlaceholder")}
+          rows={3}
+          className="mt-3"
+        />
+        <Button size="sm" className="mt-2" variant="secondary" onClick={handleSaveNotes} loading={savingNotes}>
+          {savingNotes ? tc("loading") : tc("save")}
+        </Button>
+      </Card>
+
+      {/* Meta Integration Section */}
+      <SectionHeader
+        title={t("metaIntegration")}
+        description={t("metaIntegrationDesc")}
+        action={
+          <Button size="sm" variant="secondary" onClick={() => setShowMetaForm(!showMetaForm)}>
+            {t("addMetaIntegration")}
+          </Button>
+        }
+      />
+
+      {showMetaForm && (
+        <Card>
+          <div className="space-y-3">
+            <Input
+              label={t("integrationName")}
+              value={metaName}
+              onChange={(e) => setMetaName(e.target.value)}
+            />
+            <Input
+              label={t("metaAccessToken")}
+              value={metaAccessToken}
+              onChange={(e) => setMetaAccessToken(e.target.value)}
+              type="password"
+              placeholder={t("metaAccessTokenPlaceholder")}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label={t("metaAdAccountId")}
+                value={metaAdAccountId}
+                onChange={(e) => setMetaAdAccountId(e.target.value)}
+                placeholder="act_123456789"
+              />
+              <Input
+                label={t("metaPageId")}
+                value={metaPageId}
+                onChange={(e) => setMetaPageId(e.target.value)}
+                placeholder="123456789"
+              />
             </div>
+            <p className="text-[10px] text-gray-500">{t("metaMockNote")}</p>
             <div className="flex gap-2">
-              <button
-                onClick={() => router.push(`/dashboard/${businessId}`)}
-                className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-800"
-              >
-                {tc("back")}
-              </button>
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className="rounded-lg bg-cyan-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-700"
-              >
-                {t("addIntegration")}
-              </button>
+              <Button variant="secondary" size="sm" onClick={() => setShowMetaForm(false)}>
+                {tc("cancel")}
+              </Button>
+              <Button size="sm" onClick={handleCreateMeta} loading={savingMeta} disabled={!metaName.trim()}>
+                {savingMeta ? tc("loading") : tc("save")}
+              </Button>
             </div>
           </div>
+        </Card>
+      )}
 
-          {/* Client Notes */}
-          <section className="mb-6 rounded-lg border border-gray-800 bg-gray-900 p-4">
-            <h2 className="mb-2 text-sm font-semibold">{t("clientNotes")}</h2>
-            <textarea
-              value={clientNotes}
-              onChange={(e) => setClientNotes(e.target.value)}
-              placeholder={t("clientNotesPlaceholder")}
-              rows={3}
-              className="mb-2 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-            />
-            <button
-              onClick={handleSaveNotes}
-              disabled={savingNotes}
-              className="rounded-lg bg-gray-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-600 disabled:opacity-50"
-            >
-              {savingNotes ? tc("loading") : tc("save")}
-            </button>
-          </section>
-
-          {/* Meta Integration Section */}
-          <section className="mb-6">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold">{t("metaIntegration")}</h2>
-                <p className="text-[10px] text-gray-500">{t("metaIntegrationDesc")}</p>
+      {/* Show existing Meta integrations */}
+      {integrations.filter((i) => i.type === "META").map((integ) => (
+        <Card key={integ.id}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-100">{integ.name}</p>
+                <Badge variant="info">Meta</Badge>
               </div>
-              <button
-                onClick={() => setShowMetaForm(!showMetaForm)}
-                className="rounded-lg bg-blue-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-              >
-                {t("addMetaIntegration")}
-              </button>
+              <p className="mt-0.5 text-xs text-gray-500">
+                {integ.config?.ad_account_id ? `Ad Account: ${integ.config.ad_account_id}` : t("metaMockMode")}
+              </p>
             </div>
+            <Badge
+              variant={integ.is_enabled ? "success" : "error"}
+              className="cursor-pointer"
+              onClick={() => handleToggle(integ)}
+            >
+              {integ.is_enabled ? t("enabled") : t("disabled")}
+            </Badge>
+          </div>
+        </Card>
+      ))}
 
-            {showMetaForm && (
-              <div className="mb-4 rounded-lg border border-blue-800 bg-gray-900 p-4">
-                <div className="space-y-3">
-                  <div>
-                    <label className="mb-1 block text-xs text-gray-400">{t("integrationName")}</label>
-                    <input
-                      value={metaName}
-                      onChange={(e) => setMetaName(e.target.value)}
-                      className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs text-gray-400">{t("metaAccessToken")}</label>
-                    <input
-                      value={metaAccessToken}
-                      onChange={(e) => setMetaAccessToken(e.target.value)}
-                      type="password"
-                      className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                      placeholder={t("metaAccessTokenPlaceholder")}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1 block text-xs text-gray-400">{t("metaAdAccountId")}</label>
-                      <input
-                        value={metaAdAccountId}
-                        onChange={(e) => setMetaAdAccountId(e.target.value)}
-                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                        placeholder="act_123456789"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-gray-400">{t("metaPageId")}</label>
-                      <input
-                        value={metaPageId}
-                        onChange={(e) => setMetaPageId(e.target.value)}
-                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                        placeholder="123456789"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-gray-500">{t("metaMockNote")}</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setShowMetaForm(false)}
-                      className="rounded-lg border border-gray-700 px-4 py-1.5 text-xs text-gray-400 hover:bg-gray-800"
-                    >
-                      {tc("cancel")}
-                    </button>
-                    <button
-                      onClick={handleCreateMeta}
-                      disabled={savingMeta || !metaName.trim()}
-                      className="rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:opacity-50"
-                    >
-                      {savingMeta ? tc("loading") : tc("save")}
-                    </button>
-                  </div>
+      {/* Webhook Create form */}
+      {showForm && (
+        <Card>
+          <div className="space-y-3">
+            <Input
+              label={t("integrationName")}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Zapier CRM"
+            />
+            <Input
+              label={t("webhookUrl")}
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+              placeholder="https://hooks.zapier.com/..."
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label={t("secretHeader")}
+                value={secretHeader}
+                onChange={(e) => setSecretHeader(e.target.value)}
+                placeholder="X-Webhook-Secret"
+              />
+              <Input
+                label={t("secretToken")}
+                value={secretToken}
+                onChange={(e) => setSecretToken(e.target.value)}
+                type="password"
+                placeholder="your-secret-token"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setShowForm(false)}>
+                {tc("cancel")}
+              </Button>
+              <Button size="sm" onClick={handleCreate} loading={saving} disabled={!name.trim() || !webhookUrl.trim()}>
+                {saving ? tc("loading") : tc("save")}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Integration list */}
+      {integrations.length === 0 ? (
+        <EmptyState title={t("noIntegrations")} />
+      ) : (
+        <div className="space-y-3">
+          {integrations.map((integ) => (
+            <Card key={integ.id}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-100">{integ.name}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    {integ.config?.webhook_url}
+                  </p>
                 </div>
-              </div>
-            )}
-
-            {/* Show existing Meta integrations */}
-            {integrations.filter((i) => i.type === "META").map((integ) => (
-              <div key={integ.id} className="mb-2 rounded-lg border border-blue-900 bg-gray-900 p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium">{integ.name}</p>
-                      <span className="rounded bg-blue-900 px-1.5 py-0.5 text-[10px] text-blue-300">Meta</span>
-                    </div>
-                    <p className="mt-0.5 text-xs text-gray-500">
-                      {integ.config?.ad_account_id ? `Ad Account: ${integ.config.ad_account_id}` : t("metaMockMode")}
-                    </p>
-                  </div>
-                  <button
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleTest(integ.id)}
+                    loading={testingId === integ.id}
+                  >
+                    {testingId === integ.id ? t("testing") : t("testWebhook")}
+                  </Button>
+                  <Badge
+                    variant={integ.is_enabled ? "success" : "error"}
+                    className="cursor-pointer"
                     onClick={() => handleToggle(integ)}
-                    className={`rounded px-2 py-1 text-[10px] font-medium ${
-                      integ.is_enabled ? "bg-green-900 text-green-300" : "bg-red-900 text-red-300"
-                    }`}
                   >
                     {integ.is_enabled ? t("enabled") : t("disabled")}
-                  </button>
+                  </Badge>
                 </div>
               </div>
-            ))}
-          </section>
-
-          <hr className="mb-6 border-gray-800" />
-
-          {/* Webhook Create form */}
-          {showForm && (
-            <section className="mb-6 rounded-lg border border-cyan-800 bg-gray-900 p-4">
-              <div className="space-y-3">
-                <div>
-                  <label className="mb-1 block text-xs text-gray-400">{t("integrationName")}</label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none"
-                    placeholder="e.g. Zapier CRM"
-                  />
+              {testResult[integ.id] && (
+                <div className={`mt-2 text-xs ${testResult[integ.id].success ? "text-green-400" : "text-red-400"}`}>
+                  {testResult[integ.id].success
+                    ? t("testSuccess")
+                    : `${t("testFailed")}: ${testResult[integ.id].error || `HTTP ${testResult[integ.id].status_code}`}`}
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs text-gray-400">{t("webhookUrl")}</label>
-                  <input
-                    value={webhookUrl}
-                    onChange={(e) => setWebhookUrl(e.target.value)}
-                    className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none"
-                    placeholder="https://hooks.zapier.com/..."
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs text-gray-400">{t("secretHeader")}</label>
-                    <input
-                      value={secretHeader}
-                      onChange={(e) => setSecretHeader(e.target.value)}
-                      className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none"
-                      placeholder="X-Webhook-Secret"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs text-gray-400">{t("secretToken")}</label>
-                    <input
-                      value={secretToken}
-                      onChange={(e) => setSecretToken(e.target.value)}
-                      type="password"
-                      className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none"
-                      placeholder="your-secret-token"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowForm(false)}
-                    className="rounded-lg border border-gray-700 px-4 py-1.5 text-xs text-gray-400 hover:bg-gray-800"
-                  >
-                    {tc("cancel")}
-                  </button>
-                  <button
-                    onClick={handleCreate}
-                    disabled={saving || !name.trim() || !webhookUrl.trim()}
-                    className="rounded-lg bg-cyan-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-cyan-600 disabled:opacity-50"
-                  >
-                    {saving ? tc("loading") : tc("save")}
-                  </button>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Integration list */}
-          {integrations.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-800 px-4 py-12 text-center text-xs text-gray-600">
-              {t("noIntegrations")}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {integrations.map((integ) => (
-                <div
-                  key={integ.id}
-                  className="rounded-lg border border-gray-800 bg-gray-900 p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{integ.name}</p>
-                      <p className="mt-0.5 text-xs text-gray-500">
-                        {integ.config?.webhook_url}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleTest(integ.id)}
-                        disabled={testingId === integ.id}
-                        className="rounded border border-gray-700 px-2 py-1 text-[10px] text-gray-400 hover:bg-gray-800 disabled:opacity-50"
-                      >
-                        {testingId === integ.id ? t("testing") : t("testWebhook")}
-                      </button>
-                      <button
-                        onClick={() => handleToggle(integ)}
-                        className={`rounded px-2 py-1 text-[10px] font-medium ${
-                          integ.is_enabled
-                            ? "bg-green-900 text-green-300"
-                            : "bg-red-900 text-red-300"
-                        }`}
-                      >
-                        {integ.is_enabled ? t("enabled") : t("disabled")}
-                      </button>
-                    </div>
-                  </div>
-                  {testResult[integ.id] && (
-                    <div className={`mt-2 text-xs ${testResult[integ.id].success ? "text-green-400" : "text-red-400"}`}>
-                      {testResult[integ.id].success
-                        ? t("testSuccess")
-                        : `${t("testFailed")}: ${testResult[integ.id].error || `HTTP ${testResult[integ.id].status_code}`}`}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Event log */}
-          <section className="mt-8">
-            <h2 className="mb-3 text-sm font-semibold text-gray-400">{t("eventLog")}</h2>
-            {events.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-800 px-4 py-6 text-center text-xs text-gray-600">
-                {t("noEvents")}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {events.map((evt) => (
-                  <div
-                    key={evt.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900 px-4 py-3"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium">{evt.event_type}</span>
-                        <span className={`text-[10px] ${EVENT_STATUS_COLORS[evt.status] || "text-gray-500"}`}>
-                          {evt.status === "SENT" ? t("eventSent") : evt.status === "FAILED" ? t("eventFailed") : t("eventPending")}
-                        </span>
-                      </div>
-                      {evt.error_message && (
-                        <p className="mt-0.5 text-[10px] text-red-400">{evt.error_message}</p>
-                      )}
-                      <p className="mt-0.5 text-[10px] text-gray-600">
-                        {new Date(evt.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    {evt.status === "FAILED" && (
-                      <button
-                        onClick={() => handleRetry(evt.id)}
-                        className="rounded border border-gray-700 px-2 py-1 text-[10px] text-gray-400 hover:bg-gray-800"
-                      >
-                        {t("retryEvent")}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+              )}
+            </Card>
+          ))}
         </div>
-      </div>
+      )}
+
+      {/* Event log */}
+      <SectionHeader title={t("eventLog")} />
+      {events.length === 0 ? (
+        <EmptyState title={t("noEvents")} />
+      ) : (
+        <div className="space-y-2">
+          {events.map((evt) => (
+            <Card key={evt.id} className="!p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-100">{evt.event_type}</span>
+                    <Badge variant={evt.status === "SENT" ? "success" : evt.status === "FAILED" ? "error" : "warning"}>
+                      {evt.status === "SENT" ? t("eventSent") : evt.status === "FAILED" ? t("eventFailed") : t("eventPending")}
+                    </Badge>
+                  </div>
+                  {evt.error_message && (
+                    <p className="mt-0.5 text-[10px] text-red-400">{evt.error_message}</p>
+                  )}
+                  <p className="mt-0.5 text-[10px] text-gray-500">
+                    {new Date(evt.created_at).toLocaleString()}
+                  </p>
+                </div>
+                {evt.status === "FAILED" && (
+                  <Button variant="ghost" size="sm" onClick={() => handleRetry(evt.id)}>
+                    {t("retryEvent")}
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

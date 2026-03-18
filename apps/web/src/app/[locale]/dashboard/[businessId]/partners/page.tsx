@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { useRouter } from "@/i18n/navigation";
-import Topbar from "@/components/Topbar";
+import { PageHeader, Card, Button, Tabs, Badge, Input, EmptyState } from "@/components/ui";
 
 /* ── Types ── */
 
@@ -53,17 +53,17 @@ interface ReferralItem {
 
 type Tab = "portfolio" | "referrals" | "analytics";
 
-const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: "bg-green-900 text-green-300",
-  SUSPENDED: "bg-red-900 text-red-300",
-  PENDING: "bg-yellow-900 text-yellow-300",
+const STATUS_BADGE_VARIANT: Record<string, "default" | "success" | "warning" | "error" | "info"> = {
+  ACTIVE: "success",
+  SUSPENDED: "error",
+  PENDING: "warning",
 };
 
-const REF_STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-900 text-yellow-300",
-  ACCEPTED: "bg-green-900 text-green-300",
-  EXPIRED: "bg-gray-800 text-gray-400",
-  REVOKED: "bg-red-900 text-red-300",
+const REF_STATUS_BADGE: Record<string, "default" | "success" | "warning" | "error" | "info"> = {
+  PENDING: "warning",
+  ACCEPTED: "success",
+  EXPIRED: "default",
+  REVOKED: "error",
 };
 
 export default function PartnersPage() {
@@ -188,253 +188,204 @@ export default function PartnersPage() {
 
   if (!token) return null;
 
-  const tabs: { key: Tab; label: string }[] = [
+  const tabList = [
     { key: "portfolio", label: t("partnerPortfolio") },
     { key: "referrals", label: t("partnerReferrals") },
     { key: "analytics", label: t("partnerAnalytics") },
   ];
 
   return (
-    <div className="flex h-screen flex-col">
-      <Topbar />
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="mx-auto max-w-4xl">
-          {/* Header */}
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push(`/dashboard/${businessId}`)}
-                className="rounded border border-gray-700 px-2 py-1 text-xs text-gray-400 hover:bg-gray-800"
-              >
-                {tc("back")}
-              </button>
-              <div>
-                <h1 className="text-lg font-semibold">{t("partnerDashboard")}</h1>
-                <p className="text-xs text-gray-500">{t("partnerSubtitle")}</p>
-              </div>
-            </div>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("partnerDashboard")}
+        description={t("partnerSubtitle")}
+      />
+
+      {/* No partner -- show create */}
+      {noPartner && !showCreate && (
+        <EmptyState
+          title={t("noPartnerAccount")}
+          action={
+            <Button size="sm" onClick={() => setShowCreate(true)}>
+              {t("becomePartner")}
+            </Button>
+          }
+        />
+      )}
+
+      {showCreate && (
+        <Card>
+          <h3 className="mb-3 text-sm font-semibold text-gray-100">{t("becomePartner")}</h3>
+          <div className="space-y-3">
+            <Input
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder={t("partnerName")}
+            />
+            <Input
+              value={createEmail}
+              onChange={(e) => setCreateEmail(e.target.value)}
+              placeholder={t("partnerEmail")}
+            />
+            <Button onClick={createPartner} loading={creating}>
+              {creating ? tc("loading") : t("createPartner")}
+            </Button>
           </div>
+        </Card>
+      )}
 
-          {/* No partner — show create */}
-          {noPartner && !showCreate && (
-            <div className="mb-4 rounded-lg border border-dashed border-gray-700 px-4 py-8 text-center">
-              <p className="mb-3 text-sm text-gray-400">{t("noPartnerAccount")}</p>
-              <button
-                onClick={() => setShowCreate(true)}
-                className="rounded-lg bg-teal-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-500"
-              >
-                {t("becomePartner")}
-              </button>
+      {/* Partner info card */}
+      {partner && (
+        <>
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-gray-100">{partner.name}</h2>
+                  <Badge variant={STATUS_BADGE_VARIANT[partner.status] || "default"}>
+                    {partner.status}
+                  </Badge>
+                  {partner.tier && (
+                    <Badge variant="default">{partner.tier}</Badge>
+                  )}
+                </div>
+                <p className="mt-0.5 text-[10px] text-gray-500">{partner.contact_email}</p>
+              </div>
+              {partner.commission_pct !== null && (
+                <div className="text-right">
+                  <div className="text-[10px] text-gray-500">{t("commission")}</div>
+                  <div className="text-sm font-bold text-teal-400">{partner.commission_pct}%</div>
+                </div>
+              )}
             </div>
-          )}
+          </Card>
 
-          {showCreate && (
-            <div className="mb-4 rounded-lg border border-gray-700 bg-gray-900 p-4 space-y-3">
-              <h3 className="text-sm font-semibold">{t("becomePartner")}</h3>
-              <input
-                value={createName}
-                onChange={(e) => setCreateName(e.target.value)}
-                placeholder={t("partnerName")}
-                className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-1.5 text-xs"
-              />
-              <input
-                value={createEmail}
-                onChange={(e) => setCreateEmail(e.target.value)}
-                placeholder={t("partnerEmail")}
-                className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-1.5 text-xs"
-              />
-              <button
-                onClick={createPartner}
-                disabled={creating}
-                className="rounded-lg bg-teal-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
-              >
-                {creating ? tc("loading") : t("createPartner")}
-              </button>
-            </div>
-          )}
+          {/* Tab bar */}
+          <Tabs tabs={tabList} active={tab} onChange={(k) => setTab(k as Tab)} />
 
-          {/* Partner info card */}
-          {partner && (
-            <>
-              <div className="mb-4 rounded-lg border border-gray-700 bg-gray-900 p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-sm font-semibold">{partner.name}</h2>
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[partner.status] || ""}`}>
-                        {partner.status}
+          {/* Portfolio tab */}
+          {tab === "portfolio" && (
+            <div className="space-y-3">
+              {portfolio.length === 0 ? (
+                <EmptyState title={t("noPortfolioClients")} />
+              ) : (
+                portfolio.map((org) => (
+                  <Card key={org.org_id} className="!p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-100">{org.display_name || org.org_name}</span>
+                        {org.plan && (
+                          <Badge variant="default">{org.plan}</Badge>
+                        )}
+                        {org.subscription_status && (
+                          <Badge variant={org.subscription_status === "ACTIVE" ? "success" : "default"}>
+                            {org.subscription_status}
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-gray-500">
+                        {org.business_count} {t("businessesCount")}
                       </span>
-                      {partner.tier && (
-                        <span className="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-400">
-                          {partner.tier}
-                        </span>
-                      )}
                     </div>
-                    <p className="mt-0.5 text-[10px] text-gray-500">{partner.contact_email}</p>
-                  </div>
-                  {partner.commission_pct !== null && (
-                    <div className="text-right">
-                      <div className="text-[10px] text-gray-500">{t("commission")}</div>
-                      <div className="text-sm font-bold text-teal-400">{partner.commission_pct}%</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Tab bar */}
-              <div className="mb-4 flex gap-1 rounded-lg border border-gray-800 bg-gray-900 p-1">
-                {tabs.map((tb) => (
-                  <button
-                    key={tb.key}
-                    onClick={() => setTab(tb.key)}
-                    className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                      tab === tb.key
-                        ? "bg-teal-600 text-white"
-                        : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-                    }`}
-                  >
-                    {tb.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Portfolio tab */}
-              {tab === "portfolio" && (
-                <div className="space-y-3">
-                  {portfolio.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-gray-800 px-4 py-8 text-center text-xs text-gray-600">
-                      {t("noPortfolioClients")}
-                    </div>
-                  ) : (
-                    portfolio.map((org) => (
-                      <div key={org.org_id} className="rounded-lg border border-gray-800 bg-gray-900 p-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-sm font-medium">{org.display_name || org.org_name}</span>
-                            {org.plan && (
-                              <span className="ml-2 rounded bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-400">
-                                {org.plan}
-                              </span>
-                            )}
-                            {org.subscription_status && (
-                              <span className={`ml-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                                org.subscription_status === "ACTIVE" ? "bg-green-900 text-green-300" : "bg-gray-800 text-gray-400"
-                              }`}>
-                                {org.subscription_status}
-                              </span>
-                            )}
+                    {org.businesses.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {org.businesses.map((b) => (
+                          <div key={b.id} className="flex items-center gap-2 rounded-lg border border-gray-800/50 bg-gray-900/50 px-2 py-1">
+                            <span className="text-[10px] font-medium text-gray-300">{b.name}</span>
+                            {b.category && <span className="text-[10px] text-gray-500">{b.category}</span>}
+                            {b.region && <Badge variant="default">{b.region}</Badge>}
                           </div>
-                          <span className="text-[10px] text-gray-500">
-                            {org.business_count} {t("businessesCount")}
-                          </span>
-                        </div>
-                        {org.businesses.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {org.businesses.map((b) => (
-                              <div key={b.id} className="flex items-center gap-2 rounded border border-gray-800 bg-gray-950 px-2 py-1">
-                                <span className="text-[10px] font-medium text-gray-300">{b.name}</span>
-                                {b.category && <span className="text-[10px] text-gray-500">{b.category}</span>}
-                                {b.region && <span className="rounded bg-gray-800 px-1 py-0.5 text-[10px] text-gray-500">{b.region}</span>}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        ))}
                       </div>
-                    ))
-                  )}
-                </div>
+                    )}
+                  </Card>
+                ))
               )}
-
-              {/* Referrals tab */}
-              {tab === "referrals" && (
-                <div className="space-y-3">
-                  {/* Create referral */}
-                  <div className="rounded-lg border border-gray-700 bg-gray-900 p-3">
-                    <div className="flex items-center gap-2">
-                      <input
-                        value={refEmail}
-                        onChange={(e) => setRefEmail(e.target.value)}
-                        placeholder={t("referralEmailPlaceholder")}
-                        className="flex-1 rounded-lg border border-gray-700 bg-gray-950 px-3 py-1.5 text-xs"
-                      />
-                      <button
-                        onClick={createReferral}
-                        disabled={creatingRef}
-                        className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
-                      >
-                        {creatingRef ? tc("loading") : t("createReferral")}
-                      </button>
-                    </div>
-                    {refMsg && <p className="mt-1 text-xs text-green-400">{refMsg}</p>}
-                  </div>
-
-                  {referrals.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-gray-800 px-4 py-8 text-center text-xs text-gray-600">
-                      {t("noReferrals")}
-                    </div>
-                  ) : (
-                    referrals.map((ref) => (
-                      <div key={ref.id} className="rounded-lg border border-gray-800 bg-gray-900 p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <code className="rounded bg-gray-800 px-2 py-0.5 text-[10px] text-teal-300">
-                              {ref.referral_code}
-                            </code>
-                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${REF_STATUS_COLORS[ref.status] || ""}`}>
-                              {ref.status}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-gray-600">
-                            {new Date(ref.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {ref.invitee_email && (
-                          <p className="mt-1 text-[10px] text-gray-500">{ref.invitee_email}</p>
-                        )}
-                        {ref.accepted_at && (
-                          <p className="mt-0.5 text-[10px] text-green-500">
-                            {t("acceptedAt")}: {new Date(ref.accepted_at).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {/* Analytics tab */}
-              {tab === "analytics" && analytics && (
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-center">
-                    <div className="text-2xl font-bold text-teal-400">{analytics.total_orgs}</div>
-                    <div className="text-[10px] text-gray-500">{t("partnerTotalOrgs")}</div>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-400">{analytics.total_businesses}</div>
-                    <div className="text-[10px] text-gray-500">{t("partnerTotalBusinesses")}</div>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-center">
-                    <div className="text-2xl font-bold text-green-400">{analytics.active_subscriptions}</div>
-                    <div className="text-[10px] text-gray-500">{t("partnerActiveSubs")}</div>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-center">
-                    <div className="text-2xl font-bold text-yellow-400">{analytics.total_referrals}</div>
-                    <div className="text-[10px] text-gray-500">{t("partnerTotalReferrals")}</div>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-center">
-                    <div className="text-2xl font-bold text-emerald-400">{analytics.accepted_referrals}</div>
-                    <div className="text-[10px] text-gray-500">{t("partnerAcceptedReferrals")}</div>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-center">
-                    <div className="text-2xl font-bold text-orange-400">${analytics.estimated_revenue}</div>
-                    <div className="text-[10px] text-gray-500">{t("partnerEstRevenue")}</div>
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
-        </div>
-      </div>
+
+          {/* Referrals tab */}
+          {tab === "referrals" && (
+            <div className="space-y-3">
+              {/* Create referral */}
+              <Card className="!p-3">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={refEmail}
+                    onChange={(e) => setRefEmail(e.target.value)}
+                    placeholder={t("referralEmailPlaceholder")}
+                    className="flex-1"
+                  />
+                  <Button size="sm" onClick={createReferral} loading={creatingRef}>
+                    {creatingRef ? tc("loading") : t("createReferral")}
+                  </Button>
+                </div>
+                {refMsg && <p className="mt-1 text-xs text-green-400">{refMsg}</p>}
+              </Card>
+
+              {referrals.length === 0 ? (
+                <EmptyState title={t("noReferrals")} />
+              ) : (
+                referrals.map((ref) => (
+                  <Card key={ref.id} className="!p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <code className="rounded-md bg-gray-800/50 px-2 py-0.5 text-[10px] text-teal-300">
+                          {ref.referral_code}
+                        </code>
+                        <Badge variant={REF_STATUS_BADGE[ref.status] || "default"}>
+                          {ref.status}
+                        </Badge>
+                      </div>
+                      <span className="text-[10px] text-gray-500">
+                        {new Date(ref.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {ref.invitee_email && (
+                      <p className="mt-1 text-[10px] text-gray-500">{ref.invitee_email}</p>
+                    )}
+                    {ref.accepted_at && (
+                      <p className="mt-0.5 text-[10px] text-green-500">
+                        {t("acceptedAt")}: {new Date(ref.accepted_at).toLocaleDateString()}
+                      </p>
+                    )}
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Analytics tab */}
+          {tab === "analytics" && analytics && (
+            <div className="grid grid-cols-3 gap-3">
+              <Card className="text-center">
+                <div className="text-2xl font-bold text-teal-400">{analytics.total_orgs}</div>
+                <div className="text-[10px] text-gray-500">{t("partnerTotalOrgs")}</div>
+              </Card>
+              <Card className="text-center">
+                <div className="text-2xl font-bold text-blue-400">{analytics.total_businesses}</div>
+                <div className="text-[10px] text-gray-500">{t("partnerTotalBusinesses")}</div>
+              </Card>
+              <Card className="text-center">
+                <div className="text-2xl font-bold text-green-400">{analytics.active_subscriptions}</div>
+                <div className="text-[10px] text-gray-500">{t("partnerActiveSubs")}</div>
+              </Card>
+              <Card className="text-center">
+                <div className="text-2xl font-bold text-yellow-400">{analytics.total_referrals}</div>
+                <div className="text-[10px] text-gray-500">{t("partnerTotalReferrals")}</div>
+              </Card>
+              <Card className="text-center">
+                <div className="text-2xl font-bold text-emerald-400">{analytics.accepted_referrals}</div>
+                <div className="text-[10px] text-gray-500">{t("partnerAcceptedReferrals")}</div>
+              </Card>
+              <Card className="text-center">
+                <div className="text-2xl font-bold text-orange-400">${analytics.estimated_revenue}</div>
+                <div className="text-[10px] text-gray-500">{t("partnerEstRevenue")}</div>
+              </Card>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

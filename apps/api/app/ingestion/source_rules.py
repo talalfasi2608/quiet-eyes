@@ -51,6 +51,16 @@ CATEGORY_RSS_FEEDS: dict[str, list[dict[str, str]]] = {
             "url": "https://techcrunch.com/feed/",
         },
     ],
+    "restaurant": [
+        {
+            "name": "Eater",
+            "url": "https://www.eater.com/rss/index.xml",
+        },
+        {
+            "name": "Serious Eats",
+            "url": "https://www.seriouseats.com/feeds/serious-eats",
+        },
+    ],
     "saas": [
         {
             "name": "Hacker News",
@@ -61,6 +71,28 @@ CATEGORY_RSS_FEEDS: dict[str, list[dict[str, str]]] = {
             "url": "https://www.producthunt.com/feed",
         },
     ],
+    "real_estate": [
+        {
+            "name": "Inman News",
+            "url": "https://www.inman.com/feed/",
+        },
+    ],
+    "health_wellness": [
+        {
+            "name": "MindBodyGreen",
+            "url": "https://www.mindbodygreen.com/rss",
+        },
+    ],
+    "marketing_agency": [
+        {
+            "name": "MarketingProfs",
+            "url": "https://www.marketingprofs.com/rss/topic/all",
+        },
+        {
+            "name": "Search Engine Journal",
+            "url": "https://www.searchenginejournal.com/feed/",
+        },
+    ],
 }
 
 
@@ -69,6 +101,7 @@ def build_queries_for_business(
     category: str | None,
     location: str | None,
     competitor_names: list[str],
+    keywords: str | None = None,
 ) -> list[str]:
     """Build search queries for a business and its competitors."""
     templates = CATEGORY_TEMPLATES.get(
@@ -92,6 +125,15 @@ def build_queries_for_business(
     for comp in competitor_names:
         queries.append(f'"{comp}" vs "{name}"')
         queries.append(f'"{comp}" review')
+
+    # Keyword-based queries from onboarding metadata
+    if keywords:
+        for kw in keywords.split(","):
+            kw = kw.strip()
+            if kw:
+                queries.append(f'"{name}" {kw}')
+                if location_str:
+                    queries.append(f"{kw} {location_str}")
 
     return queries
 

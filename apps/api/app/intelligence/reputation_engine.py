@@ -99,9 +99,28 @@ def _extract_rating(text: str) -> int | None:
     return None
 
 
-def _generate_reply_draft(business_name: str, review_text: str) -> str:
+def _generate_reply_draft(business_name: str, review_text: str, metadata: dict | None = None) -> str:
     """Generate a professional reply draft for a negative review."""
-    snippet = review_text[:100].strip()
+    metadata = metadata or {}
+    tone = metadata.get("tone", "")
+
+    # Try AI-generated reply
+    from app.ai import chat_completion
+
+    tone_instruction = f" Use a {tone} tone." if tone else ""
+    system = (
+        f"You are a customer service representative for {business_name}. "
+        f"Write a professional, empathetic reply to a negative review.{tone_instruction}"
+    )
+    user_msg = f"Negative review: {review_text[:500]}\n\nWrite a concise reply (2-4 sentences)."
+    if metadata.get("description"):
+        user_msg += f"\nBusiness description: {metadata['description']}"
+
+    ai_reply = chat_completion(system, user_msg, max_tokens=200, temperature=0.7)
+    if ai_reply:
+        return ai_reply
+
+    # Fallback to template
     return (
         f"Dear customer, thank you for sharing your feedback with {business_name}. "
         f"We sincerely apologize for the experience you described. "
@@ -183,7 +202,8 @@ def run_reputation_engine(db: Session, business_id: uuid.UUID) -> int:
 
         # For negative reviews, auto-create a reply draft action + approval
         if sentiment == ReviewSentiment.NEG:
-            reply_text = _generate_reply_draft(business.name, text)
+            biz_metadata = business.client_metadata or {}
+            reply_text = _generate_reply_draft(business.name, text, biz_metadata)
 
             action = Action(
                 business_id=business_id,

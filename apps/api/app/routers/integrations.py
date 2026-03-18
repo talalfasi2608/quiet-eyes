@@ -450,3 +450,141 @@ def execute_crm_sync(db: Session, biz: Business, user: User, action_payload: dic
     ))
 
     db.commit()
+
+
+# ── Facebook / Instagram Connectors ──
+
+
+@router.post(
+    "/businesses/{business_id}/integrations/facebook",
+    response_model=IntegrationOut,
+    status_code=201,
+)
+def connect_facebook_page(
+    body: dict,
+    biz: Business = Depends(get_business_scoped),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission(Permission.MANAGE_INTEGRATIONS)),
+):
+    """Connect a Facebook Page for ingestion."""
+    config = {
+        "access_token": body.get("access_token", ""),
+        "page_id": body.get("page_id", ""),
+        "page_name": body.get("page_name", "Facebook Page"),
+    }
+
+    integration = Integration(
+        business_id=biz.id,
+        type=IntegrationType.FACEBOOK_PAGE,
+        name=body.get("name", f"Facebook: {config['page_name']}"),
+        config=config,
+        is_enabled=True,
+    )
+    db.add(integration)
+
+    db.add(AuditLog(
+        org_id=biz.org_id,
+        user_id=user.id,
+        event_type="INTEGRATION_CREATED",
+        entity_type="integration",
+        entity_id=integration.id,
+        meta={"name": integration.name, "type": "FACEBOOK_PAGE"},
+    ))
+
+    db.commit()
+    db.refresh(integration)
+    return integration
+
+
+@router.post(
+    "/businesses/{business_id}/integrations/instagram",
+    response_model=IntegrationOut,
+    status_code=201,
+)
+def connect_instagram_account(
+    body: dict,
+    biz: Business = Depends(get_business_scoped),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission(Permission.MANAGE_INTEGRATIONS)),
+):
+    """Connect an Instagram Business account for ingestion."""
+    config = {
+        "access_token": body.get("access_token", ""),
+        "ig_user_id": body.get("ig_user_id", ""),
+        "account_name": body.get("account_name", "Instagram Account"),
+    }
+
+    integration = Integration(
+        business_id=biz.id,
+        type=IntegrationType.INSTAGRAM,
+        name=body.get("name", f"Instagram: @{config['account_name']}"),
+        config=config,
+        is_enabled=True,
+    )
+    db.add(integration)
+
+    db.add(AuditLog(
+        org_id=biz.org_id,
+        user_id=user.id,
+        event_type="INTEGRATION_CREATED",
+        entity_type="integration",
+        entity_id=integration.id,
+        meta={"name": integration.name, "type": "INSTAGRAM"},
+    ))
+
+    db.commit()
+    db.refresh(integration)
+    return integration
+
+
+@router.post("/integrations/{integration_id}/sync")
+async def sync_integration(
+    integration_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission(Permission.MANAGE_INTEGRATIONS)),
+):
+    """Manually trigger a sync for a Facebook/Instagram connector."""
+    integ = db.get(Integration, integration_id)
+    if not integ:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    biz = db.get(Business, integ.business_id)
+    if not biz or biz.org_id != user.org_id:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    if integ.type not in (IntegrationType.FACEBOOK_PAGE, IntegrationType.INSTAGRAM, IntegrationType.META):
+        raise HTTPException(status_code=400, detail="Sync only supported for Facebook/Instagram connectors")
+
+    from app.connectors.registry import sync_connector
+    result = await sync_connector(db, integ, biz.id)
+    db.commit()
+    return result
+
+
+@router.get("/integrations/{integration_id}/health")
+async def connector_health(
+    integration_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Check health of a Facebook/Instagram connector."""
+    integ = db.get(Integration, integration_id)
+    if not integ:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    biz = db.get(Business, integ.business_id)
+    if not biz or biz.org_id != user.org_id:
+        raise HTTPException(status_code=404, detail="Integration not found")
+
+    from app.connectors.registry import check_connector_health
+    health = await check_connector_health(integ)
+
+    config = integ.config or {}
+    return {
+        "integration_id": str(integ.id),
+        "type": integ.type.value,
+        "name": integ.name,
+        "is_enabled": integ.is_enabled,
+        "health": health,
+        "last_sync": config.get("last_sync"),
+        "last_sync_status": config.get("last_sync_status"),
+        "last_sync_items": config.get("last_sync_items"),
+        "last_sync_new": config.get("last_sync_new"),
+    }

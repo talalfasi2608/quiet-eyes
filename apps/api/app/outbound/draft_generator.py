@@ -100,6 +100,71 @@ _CRM_TEMPLATES = {
 }
 
 
+def _ai_generate_draft(
+    channel: OutboundChannel,
+    biz_name: str,
+    category: str,
+    intent: str,
+    name: str,
+    prompt: str | None,
+    metadata: dict | None = None,
+) -> dict | None:
+    """Try to generate a draft using OpenAI. Returns None on failure."""
+    from app.ai import chat_completion
+
+    metadata = metadata or {}
+
+    channel_instructions = {
+        OutboundChannel.EMAIL: "Write a professional outbound email with a subject line. Keep it concise (3-5 sentences body).",
+        OutboundChannel.WHATSAPP: "Write a short, friendly WhatsApp message (2-3 sentences). Casual but professional.",
+        OutboundChannel.LINKEDIN: "Write a LinkedIn connection/message (2-4 sentences). Professional networking tone.",
+        OutboundChannel.CONTENT: "Write a social media post with hashtags. Engaging, thought-leadership style.",
+        OutboundChannel.CRM: "Write an internal CRM follow-up note with recommended next steps.",
+    }
+
+    tone = metadata.get("tone", "")
+    tone_instruction = f" Use a {tone} tone." if tone else ""
+
+    system = (
+        "You are a marketing copywriter for the business. "
+        "Write compelling, personalized outbound messages. Be concise and action-oriented."
+        f"{tone_instruction}"
+    )
+
+    user_msg = (
+        f"Business: {biz_name}\nIndustry: {category}\n"
+        f"Channel: {channel.value}\nRecipient name: {name}\n"
+        f"Lead intent: {intent}\n"
+        f"Instructions: {channel_instructions.get(channel, 'Write an appropriate message.')}\n"
+    )
+    if metadata.get("description"):
+        user_msg += f"Business description: {metadata['description']}\n"
+    if metadata.get("differentiation"):
+        user_msg += f"What makes us different: {metadata['differentiation']}\n"
+    if metadata.get("ideal_customer"):
+        user_msg += f"Ideal customer: {metadata['ideal_customer']}\n"
+    if metadata.get("services"):
+        user_msg += f"Services/products: {metadata['services']}\n"
+    if prompt:
+        user_msg += f"Additional guidance: {prompt}\n"
+
+    if channel == OutboundChannel.EMAIL:
+        user_msg += "\nReturn the subject on the first line prefixed with 'Subject: ', then a blank line, then the body."
+
+    result = chat_completion(system, user_msg, max_tokens=512, temperature=0.7)
+    if not result:
+        return None
+
+    subject = None
+    body = result.strip()
+    if channel == OutboundChannel.EMAIL and body.lower().startswith("subject:"):
+        lines = body.split("\n", 2)
+        subject = lines[0].split(":", 1)[1].strip()
+        body = "\n".join(lines[1:]).strip()
+
+    return {"subject": subject, "body": body}
+
+
 def generate_draft(
     channel: OutboundChannel,
     biz: Business,
@@ -108,6 +173,7 @@ def generate_draft(
 ) -> dict:
     """
     Generate an outbound draft for the given channel.
+    Uses OpenAI when available, falls back to templates.
 
     Returns dict with keys: subject (optional), body, reason, evidence_url,
     recipient_name, recipient_handle.
@@ -126,13 +192,30 @@ def generate_draft(
         confidence = lead.confidence
         if lead.mention:
             evidence_url = lead.mention.url
-            # Use author from snippet as name hint
             name = lead.mention.title or "there"
 
     category = biz.category or "your industry"
     category_tag = category.lower().replace(" ", "").replace("&", "and")
     biz_name = biz.name
 
+    reason = f"AI-generated based on {intent} lead signal (score: {score}, confidence: {confidence}%)"
+    if prompt:
+        reason += f". User guidance: {prompt}"
+
+    # Try OpenAI first
+    metadata = biz.client_metadata or {}
+    ai_draft = _ai_generate_draft(channel, biz_name, category, intent, name, prompt, metadata)
+    if ai_draft:
+        return {
+            "subject": ai_draft.get("subject"),
+            "body": ai_draft["body"],
+            "reason": reason,
+            "evidence_url": evidence_url,
+            "recipient_name": name if name != "there" else None,
+            "recipient_handle": recipient_handle,
+        }
+
+    # Fallback to templates
     fmt = {
         "name": name,
         "biz_name": biz_name,
@@ -144,9 +227,6 @@ def generate_draft(
     }
 
     subject = None
-    reason = f"AI-generated based on {intent} lead signal (score: {score}, confidence: {confidence}%)"
-    if prompt:
-        reason += f". User guidance: {prompt}"
 
     if channel == OutboundChannel.EMAIL:
         tpl = _EMAIL_TEMPLATES.get(intent, _EMAIL_TEMPLATES["DEFAULT"])
@@ -167,7 +247,6 @@ def generate_draft(
     else:
         body = f"Outbound message for {channel.value}"
 
-    # If user provided a custom prompt, append it as guidance
     if prompt:
         body = body.rstrip() + f"\n\n---\nContext: {prompt}"
 

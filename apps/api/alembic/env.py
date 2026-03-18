@@ -7,6 +7,16 @@ from sqlalchemy import engine_from_config, pool
 from app.database import Base
 from app.models import *  # noqa: F401,F403
 
+
+# Monkey-patch PostgreSQL ENUM to always check if the type exists before
+# creating it. This prevents "type already exists" errors when multiple
+# migrations define the same enum types via sa.Enum in create_table.
+from sqlalchemy.dialects.postgresql.named_types import ENUM as _PG_ENUM
+_orig_create = _PG_ENUM.create
+def _safe_create(self, bind=None, checkfirst=True):
+    return _orig_create(self, bind=bind, checkfirst=True)
+_PG_ENUM.create = _safe_create
+
 config = context.config
 
 if config.config_file_name is not None:

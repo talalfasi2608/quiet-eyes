@@ -68,32 +68,73 @@ def _build_draft(
     audience_summary: str,
     targeting: list[str],
 ) -> dict:
+    import json
+    from app.ai import chat_completion
+
     category = biz.category or "your industry"
     biz_name = biz.name
     cta = PLATFORM_CTA.get(body.platform, "Learn More")
 
-    headlines = OBJECTIVE_HEADLINES.get(body.objective, OBJECTIVE_HEADLINES[CampaignObjective.LEADS])
-
-    creatives = []
-    for i, headline_tpl in enumerate(headlines):
-        headline = headline_tpl.format(category=category, business_name=biz_name)
-        creatives.append({
-            "variant": i + 1,
-            "headline": headline,
-            "primary_text": f"{biz_name} helps you with {category}. See how we compare.",
-            "cta": cta,
-        })
-    # Add 1-2 more variants
-    creatives.append({
-        "variant": len(creatives) + 1,
-        "headline": f"{biz_name} — trusted by professionals",
-        "primary_text": f"Join thousands who rely on {biz_name} for {category}.",
-        "cta": cta,
-    })
-
     budget_suggestion = body.daily_budget
     if body.objective == CampaignObjective.SALES:
         budget_suggestion = max(budget_suggestion, 75)
+
+    # Try AI-generated creatives
+    metadata = biz.client_metadata or {}
+    ai_creatives = None
+    ai_prompt = (
+        f"Generate 3 ad creative variants for a {body.objective.value} campaign on {body.platform}.\n"
+        f"Business: {biz_name}\nIndustry: {category}\n"
+        f"Audience: {audience_summary}\nCTA button: {cta}\n"
+    )
+    if metadata.get("description"):
+        ai_prompt += f"Business description: {metadata['description']}\n"
+    if metadata.get("differentiation"):
+        ai_prompt += f"Value proposition: {metadata['differentiation']}\n"
+    if metadata.get("ideal_customer"):
+        ai_prompt += f"Ideal customer: {metadata['ideal_customer']}\n"
+    if metadata.get("tone"):
+        ai_prompt += f"Tone: {metadata['tone']}\n"
+    ai_prompt += (
+        f"\nReturn ONLY a JSON array with objects containing: variant (int), headline (str), primary_text (str), cta (str).\n"
+        f"Keep headlines under 40 chars. Primary text under 125 chars. Be compelling and specific."
+    )
+    ai_result = chat_completion(
+        "You are an expert digital marketing copywriter. Return only valid JSON, no markdown.",
+        ai_prompt,
+        max_tokens=512,
+        temperature=0.8,
+    )
+    if ai_result:
+        try:
+            # Strip markdown code fences if present
+            cleaned = ai_result.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
+            ai_creatives = json.loads(cleaned)
+        except (json.JSONDecodeError, IndexError):
+            ai_creatives = None
+
+    if ai_creatives and isinstance(ai_creatives, list):
+        creatives = ai_creatives
+    else:
+        # Fallback to template-based creatives
+        headlines = OBJECTIVE_HEADLINES.get(body.objective, OBJECTIVE_HEADLINES[CampaignObjective.LEADS])
+        creatives = []
+        for i, headline_tpl in enumerate(headlines):
+            headline = headline_tpl.format(category=category, business_name=biz_name)
+            creatives.append({
+                "variant": i + 1,
+                "headline": headline,
+                "primary_text": f"{biz_name} helps you with {category}. See how we compare.",
+                "cta": cta,
+            })
+        creatives.append({
+            "variant": len(creatives) + 1,
+            "headline": f"{biz_name} — trusted by professionals",
+            "primary_text": f"Join thousands who rely on {biz_name} for {category}.",
+            "cta": cta,
+        })
 
     return {
         "objective": body.objective.value,

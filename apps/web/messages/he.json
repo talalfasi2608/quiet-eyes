@@ -23,22 +23,172 @@
     "orgName": "שם הארגון",
     "noAccount": "אין לכם חשבון?",
     "hasAccount": "כבר יש לכם חשבון?",
-    "invalidCredentials": "אימייל או סיסמה שגויים"
+    "invalidCredentials": "אימייל או סיסמה שגויים",
+    "fullName": "שם מלא",
+    "role": "התפקיד שלך",
+    "selectRole": "בחרו תפקיד",
+    "roleBizOwner": "בעל עסק",
+    "roleMarketer": "משווק",
+    "roleAgency": "סוכנות",
+    "roleOther": "אחר"
   },
   "onboarding": {
     "title": "הגדרת העסק",
     "subtitle": "ספרו לנו על העסק שלכם כדי שנוכל להתחיל למצוא הזדמנויות",
     "businessName": "שם העסק",
+    "businessNamePlaceholder": "לדוגמה: שיווק אקמה",
     "category": "קטגוריה",
+    "selectCategory": "בחרו קטגוריה",
     "location": "מיקום",
+    "locationPlaceholder": "לדוגמה: תל אביב, ישראל",
     "website": "כתובת אתר",
     "language": "שפה מועדפת",
     "competitors": "מתחרים",
-    "competitorName": "שם המתחרה",
+    "competitorName": "מתחרה",
     "competitorUrl": "אתר המתחרה",
     "addCompetitor": "הוספת מתחרה",
     "competitorHint": "הוסיפו עד 3 מתחרים למעקב",
-    "finish": "להתחיל!"
+    "competitorHintV2": "הוסיפו את המתחרים העיקריים שלכם כדי שנעקוב אחריהם (עד 10)",
+    "finish": "להתחיל!",
+    "stepOf": "{current}% הושלם",
+
+    "step1Label": "עסק",
+    "step2Label": "לקוחות",
+    "step3Label": "שיווק",
+    "step4Label": "מודיעין",
+    "step5Label": "הגדרה",
+
+    "step1Title": "ספרו לנו על העסק שלכם",
+    "step1Subtitle": "מידע בסיסי יעזור לנו להתאים הכל לצרכים שלכם",
+    "step2Title": "קהל היעד והערך שלכם",
+    "step2Subtitle": "עזרו לנו להבין את מי אתם משרתים ומה אתם מציעים",
+    "step3Title": "שיווק וצמיחה",
+    "step3Subtitle": "איך אתם מגיעים ללקוחות היום ומה יעדי הצמיחה שלכם",
+    "step4Title": "מודיעין ומתחרים",
+    "step4Subtitle": "אחרי מי לעקוב ומה לנטר בשוק שלכם",
+
+    "descriptionLabel": "תיאור קצר",
+    "descriptionPlaceholder": "תארו בקצרה מה העסק שלכם עושה",
+    "serviceArea": "אזור שירות",
+    "selectServiceArea": "בחרו אזור שירות",
+
+    "idealCustomer": "מיהו הלקוח האידיאלי שלכם?",
+    "idealCustomerPlaceholder": "לדוגמה: בעלי עסקים קטנים שמחפשים אוטומציה שיווקית",
+    "painPoints": "אילו בעיות אתם פותרים?",
+    "painPointsPlaceholder": "לדוגמה: הם מבזבזים זמן על פנייה ידנית ללקוחות",
+    "mainServices": "שירותים/מוצרים עיקריים",
+    "mainServicesPlaceholder": "לדוגמה: קידום אורגני, PPC, ניהול רשתות חברתיות",
+    "differentiation": "מה מייחד אתכם?",
+    "differentiationPlaceholder": "לדוגמה: תובנות מבוססות AI עם מגע אנושי",
+    "targetLocations": "אזורי יעד",
+    "targetLocationsPlaceholder": "לדוגמה: תל אביב, ירושלים, חיפה",
+    "avoidCustomers": "לקוחות שלא מתאימים",
+    "avoidCustomersPlaceholder": "לדוגמה: חברות ארגוניות עם 500+ עובדים",
+    "avoidCustomersHint": "אופציונלי — עוזר לנו לסנן לידים לא רלוונטיים",
+
+    "acquisitionChannels": "איך אתם מגיעים ללקוחות היום?",
+    "paidAds": "האם אתם מפרסמים בתשלום?",
+    "crmLabel": "האם אתם משתמשים ב-CRM?",
+    "contactChannels": "ערוצי תקשורת מועדפים",
+    "leadTarget": "יעד לידים חודשי",
+    "leadTargetPlaceholder": "לדוגמה: 50",
+    "adBudget": "תקציב פרסום חודשי",
+    "adBudgetHint": "אופציונלי — עוזר לנו לכייל המלצות",
+    "selectOption": "בחרו אפשרות",
+
+    "keywords": "מילות מפתח חשובות",
+    "keywordsPlaceholder": "לדוגמה: אוטומציה שיווקית, לידים AI, כלי צמיחה",
+    "opportunityTypes": "אילו הזדמנויות הכי חשובות לכם?",
+    "communicationTone": "טון תקשורת",
+    "reportFrequency": "תדירות דוחות",
+
+    "setupComplete": "סביבת ה-AI שלכם מוכנה!",
+    "setupCompleteSubtitle": "ניתחנו את העסק שלכם והכנו לוח בקרה מותאם אישית",
+    "goToDashboard": "עברו ללוח הבקרה",
+
+    "categories": {
+      "restaurant": "מסעדה",
+      "retail": "קמעונאות",
+      "saas": "SaaS",
+      "real_estate": "נדל\"ן",
+      "health_wellness": "בריאות ואיכות חיים",
+      "beauty_spa": "יופי וספא",
+      "professional_services": "שירותים מקצועיים",
+      "ecommerce": "מסחר אלקטרוני",
+      "education": "חינוך",
+      "automotive": "רכב",
+      "travel_tourism": "תיירות ונופש",
+      "construction": "בנייה",
+      "legal": "משפטי",
+      "financial_services": "שירותים פיננסיים",
+      "marketing_agency": "סוכנות שיווק",
+      "other": "אחר"
+    },
+    "serviceAreas": {
+      "local": "מקומי",
+      "national": "ארצי",
+      "international": "בינלאומי",
+      "online": "אונליין בלבד"
+    },
+    "channels": {
+      "word_of_mouth": "מפה לאוזן",
+      "social_media": "רשתות חברתיות",
+      "google_ads": "Google Ads",
+      "seo": "קידום אורגני",
+      "referrals": "הפניות",
+      "cold_outreach": "פנייה קרה",
+      "content_marketing": "שיווק תוכן",
+      "events": "אירועים",
+      "partnerships": "שותפויות",
+      "other": "אחר"
+    },
+    "paidAdsOptions": {
+      "no": "לא",
+      "yes_small": "כן — תקציב קטן",
+      "yes_medium": "כן — תקציב בינוני",
+      "yes_large": "כן — תקציב גדול"
+    },
+    "crmOptions": {
+      "no": "לא",
+      "hubspot": "HubSpot",
+      "salesforce": "Salesforce",
+      "pipedrive": "Pipedrive",
+      "monday": "Monday",
+      "other": "אחר"
+    },
+    "contactOptions": {
+      "whatsapp": "וואטסאפ",
+      "email": "אימייל",
+      "phone": "טלפון",
+      "linkedin": "לינקדאין",
+      "sms": "SMS"
+    },
+    "opportunities": {
+      "new_leads": "לידים חדשים",
+      "market_trends": "מגמות שוק",
+      "competitor_moves": "מהלכי מתחרים",
+      "customer_reviews": "ביקורות לקוחות",
+      "campaign_ideas": "רעיונות לקמפיינים"
+    },
+    "tones": {
+      "professional": "מקצועי",
+      "friendly": "ידידותי",
+      "short_direct": "קצר וישיר",
+      "aggressive": "אגרסיבי",
+      "premium": "פרימיום"
+    },
+    "frequencies": {
+      "daily": "יומי",
+      "weekly": "שבועי",
+      "monthly": "חודשי"
+    },
+    "setup": {
+      "analyzingBusiness": "מנתחים את העסק שלכם...",
+      "scanningWeb": "סורקים את הרשת לאזכורים...",
+      "identifyingCompetitors": "מזהים מתחרים...",
+      "buildingProfile": "בונים את פרופיל ה-AI שלכם...",
+      "preparingOpportunities": "מכינים את ההזדמנויות הראשונות שלכם..."
+    }
   },
   "dashboard": {
     "chatPlaceholder": "שאלו את QuietEyes כל שאלה על השוק שלכם...",
@@ -565,6 +715,30 @@
     "complianceSection": "תאימות",
     "dataRetention": "שמירת נתונים",
     "retentionPolicy": "יומני ביקורת נשמרים בהתאם לדרישות התאימות של האזור שלך"
+  },
+  "sidebar": {
+    "dashboard": "\u05DC\u05D5\u05D7 \u05D1\u05E7\u05E8\u05D4",
+    "leads": "\u05DC\u05D9\u05D3\u05D9\u05DD",
+    "campaigns": "\u05E7\u05DE\u05E4\u05D9\u05D9\u05E0\u05D9\u05DD",
+    "outbound": "\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05D9\u05D5\u05E6\u05D0\u05D5\u05EA",
+    "competitors": "\u05DE\u05EA\u05D7\u05E8\u05D9\u05DD",
+    "trends": "\u05DE\u05D2\u05DE\u05D5\u05EA",
+    "reputation": "\u05DE\u05D5\u05E0\u05D9\u05D8\u05D9\u05DF",
+    "predictions": "\u05EA\u05D7\u05D6\u05D9\u05D5\u05EA",
+    "autopilot": "\u05D8\u05D9\u05D9\u05E1 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9",
+    "playbooks": "\u05E4\u05DC\u05D9\u05D9\u05D1\u05D5\u05E7\u05D9\u05DD",
+    "library": "\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4",
+    "optimizations": "\u05D0\u05D5\u05E4\u05D8\u05D9\u05DE\u05D9\u05D6\u05E6\u05D9\u05D5\u05EA",
+    "integrations": "\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D5\u05EA",
+    "billing": "\u05D7\u05D9\u05D5\u05D1",
+    "governance": "\u05DE\u05DE\u05E9\u05DC",
+    "security": "\u05D0\u05D1\u05D8\u05D7\u05D4",
+    "collapse": "\u05E6\u05DE\u05E6\u05DD \u05EA\u05E4\u05E8\u05D9\u05D8 \u05E6\u05D3",
+    "expand": "\u05D4\u05E8\u05D7\u05D1 \u05EA\u05E4\u05E8\u05D9\u05D8 \u05E6\u05D3"
+  },
+  "topbar": {
+    "askAi": "\u05E9\u05D0\u05DC\u05D5 \u05D0\u05EA \u05D4-AI \u05DB\u05DC \u05D3\u05D1\u05E8...",
+    "search": "\u05D7\u05D9\u05E4\u05D5\u05E9"
   },
   "landing": {
     "hero": "העוזר החכם שלכם למודיעין שוק",

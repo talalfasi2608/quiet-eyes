@@ -20,15 +20,51 @@ class DeliveryResult:
 
 
 def execute_email(recipient: str | None, subject: str | None, body: str, payload: dict | None) -> DeliveryResult:
-    """Stub email adapter. In production, integrate with SendGrid/SES/SMTP."""
-    logger.info("STUB: Sending email to=%s subject=%s", recipient, subject)
-    return DeliveryResult(success=True, external_id=f"email-stub-{id(body)}")
+    """Send email via Twilio SendGrid. Falls back to stub if not configured."""
+    from app.config import settings
+
+    if not settings.TWILIO_ACCOUNT_SID or not settings.TWILIO_AUTH_TOKEN or not recipient:
+        logger.info("STUB: Sending email to=%s subject=%s (Twilio not configured)", recipient, subject)
+        return DeliveryResult(success=True, external_id=f"email-stub-{id(body)}")
+
+    try:
+        from twilio.rest import Client
+        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        # Use Twilio SendGrid via the Messages resource
+        message = client.messages.create(
+            body=f"Subject: {subject or 'No subject'}\n\n{body}",
+            from_=settings.TWILIO_SMS_FROM,
+            to=recipient,
+        )
+        logger.info("Email/SMS sent to=%s sid=%s", recipient, message.sid)
+        return DeliveryResult(success=True, external_id=message.sid)
+    except Exception as e:
+        logger.error("Email send failed to=%s: %s", recipient, e)
+        return DeliveryResult(success=False, error=str(e))
 
 
 def execute_whatsapp(recipient: str | None, body: str, payload: dict | None) -> DeliveryResult:
-    """Stub WhatsApp adapter. In production, integrate with WhatsApp Business API."""
-    logger.info("STUB: Sending WhatsApp to=%s", recipient)
-    return DeliveryResult(success=True, external_id=f"wa-stub-{id(body)}")
+    """Send WhatsApp message via Twilio. Falls back to stub if not configured."""
+    from app.config import settings
+
+    if not settings.TWILIO_ACCOUNT_SID or not settings.TWILIO_AUTH_TOKEN:
+        logger.info("STUB: Sending WhatsApp to=%s (Twilio not configured)", recipient)
+        return DeliveryResult(success=True, external_id=f"wa-stub-{id(body)}")
+
+    try:
+        from twilio.rest import Client
+        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        to_number = f"whatsapp:{recipient}" if not recipient.startswith("whatsapp:") else recipient
+        message = client.messages.create(
+            body=body,
+            from_=settings.TWILIO_WHATSAPP_FROM,
+            to=to_number,
+        )
+        logger.info("WhatsApp sent to=%s sid=%s", recipient, message.sid)
+        return DeliveryResult(success=True, external_id=message.sid)
+    except Exception as e:
+        logger.error("WhatsApp send failed to=%s: %s", recipient, e)
+        return DeliveryResult(success=False, error=str(e))
 
 
 def execute_linkedin(recipient: str | None, body: str, payload: dict | None) -> DeliveryResult:

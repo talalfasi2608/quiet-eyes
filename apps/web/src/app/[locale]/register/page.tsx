@@ -13,6 +13,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [orgName, setOrgName] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,6 +35,11 @@ export default function RegisterPage() {
         }),
       });
       setTokens(res.access_token, res.refresh_token);
+
+      // Store name and role for onboarding
+      if (fullName) localStorage.setItem("qe_onboarding_name", fullName);
+      if (role) localStorage.setItem("qe_onboarding_role", role);
+
       router.push("/onboarding");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Registration failed");
@@ -40,6 +47,10 @@ export default function RegisterPage() {
       setLoading(false);
     }
   }
+
+  const inputClass =
+    "w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:border-white focus:outline-none focus:ring-1 focus:ring-white/20";
+  const labelClass = "mb-1 block text-sm text-gray-400";
 
   return (
     <>
@@ -55,7 +66,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm text-gray-400">
+              <label className={labelClass}>
                 {t("auth.orgName")}
               </label>
               <input
@@ -63,11 +74,40 @@ export default function RegisterPage() {
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
                 required
-                className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm focus:border-white focus:outline-none"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-gray-400">
+              <label className={labelClass}>
+                {t("auth.fullName")}
+              </label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>
+                {t("auth.role")}
+              </label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                required
+                className={inputClass}
+              >
+                <option value="">{t("auth.selectRole")}</option>
+                <option value="business_owner">{t("auth.roleBizOwner")}</option>
+                <option value="marketer">{t("auth.roleMarketer")}</option>
+                <option value="agency">{t("auth.roleAgency")}</option>
+                <option value="other">{t("auth.roleOther")}</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>
                 {t("common.email")}
               </label>
               <input
@@ -75,11 +115,11 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm focus:border-white focus:outline-none"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-gray-400">
+              <label className={labelClass}>
                 {t("common.password")}
               </label>
               <input
@@ -88,7 +128,7 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm focus:border-white focus:outline-none"
+                className={inputClass}
               />
             </div>
 

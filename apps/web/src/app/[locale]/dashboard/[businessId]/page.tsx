@@ -6,7 +6,14 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { useRouter } from "@/i18n/navigation";
-import Topbar from "@/components/Topbar";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
+import { Modal } from "@/components/ui/Modal";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { CommandInput } from "@/components/ui/CommandInput";
 
 /* ── Types ── */
 
@@ -159,6 +166,7 @@ export default function DashboardPage() {
   const [exports, setExports] = useState<ExportItem[]>([]);
   const [quotaError, setQuotaError] = useState<{ resource: string; current: number; limit: number } | null>(null);
   const [topRecs, setTopRecs] = useState<Array<{ id: string; type: string; title: string; summary: string | null; confidence: number; impact_score: number }>>([]);
+  const [chatOpen, setChatOpen] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   function handleApiError(e: unknown): boolean {
@@ -350,7 +358,6 @@ export default function DashboardPage() {
           },
         }),
       });
-      // Reload both recommended (to show feedback) and approvals
       loadFeed();
     } catch {
       /* ignore */
@@ -362,6 +369,7 @@ export default function DashboardPage() {
     if (!msg || !token) return;
     setChatInput("");
     setChatLoading(true);
+    setChatOpen(true);
     try {
       const history = await apiFetch<ChatMsg[]>(
         `/businesses/${businessId}/chat`,
@@ -393,303 +401,208 @@ export default function DashboardPage() {
   }
 
   const chips = [
-    { key: "findLeads", label: t("chips.findLeads") },
-    { key: "draftReply", label: t("chips.draftReply") },
-    { key: "showMentions", label: t("chips.showMentions") },
-    { key: "analyzeTrends", label: t("chips.analyzeTrends") },
+    t("chips.findLeads"),
+    t("chips.draftReply"),
+    t("chips.showMentions"),
+    t("chips.analyzeTrends"),
   ];
+
+  // Load both recommended and approvals for the two-column layout
+  const loadAllFeeds = useCallback(async () => {
+    if (!token) return;
+    setFeedLoading(true);
+    try {
+      const [recData, appData] = await Promise.all([
+        apiFetch<(UnifiedFeedItem | FeedItem)[]>(
+          `/businesses/${businessId}/feed?tab=recommended`,
+          { token },
+        ).catch(() => [] as (UnifiedFeedItem | FeedItem)[]),
+        apiFetch<ApprovalItem[]>(
+          `/businesses/${businessId}/approvals?status=PENDING`,
+          { token },
+        ).catch(() => [] as ApprovalItem[]),
+      ]);
+      setFeedItems(recData);
+      setApprovals(appData);
+    } catch {
+      /* empty */
+    } finally {
+      setFeedLoading(false);
+    }
+  }, [businessId, token]);
+
+  // Initial load for both columns
+  useEffect(() => {
+    loadAllFeeds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!token) return null;
 
   return (
-    <div className="flex h-screen flex-col">
-      <Topbar />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Main content */}
-        <div className="flex flex-1 flex-col overflow-y-auto p-4">
-          {/* Chat command center */}
-          <section className="mb-6">
-            <h2 className="mb-3 text-lg font-semibold">{t("chatTitle")}</h2>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendChat()}
-                placeholder={t("chatPlaceholder")}
-                className="flex-1 rounded-lg border border-gray-700 bg-gray-900 px-4 py-3 text-sm focus:border-white focus:outline-none"
-              />
-              <button
-                onClick={() => sendChat()}
-                disabled={chatLoading || !chatInput.trim()}
-                className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-gray-950 hover:bg-gray-200 disabled:opacity-50"
-              >
-                {tc("submit")}
-              </button>
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {chips.map((chip) => (
-                <button
-                  key={chip.key}
-                  onClick={() => sendChat(chip.label)}
-                  className="rounded-full border border-gray-700 px-3 py-1 text-xs hover:bg-gray-800"
-                >
-                  {chip.label}
-                </button>
-              ))}
-              <div className="ms-auto flex items-center gap-2">
-                <button
-                  onClick={runIngestion}
-                  disabled={ingesting}
-                  className="rounded-lg border border-blue-700 bg-blue-950 px-3 py-1 text-xs text-blue-300 hover:bg-blue-900 disabled:opacity-50"
-                >
-                  {ingesting ? t("ingesting") : t("runIngestion")}
-                </button>
-                <button
-                  onClick={runLeadGeneration}
-                  disabled={generatingLeads}
-                  className="rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-1 text-xs text-emerald-300 hover:bg-emerald-900 disabled:opacity-50"
-                >
-                  {generatingLeads ? t("generatingLeads") : t("generateLeads")}
-                </button>
-                <button
-                  onClick={runIntelligence}
-                  disabled={runningIntel}
-                  className="rounded-lg border border-amber-700 bg-amber-950 px-3 py-1 text-xs text-amber-300 hover:bg-amber-900 disabled:opacity-50"
-                >
-                  {runningIntel ? t("runningIntelligence") : t("runIntelligence")}
-                </button>
-                <button
-                  onClick={() => setShowAudienceBuilder(!showAudienceBuilder)}
-                  className="rounded-lg border border-purple-700 bg-purple-950 px-3 py-1 text-xs text-purple-300 hover:bg-purple-900"
-                >
-                  {t("audienceBuilder")}
-                </button>
-                <button
-                  onClick={() => { setShowExportPanel(!showExportPanel); loadExports(); }}
-                  className="rounded-lg border border-orange-700 bg-orange-950 px-3 py-1 text-xs text-orange-300 hover:bg-orange-900"
-                >
-                  {t("exportLeads")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/campaigns`)}
-                  className="rounded-lg border border-indigo-700 bg-indigo-950 px-3 py-1 text-xs text-indigo-300 hover:bg-indigo-900"
-                >
-                  {t("campaignsPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/settings`)}
-                  className="rounded-lg border border-cyan-700 bg-cyan-950 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-900"
-                >
-                  {t("integrations")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/trends`)}
-                  className="rounded-lg border border-amber-700 bg-amber-950 px-3 py-1 text-xs text-amber-300 hover:bg-amber-900"
-                >
-                  {t("trendsPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/competitors`)}
-                  className="rounded-lg border border-rose-700 bg-rose-950 px-3 py-1 text-xs text-rose-300 hover:bg-rose-900"
-                >
-                  {t("competitorsPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/reputation`)}
-                  className="rounded-lg border border-yellow-700 bg-yellow-950 px-3 py-1 text-xs text-yellow-300 hover:bg-yellow-900"
-                >
-                  {t("reputationPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/autopilot`)}
-                  className="rounded-lg border border-sky-700 bg-sky-950 px-3 py-1 text-xs text-sky-300 hover:bg-sky-900"
-                >
-                  {t("autopilotPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/playbooks`)}
-                  className="rounded-lg border border-fuchsia-700 bg-fuchsia-950 px-3 py-1 text-xs text-fuchsia-300 hover:bg-fuchsia-900"
-                >
-                  {t("playbooksPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/optimizations`)}
-                  className="rounded-lg border border-teal-700 bg-teal-950 px-3 py-1 text-xs text-teal-300 hover:bg-teal-900"
-                >
-                  {t("optimizationsPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/library`)}
-                  className="rounded-lg border border-sky-700 bg-sky-950 px-3 py-1 text-xs text-sky-300 hover:bg-sky-900"
-                >
-                  {t("libraryPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/billing`)}
-                  className="rounded-lg border border-lime-700 bg-lime-950 px-3 py-1 text-xs text-lime-300 hover:bg-lime-900"
-                >
-                  {t("billingPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/outbound`)}
-                  className="rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-1 text-xs text-emerald-300 hover:bg-emerald-900"
-                >
-                  {t("outboundPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/predictions`)}
-                  className="rounded-lg border border-cyan-700 bg-cyan-950 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-900"
-                >
-                  {t("predictionsPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/partners`)}
-                  className="rounded-lg border border-teal-700 bg-teal-950 px-3 py-1 text-xs text-teal-300 hover:bg-teal-900"
-                >
-                  {t("partnerDashboard")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/governance`)}
-                  className="rounded-lg border border-violet-700 bg-violet-950 px-3 py-1 text-xs text-violet-300 hover:bg-violet-900"
-                >
-                  {t("governancePage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/security`)}
-                  className="rounded-lg border border-red-700 bg-red-950 px-3 py-1 text-xs text-red-300 hover:bg-red-900"
-                >
-                  {t("securityPage")}
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/ops`)}
-                  className="rounded-lg border border-blue-700 bg-blue-950 px-3 py-1 text-xs text-blue-300 hover:bg-blue-900"
-                >
-                  {t("opsPage")}
-                </button>
-              </div>
-            </div>
-            {(ingestionMsg || leadGenMsg || intelMsg) && (
-              <div className="mt-1 flex gap-3">
-                {ingestionMsg && (
-                  <span className="text-xs text-green-400">{ingestionMsg}</span>
-                )}
-                {leadGenMsg && (
-                  <span className="text-xs text-emerald-400">{leadGenMsg}</span>
-                )}
-                {intelMsg && (
-                  <span className="text-xs text-amber-400">{intelMsg}</span>
-                )}
-              </div>
-            )}
-          </section>
+    <div className="flex flex-col gap-8 pb-12">
+      {/* ── Zone 1: AI Command Center ── */}
+      <section className="pt-2">
+        <h2 className="mb-4 text-xl font-semibold text-gray-100">
+          {t("chatTitle")}
+        </h2>
+        <CommandInput
+          placeholder={t("chatPlaceholder")}
+          onSubmit={(val) => sendChat(val)}
+          loading={chatLoading}
+          suggestions={chips}
+        />
+      </section>
 
-          {/* Optimization Widget — top 3 recommendations */}
-          {topRecs.length > 0 && (
-            <section className="mb-4 rounded-lg border border-teal-800 bg-gray-900 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-teal-300">{t("optWidgetTitle")}</h3>
-                <button
-                  onClick={() => router.push(`/dashboard/${businessId}/optimizations`)}
-                  className="text-[10px] text-teal-400 hover:underline"
-                >
-                  {t("optViewAll")}
-                </button>
-              </div>
-              <div className="space-y-2">
-                {topRecs.map((rec) => (
-                  <div key={rec.id} className="flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-950 p-3">
-                    <div className="flex-1">
-                      <div className="mb-1 flex items-center gap-2">
-                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                          ({
-                            BUDGET_CHANGE: "bg-green-900 text-green-300",
-                            CREATIVE_CHANGE: "bg-purple-900 text-purple-300",
-                            AUDIENCE_REFINEMENT: "bg-blue-900 text-blue-300",
-                            APPROVAL_THRESHOLD: "bg-yellow-900 text-yellow-300",
-                            AUTOPILOT_TUNING: "bg-red-900 text-red-300",
-                            PLAYBOOK_SUGGESTION: "bg-indigo-900 text-indigo-300",
-                          } as Record<string, string>)[rec.type] || "bg-gray-800 text-gray-400"
-                        }`}>
-                          {rec.type.replace(/_/g, " ")}
-                        </span>
-                        <span className="text-[10px] text-gray-500">{rec.confidence}%</span>
-                        {rec.impact_score > 0 && (
-                          <span className="text-[10px] text-emerald-400">{t("optImpact")}: {rec.impact_score}</span>
-                        )}
-                      </div>
-                      <p className="text-xs font-medium">{rec.title}</p>
-                      {rec.summary && <p className="mt-0.5 text-[10px] text-gray-400">{rec.summary}</p>}
-                    </div>
-                    <button
-                      onClick={() => router.push(`/dashboard/${businessId}/optimizations`)}
-                      className="shrink-0 rounded bg-teal-800 px-2 py-1 text-[10px] font-medium text-white hover:bg-teal-700"
-                    >
-                      {t("optReview")}
-                    </button>
+      {/* ── Zone 4: Quick Actions Bar ── */}
+      <section className="flex flex-wrap items-center gap-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={runIngestion}
+          loading={ingesting}
+        >
+          {ingesting ? t("ingesting") : t("runIngestion")}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={runLeadGeneration}
+          loading={generatingLeads}
+        >
+          {generatingLeads ? t("generatingLeads") : t("generateLeads")}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={runIntelligence}
+          loading={runningIntel}
+        >
+          {runningIntel ? t("runningIntelligence") : t("runIntelligence")}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setShowAudienceBuilder(true)}
+        >
+          {t("audienceBuilder")}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => { setShowExportPanel(true); loadExports(); }}
+        >
+          {t("exportLeads")}
+        </Button>
+
+        {/* Status messages */}
+        {ingestionMsg && (
+          <span className="text-xs text-gray-400">{ingestionMsg}</span>
+        )}
+        {leadGenMsg && (
+          <span className="text-xs text-gray-400">{leadGenMsg}</span>
+        )}
+        {intelMsg && (
+          <span className="text-xs text-gray-400">{intelMsg}</span>
+        )}
+      </section>
+
+      {/* ── Optimization Widget ── */}
+      {topRecs.length > 0 && (
+        <section>
+          <SectionHeader
+            title={t("optWidgetTitle")}
+            action={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push(`/dashboard/${businessId}/optimizations`)}
+              >
+                {t("optViewAll")}
+              </Button>
+            }
+          />
+          <div className="mt-3 space-y-2">
+            {topRecs.map((rec) => (
+              <Card key={rec.id} hover className="flex items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs text-gray-500">
+                      {rec.type.replace(/_/g, " ")}
+                    </span>
+                    <span className="text-xs text-gray-600">{rec.confidence}%</span>
+                    {rec.impact_score > 0 && (
+                      <span className="text-xs text-gray-400">
+                        {t("optImpact")}: {rec.impact_score}
+                      </span>
+                    )}
                   </div>
+                  <p className="text-sm font-medium text-gray-200">{rec.title}</p>
+                  {rec.summary && (
+                    <p className="mt-0.5 text-xs text-gray-500">{rec.summary}</p>
+                  )}
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => router.push(`/dashboard/${businessId}/optimizations`)}
+                >
+                  {t("optReview")}
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Zone 2 + 3: Two-column layout ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.54fr] gap-6">
+        {/* ── Zone 2: Recommended Actions (left, ~65%) ── */}
+        <section>
+          <SectionHeader
+            title={t("recommended")}
+            action={
+              feedItems.length > 0 ? (
+                <Badge>{feedItems.length}</Badge>
+              ) : null
+            }
+          />
+          <div className="mt-4">
+            {feedLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }, (_, i) => (
+                  <SkeletonCard key={i} />
                 ))}
               </div>
-            </section>
-          )}
-
-          {/* Audience Builder */}
-          {showAudienceBuilder && (
-            <AudienceBuilderWizard
-              businessId={businessId}
-              token={token!}
-              onCreated={() => { loadFeed(); loadAudiences(); setShowAudienceBuilder(false); }}
-              onClose={() => setShowAudienceBuilder(false)}
-            />
-          )}
-
-          {/* Export Panel */}
-          {showExportPanel && (
-            <ExportPanel
-              businessId={businessId}
-              token={token!}
-              audiences={audiences}
-              exports={exports}
-              onExportRequested={() => { loadFeed(); loadExports(); }}
-              onClose={() => setShowExportPanel(false)}
-            />
-          )}
-
-          {/* Feed */}
-          <section className="flex-1">
-            <h2 className="mb-3 text-lg font-semibold">{t("feedTitle")}</h2>
-            <div className="mb-4 flex gap-1 border-b border-gray-800">
-              {(
-                [
-                  ["recommended", t("recommended")],
-                  ["mentions", t("mentions")],
-                  ["needs_approval", t("needsApproval")],
-                ] as const
-              ).map(([tab, label]) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab as FeedTab)}
-                  className={`px-4 py-2 text-sm font-medium ${activeTab === tab ? "border-b-2 border-white text-white" : "text-gray-500 hover:text-gray-300"}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {feedLoading ? (
-              <p className="py-8 text-center text-sm text-gray-500">
-                {tc("loading")}
-              </p>
-            ) : activeTab === "recommended" ? (
+            ) : (
               <RecommendedFeed
-                items={feedItems}
+                items={feedItems.slice(0, 7)}
                 noItemsText={t("noItems")}
                 onCreateDraft={createReplyDraft}
                 onSendToCrm={sendToCrm}
                 onCreateAction={createActionFromFeed}
               />
-            ) : activeTab === "mentions" ? (
-              <MentionsFeed items={mentionItems} noItemsText={t("noItems")} />
+            )}
+          </div>
+        </section>
+
+        {/* ── Zone 3: Needs Approval (right, ~35%) ── */}
+        <section>
+          <SectionHeader
+            title={t("needsApproval")}
+            action={
+              approvals.length > 0 ? (
+                <Badge>{approvals.length}</Badge>
+              ) : null
+            }
+          />
+          <div className="mt-4">
+            {feedLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 2 }, (_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
             ) : (
               <NeedsApprovalFeed
                 approvals={approvals}
@@ -697,74 +610,150 @@ export default function DashboardPage() {
                 onReject={(id) => handleApproval(id, "reject")}
               />
             )}
-          </section>
-        </div>
-
-        {/* Chat thread panel */}
-        <aside className="hidden w-80 flex-col border-s border-gray-800 lg:flex">
-          <div className="border-b border-gray-800 px-4 py-3">
-            <h3 className="text-sm font-semibold">{t("chatThread")}</h3>
           </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            {chatMessages.length === 0 ? (
-              <p className="text-center text-xs text-gray-600">
-                {t("noItems")}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {chatMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`rounded-lg px-3 py-2 text-sm ${msg.role === "USER" ? "bg-gray-800 text-gray-100" : "bg-gray-900 text-gray-300"}`}
-                  >
-                    <span className="mb-1 block text-[10px] font-medium uppercase text-gray-500">
-                      {msg.role === "USER" ? "You" : "QuietEyes"}
-                    </span>
-                    {msg.content}
-                  </div>
-                ))}
-                {chatLoading && (
-                  <div className="flex gap-1 px-3 py-2">
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-gray-500" />
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-gray-500 [animation-delay:0.15s]" />
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-gray-500 [animation-delay:0.3s]" />
-                  </div>
-                )}
-                <div ref={chatEndRef} />
-              </div>
-            )}
-          </div>
-        </aside>
+        </section>
       </div>
 
-      {/* Quota Exceeded Modal */}
-      {quotaError && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="mx-4 w-full max-w-md rounded-lg border border-red-800 bg-gray-900 p-6">
-            <h3 className="mb-2 text-lg font-semibold text-red-400">{t("quotaExceeded")}</h3>
+      {/* ── Mentions section (secondary) ── */}
+      <section>
+        <SectionHeader
+          title={t("mentions")}
+          action={
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setActiveTab("mentions");
+                loadFeed();
+              }}
+            >
+              {tc("loading")}
+            </Button>
+          }
+        />
+        <div className="mt-4">
+          <MentionsFeed items={mentionItems} noItemsText={t("noItems")} />
+        </div>
+      </section>
+
+      {/* ── Chat Panel (collapsible) ── */}
+      {(chatMessages.length > 0 || chatOpen) && (
+        <section>
+          <SectionHeader
+            title={t("chatThread")}
+            action={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setChatOpen(!chatOpen)}
+              >
+                {chatOpen ? tc("cancel") : t("chatThread")}
+              </Button>
+            }
+          />
+          {chatOpen && (
+            <Card className="mt-3 max-h-80 overflow-y-auto">
+              {chatMessages.length === 0 ? (
+                <p className="text-center text-sm text-gray-600 py-6">
+                  {t("noItems")}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {chatMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={[
+                        "max-w-[80%] rounded-lg px-3 py-2 text-sm",
+                        msg.role === "USER"
+                          ? "ms-auto bg-gray-800 text-gray-100"
+                          : "me-auto bg-gray-900/80 text-gray-300",
+                      ].join(" ")}
+                    >
+                      <span className="mb-1 block text-[10px] font-medium uppercase text-gray-500">
+                        {msg.role === "USER" ? "You" : "QuietEyes"}
+                      </span>
+                      {msg.content}
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="flex gap-1 px-3 py-2">
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-gray-500" />
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-gray-500 [animation-delay:0.15s]" />
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-gray-500 [animation-delay:0.3s]" />
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+              )}
+            </Card>
+          )}
+        </section>
+      )}
+
+      {/* ── Audience Builder Modal ── */}
+      <Modal
+        open={showAudienceBuilder}
+        onClose={() => setShowAudienceBuilder(false)}
+        title={t("audienceBuilder")}
+        className="max-w-lg"
+      >
+        <AudienceBuilderWizard
+          businessId={businessId}
+          token={token!}
+          onCreated={() => { loadFeed(); loadAudiences(); setShowAudienceBuilder(false); }}
+          onClose={() => setShowAudienceBuilder(false)}
+        />
+      </Modal>
+
+      {/* ── Export Panel Modal ── */}
+      <Modal
+        open={showExportPanel}
+        onClose={() => setShowExportPanel(false)}
+        title={t("exportLeads")}
+        className="max-w-lg"
+      >
+        <ExportPanel
+          businessId={businessId}
+          token={token!}
+          audiences={audiences}
+          exports={exports}
+          onExportRequested={() => { loadFeed(); loadExports(); }}
+          onClose={() => setShowExportPanel(false)}
+        />
+      </Modal>
+
+      {/* ── Quota Exceeded Modal ── */}
+      <Modal
+        open={!!quotaError}
+        onClose={() => setQuotaError(null)}
+        title={t("quotaExceeded")}
+      >
+        {quotaError && (
+          <div>
             <p className="mb-4 text-sm text-gray-300">
               {t("quotaExceededMsg", { resource: quotaError.resource })}
             </p>
-            <div className="mb-4 rounded border border-gray-800 bg-gray-950 px-3 py-2 text-xs text-gray-400">
+            <div className="mb-4 rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-xs text-gray-400">
               {quotaError.resource}: {quotaError.current} / {quotaError.limit}
             </div>
             <div className="flex gap-2">
-              <button
+              <Button
+                size="sm"
                 onClick={() => { setQuotaError(null); router.push(`/dashboard/${businessId}/billing`); }}
-                className="rounded-lg bg-white px-4 py-1.5 text-xs font-semibold text-gray-950 hover:bg-gray-200"
               >
                 {t("upgradeNow")}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setQuotaError(null)}
-                className="rounded-lg border border-gray-700 px-4 py-1.5 text-xs text-gray-400 hover:bg-gray-800"
               >
                 {t("quotaDismiss")}
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }
@@ -786,7 +775,6 @@ function LeadCard({
   const [sendingCrm, setSendingCrm] = useState(false);
   const [sentCrm, setSentCrm] = useState(false);
 
-  const intentColor = INTENT_COLORS[item.intent || "OTHER"] || INTENT_COLORS.OTHER;
   const mention = item.mention;
   const evidenceUrl = mention?.url || item.url;
 
@@ -799,51 +787,53 @@ function LeadCard({
   }
 
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+    <Card hover>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${intentColor}`}>
-              {item.intent}
-            </span>
-            <span className="text-xs text-gray-500">
-              {t("scoreLabel")}: {item.score}%
-            </span>
-            <span className="text-xs text-gray-600">
-              {t("confidenceLabel")}: {item.confidence}%
-            </span>
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="text-xs text-gray-500">{item.intent}</span>
+            {item.confidence != null && (
+              <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full"
+                  style={{ opacity: Math.max(0.3, (item.confidence || 0) / 100) }}
+                  aria-hidden="true"
+                />
+                {item.confidence}%
+              </span>
+            )}
           </div>
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium text-gray-200">
             {mention?.title || item.title || item.intent}
           </p>
           {(mention?.snippet || item.snippet) && (
-            <p className="mt-1 line-clamp-2 text-xs text-gray-400">
+            <p className="mt-1 line-clamp-2 text-xs text-gray-500">
               {mention?.snippet || item.snippet}
             </p>
           )}
         </div>
-        <div className="shrink-0 text-end">
-          <div className="text-2xl font-bold text-white">{item.score}</div>
-          <div className="text-[10px] text-gray-500">{t("scoreLabel")}</div>
-        </div>
+        {item.score != null && (
+          <div className="shrink-0 text-end">
+            <div className="text-xl font-semibold text-gray-200">{item.score}</div>
+            <div className="text-[10px] text-gray-600">{t("scoreLabel")}</div>
+          </div>
+        )}
       </div>
 
-      {/* Evidence link */}
       {evidenceUrl && (
         <a
           href={evidenceUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 block text-xs text-blue-400 hover:underline"
+          className="mt-2 inline-block text-xs text-gray-400 hover:text-gray-300 transition-colors"
         >
           {t("evidence")}
         </a>
       )}
 
-      {/* Suggested reply preview */}
       {item.suggested_reply && (
-        <div className="mt-3 rounded border border-gray-800 bg-gray-950 px-3 py-2">
-          <p className="mb-1 text-[10px] font-medium uppercase text-gray-500">
+        <div className="mt-3 rounded-lg border border-gray-800/50 bg-gray-950/50 px-3 py-2">
+          <p className="mb-1 text-[10px] font-medium uppercase text-gray-600">
             {t("suggestedReply")}
           </p>
           <p className="line-clamp-2 text-xs text-gray-400">
@@ -852,43 +842,41 @@ function LeadCard({
         </div>
       )}
 
-      {/* Action buttons */}
       <div className="mt-3 flex items-center gap-2">
         {item.suggested_reply && (
           <>
             {created ? (
-              <span className="text-xs text-emerald-400">
-                {t("draftCreated")}
-              </span>
+              <span className="text-xs text-gray-400">{t("draftCreated")}</span>
             ) : (
-              <button
+              <Button
+                size="sm"
                 onClick={handleCreateDraft}
-                disabled={creating}
-                className="rounded-lg bg-white px-4 py-1.5 text-xs font-semibold text-gray-950 hover:bg-gray-200 disabled:opacity-50"
+                loading={creating}
               >
                 {creating ? t("creatingDraft") : t("createReplyDraft")}
-              </button>
+              </Button>
             )}
           </>
         )}
         {sentCrm ? (
-          <span className="text-xs text-cyan-400">{t("sentToCrm")}</span>
+          <span className="text-xs text-gray-400">{t("sentToCrm")}</span>
         ) : (
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={async () => {
               setSendingCrm(true);
               await onSendToCrm(item.id);
               setSendingCrm(false);
               setSentCrm(true);
             }}
-            disabled={sendingCrm}
-            className="rounded-lg border border-cyan-700 bg-cyan-950 px-4 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-900 disabled:opacity-50"
+            loading={sendingCrm}
           >
             {sendingCrm ? t("sendingToCrm") : t("sendToCrm")}
-          </button>
+          </Button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -908,31 +896,31 @@ function MentionCard({
 }) {
   const t = useTranslations("dashboard");
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+    <Card>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium text-gray-200">
             {item.title || "Untitled mention"}
           </p>
           {item.snippet && (
-            <p className="mt-1 line-clamp-2 text-xs text-gray-400">
+            <p className="mt-1 line-clamp-2 text-xs text-gray-500">
               {item.snippet}
             </p>
           )}
         </div>
         {item.source && (
-          <span className="shrink-0 rounded bg-gray-800 px-2 py-0.5 text-[10px] text-gray-400">
+          <span className="shrink-0 text-xs text-gray-600">
             {item.source.name}
           </span>
         )}
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-600">
         {item.url && (
           <a
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 hover:underline"
+            className="text-gray-400 hover:text-gray-300 transition-colors"
           >
             {t("evidence")}
           </a>
@@ -941,21 +929,21 @@ function MentionCard({
           <span>{new Date(item.published_at).toLocaleDateString()}</span>
         )}
         {item.fetched_at && (
-          <span className="text-gray-600">
+          <span>
             {t("fetched")} {new Date(item.fetched_at).toLocaleString()}
           </span>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
 /* ── Intelligence Card ── */
 
-const INTEL_CARD_STYLES: Record<string, { border: string; badge: string; label: string }> = {
-  trend: { border: "border-amber-800", badge: "bg-amber-900 text-amber-300", label: "trendSpike" },
-  competitor_event: { border: "border-rose-800", badge: "bg-rose-900 text-rose-300", label: "competitorAlert" },
-  review: { border: "border-yellow-800", badge: "bg-yellow-900 text-yellow-300", label: "reputationAlert" },
+const INTEL_CARD_STYLES: Record<string, { label: string }> = {
+  trend: { label: "trendSpike" },
+  competitor_event: { label: "competitorAlert" },
+  review: { label: "reputationAlert" },
 };
 
 function IntelligenceCard({
@@ -1007,27 +995,25 @@ function IntelligenceCard({
   })();
 
   return (
-    <div className={`rounded-lg border ${style.border} bg-gray-900 p-4`}>
+    <Card hover>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${style.badge}`}>
-              {t(style.label)}
-            </span>
-            <span className="text-xs text-gray-500">
-              {t("confidenceLabel")}: {item.confidence}%
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="text-xs text-gray-500">{t(style.label)}</span>
+            <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full bg-gray-400"
+                style={{ opacity: Math.max(0.3, item.confidence / 100) }}
+                aria-hidden="true"
+              />
+              {item.confidence}%
             </span>
           </div>
-          <p className="text-sm font-medium">{item.title}</p>
-          <p className="mt-1 line-clamp-2 text-xs text-gray-400">{item.why_it_matters}</p>
-        </div>
-        <div className="shrink-0 text-end">
-          <div className="text-2xl font-bold text-white">{item.confidence}</div>
-          <div className="text-[10px] text-gray-500">{t("confidenceLabel")}</div>
+          <p className="text-sm font-medium text-gray-200">{item.title}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-gray-500">{item.why_it_matters}</p>
         </div>
       </div>
 
-      {/* Evidence links */}
       {item.evidence_urls.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {item.evidence_urls.slice(0, 3).map((url, i) => (
@@ -1036,7 +1022,7 @@ function IntelligenceCard({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-blue-400 hover:underline"
+              className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
             >
               {t("evidence")} {i + 1}
             </a>
@@ -1044,28 +1030,26 @@ function IntelligenceCard({
         </div>
       )}
 
-      {/* Primary action */}
       {actionLabel && (
         <div className="mt-3">
           {acted ? (
-            <span className="text-xs text-emerald-400">{t("actionCreated")}</span>
+            <span className="text-xs text-gray-400">{t("actionCreated")}</span>
           ) : (
-            <button
+            <Button
+              size="sm"
               onClick={handleAction}
-              disabled={acting}
-              className={`rounded-lg px-4 py-1.5 text-xs font-semibold disabled:opacity-50 ${style.badge}`}
+              loading={acting}
             >
               {acting ? t("creatingAction") : actionLabel}
-            </button>
+            </Button>
           )}
         </div>
       )}
 
-      {/* Timestamp */}
       <div className="mt-2 text-[10px] text-gray-600">
         {new Date(item.created_at).toLocaleString()}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -1086,7 +1070,12 @@ function RecommendedFeed({
 }) {
   if (items.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-gray-500">{noItemsText}</p>
+      <EmptyState
+        title={noItemsText}
+        icon={
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        }
+      />
     );
   }
 
@@ -1100,7 +1089,6 @@ function RecommendedFeed({
       {items.map((item) => {
         if (isUnified(item)) {
           if (item.type === "lead") {
-            // Render unified lead as legacy LeadCard for compatibility
             const legacyItem: FeedItem = {
               id: item.id,
               intent: item.data?.intent as string,
@@ -1129,7 +1117,6 @@ function RecommendedFeed({
             />
           );
         }
-        // Legacy format fallback
         return isLegacyLead(item) ? (
           <LeadCard
             key={item.id}
@@ -1156,7 +1143,12 @@ function MentionsFeed({
 }) {
   if (items.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-gray-500">{noItemsText}</p>
+      <EmptyState
+        title={noItemsText}
+        icon={
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        }
+      />
     );
   }
   return (
@@ -1211,87 +1203,98 @@ function NeedsApprovalFeed({
     }
   }
 
+  if (approvals.length === 0) {
+    return (
+      <EmptyState
+        title={t("noItems")}
+        icon={
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        }
+      />
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Bulk approve high-confidence */}
       {approvals.filter((a) => a.confidence >= 85 && a.risk === "LOW").length > 0 && (
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={handleBulkApproveHighConfidence}
-            className="rounded-lg bg-green-900 px-4 py-1.5 text-xs font-semibold text-green-300 hover:bg-green-800"
           >
             {t("bulkApproveHighConfidence")}
-          </button>
-          {bulkMsg && <span className="text-xs text-green-400">{bulkMsg}</span>}
+          </Button>
+          {bulkMsg && <span className="text-xs text-gray-400">{bulkMsg}</span>}
         </div>
       )}
 
-      {grouped.map((group) => (
-        <div key={group.key}>
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-400">
-              {t(group.label)} ({group.items.length})
-            </h3>
-            {group.key === "CAMPAIGN_DRAFT" && group.items.length > 1 && (
-              <button
-                onClick={handleBulkApproveCampaigns}
-                className="rounded bg-green-900 px-2 py-0.5 text-[10px] text-green-300 hover:bg-green-800"
-              >
-                {t("bulkApprove")}
-              </button>
-            )}
-          </div>
-          {group.items.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-800 px-4 py-6 text-center text-xs text-gray-600">
-              {t("noItems")}
+      {grouped.map((group) => {
+        if (group.items.length === 0) return null;
+        return (
+          <div key={group.key}>
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-400">
+                {t(group.label)}
+                <span className="ms-1.5 text-xs text-gray-600">({group.items.length})</span>
+              </h3>
+              {group.key === "CAMPAIGN_DRAFT" && group.items.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBulkApproveCampaigns}
+                >
+                  {t("bulkApprove")}
+                </Button>
+              )}
             </div>
-          ) : (
             <div className="space-y-2">
               {group.items.map((approval) => (
-                <div
-                  key={approval.id}
-                  className="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">
+                <Card key={approval.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-300">
                         {approval.action?.type.replace(/_/g, " ")}
                       </p>
-                      <div className="mt-1 flex gap-2 text-xs text-gray-500">
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600">
                         <span>Risk: {approval.risk}</span>
                         <span>
                           {t("confidenceLabel")}: {approval.confidence}%
                         </span>
                         {approval.priority_score > 0 && (
-                          <span className="text-amber-400">
+                          <span>
                             {t("priorityScore")}: {approval.priority_score}
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
+                    <div className="flex gap-1.5 shrink-0">
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => onApprove(approval.id)}
-                        className="rounded bg-green-900 px-3 py-1 text-xs text-green-300 hover:bg-green-800"
                       >
                         {t("approve")}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => onReject(approval.id)}
-                        className="rounded bg-red-900 px-3 py-1 text-xs text-red-300 hover:bg-red-800"
                       >
                         {t("reject")}
-                      </button>
+                      </Button>
                     </div>
                   </div>
+
                   {/* Show payload details by action type */}
                   {(() => {
                     const payload = approval.action?.payload as Record<string, string> | null;
                     const aType = approval.action?.type;
                     if (aType === "REPLY_DRAFT" && payload?.reply_text) {
                       return (
-                        <div className="mt-2 rounded border border-gray-800 bg-gray-950 px-3 py-2">
-                          <p className="line-clamp-2 text-xs text-gray-400">
+                        <div className="mt-2 rounded-lg border border-gray-800/50 bg-gray-950/50 px-3 py-2">
+                          <p className="line-clamp-2 text-xs text-gray-500">
                             {payload.reply_text}
                           </p>
                         </div>
@@ -1299,8 +1302,8 @@ function NeedsApprovalFeed({
                     }
                     if (aType === "AUDIENCE_DRAFT" && payload?.audience_name) {
                       return (
-                        <div className="mt-2 rounded border border-gray-800 bg-gray-950 px-3 py-2">
-                          <p className="text-xs text-gray-400">
+                        <div className="mt-2 rounded-lg border border-gray-800/50 bg-gray-950/50 px-3 py-2">
+                          <p className="text-xs text-gray-500">
                             {t("audienceName")}: {payload.audience_name}
                           </p>
                         </div>
@@ -1308,8 +1311,8 @@ function NeedsApprovalFeed({
                     }
                     if (aType === "EXPORT" && payload?.export_type) {
                       return (
-                        <div className="mt-2 rounded border border-gray-800 bg-gray-950 px-3 py-2">
-                          <p className="text-xs text-gray-400">
+                        <div className="mt-2 rounded-lg border border-gray-800/50 bg-gray-950/50 px-3 py-2">
+                          <p className="text-xs text-gray-500">
                             {t("exportType")}: {payload.export_type === "HASHED_CSV" ? t("csvHashed") : t("csvPlain")}
                           </p>
                         </div>
@@ -1317,11 +1320,11 @@ function NeedsApprovalFeed({
                     }
                     if (aType === "CAMPAIGN_DRAFT" && payload) {
                       return (
-                        <div className="mt-2 rounded border border-gray-800 bg-gray-950 px-3 py-2">
-                          <p className="text-xs text-gray-400">
+                        <div className="mt-2 rounded-lg border border-gray-800/50 bg-gray-950/50 px-3 py-2">
+                          <p className="text-xs text-gray-500">
                             {payload.campaign_name as string}
                           </p>
-                          <div className="mt-1 flex gap-3 text-[10px] text-gray-500">
+                          <div className="mt-1 flex flex-wrap gap-3 text-[10px] text-gray-600">
                             <span>{t("objective")}: {payload.objective as string}</span>
                             <span>{t("platform")}: {payload.platform as string}</span>
                             <span>{t("budgetSuggestion")}: ${payload.budget_suggestion as string}/day</span>
@@ -1331,8 +1334,8 @@ function NeedsApprovalFeed({
                     }
                     if (aType === "CRM_SYNC" && payload?.lead_id) {
                       return (
-                        <div className="mt-2 rounded border border-gray-800 bg-gray-950 px-3 py-2">
-                          <p className="text-xs text-gray-400">
+                        <div className="mt-2 rounded-lg border border-gray-800/50 bg-gray-950/50 px-3 py-2">
+                          <p className="text-xs text-gray-500">
                             {t("sendToCrm")} &mdash; Lead {(payload.lead_id as string).slice(0, 8)}...
                           </p>
                         </div>
@@ -1340,14 +1343,14 @@ function NeedsApprovalFeed({
                     }
                     return null;
                   })()}
-                </div>
+                </Card>
               ))}
             </div>
-          )}
-        </div>
-      ))}
+          </div>
+        );
+      })}
 
-      <div className="rounded-lg border border-gray-800 bg-gray-900/50 px-4 py-3 text-center text-xs text-gray-500">
+      <div className="text-center text-xs text-gray-600 py-2">
         {approvals.length} {t("pendingApprovals")}
       </div>
     </div>
@@ -1371,7 +1374,7 @@ function AudienceBuilderWizard({
 }) {
   const t = useTranslations("dashboard");
   const tc = useTranslations("common");
-  const [step, setStep] = useState(0); // 0=Seed, 1=Refine, 2=Preview
+  const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [selectedIntents, setSelectedIntents] = useState<string[]>(["PURCHASE", "COMPARISON"]);
   const [minScore, setMinScore] = useState(30);
@@ -1430,21 +1433,19 @@ function AudienceBuilderWizard({
   const steps = [t("seedStep"), t("refineStep"), t("previewStep")];
 
   return (
-    <section className="mb-6 rounded-lg border border-purple-800 bg-gray-900 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-purple-300">{t("audienceBuilder")}</h3>
-        <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300">
-          {tc("cancel")}
-        </button>
-      </div>
-
+    <div className="space-y-4">
       {/* Step indicator */}
-      <div className="mb-4 flex gap-2">
+      <div className="flex gap-2">
         {steps.map((label, i) => (
           <button
             key={i}
             onClick={() => { if (i === 2) loadPreview(); setStep(i); }}
-            className={`rounded-full px-3 py-1 text-xs ${step === i ? "bg-purple-800 text-purple-200" : "bg-gray-800 text-gray-500"}`}
+            className={[
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+              step === i
+                ? "bg-gray-800 text-gray-100"
+                : "text-gray-500 hover:text-gray-300",
+            ].join(" ")}
           >
             {i + 1}. {label}
           </button>
@@ -1458,7 +1459,7 @@ function AudienceBuilderWizard({
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-700/50 bg-gray-950/50 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-gray-600 focus:outline-none"
               placeholder="e.g. High-intent buyers"
             />
           </div>
@@ -1469,24 +1470,25 @@ function AudienceBuilderWizard({
                 <button
                   key={intent}
                   onClick={() => toggleIntent(intent)}
-                  className={`rounded-full px-3 py-1 text-xs ${
+                  className={[
+                    "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
                     selectedIntents.includes(intent)
-                      ? (INTENT_COLORS[intent] || "bg-gray-700 text-gray-300")
-                      : "bg-gray-800 text-gray-600"
-                  }`}
+                      ? "bg-gray-700 text-gray-200"
+                      : "bg-gray-800/50 text-gray-600 hover:text-gray-400",
+                  ].join(" ")}
                 >
                   {intent}
                 </button>
               ))}
             </div>
           </div>
-          <button
+          <Button
+            size="sm"
             onClick={() => setStep(1)}
             disabled={!name.trim() || selectedIntents.length === 0}
-            className="rounded-lg bg-purple-800 px-4 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
           >
             {tc("next")}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -1515,65 +1517,67 @@ function AudienceBuilderWizard({
             />
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setStep(0)}
-              className="rounded-lg border border-gray-700 px-4 py-1.5 text-xs text-gray-400 hover:bg-gray-800"
             >
               {tc("back")}
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
               onClick={() => { loadPreview(); setStep(2); }}
-              className="rounded-lg bg-purple-800 px-4 py-1.5 text-xs font-semibold text-white hover:bg-purple-700"
             >
               {tc("next")}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {step === 2 && (
         <div className="space-y-3">
-          <div className="rounded border border-gray-800 bg-gray-950 px-3 py-2">
-            <p className="text-xs text-gray-400">{t("audiencePreview")}</p>
-            <p className="mt-1 text-sm font-medium">{name}</p>
-            <div className="mt-1 flex flex-wrap gap-1">
+          <div className="rounded-lg border border-gray-800/50 bg-gray-950/50 px-3 py-3">
+            <p className="text-xs text-gray-500">{t("audiencePreview")}</p>
+            <p className="mt-1 text-sm font-medium text-gray-200">{name}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {selectedIntents.map((i) => (
-                <span key={i} className={`rounded px-1.5 py-0.5 text-[10px] ${INTENT_COLORS[i] || "bg-gray-800 text-gray-400"}`}>
+                <span key={i} className="text-xs text-gray-500 bg-gray-800/50 rounded px-2 py-0.5">
                   {i}
                 </span>
               ))}
             </div>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-gray-600">
               {t("minScore")}: {minScore} | {t("minConfidence")}: {minConfidence}
             </p>
             {previewCount !== null && (
-              <p className="mt-1 text-xs text-purple-400">
+              <p className="mt-1 text-xs text-gray-400">
                 {t("matchingLeads", { count: previewCount })}
               </p>
             )}
           </div>
           {created ? (
-            <span className="text-xs text-emerald-400">{t("audienceDraftCreated")}</span>
+            <span className="text-xs text-gray-400">{t("audienceDraftCreated")}</span>
           ) : (
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setStep(1)}
-                className="rounded-lg border border-gray-700 px-4 py-1.5 text-xs text-gray-400 hover:bg-gray-800"
               >
                 {tc("back")}
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
                 onClick={handleCreate}
-                disabled={creating}
-                className="rounded-lg bg-purple-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-purple-600 disabled:opacity-50"
+                loading={creating}
               >
                 {creating ? t("creatingAudience") : t("createAudienceDraft")}
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -1595,7 +1599,6 @@ function ExportPanel({
   onClose: () => void;
 }) {
   const t = useTranslations("dashboard");
-  const tc = useTranslations("common");
   const [audienceId, setAudienceId] = useState<string>("");
   const [exportType, setExportType] = useState<"CSV" | "HASHED_CSV">("CSV");
   const [requesting, setRequesting] = useState(false);
@@ -1619,86 +1622,81 @@ function ExportPanel({
     }
   }
 
-  const STATUS_COLORS: Record<string, string> = {
-    PENDING: "text-yellow-400",
-    READY: "text-green-400",
-    FAILED: "text-red-400",
-  };
-
   return (
-    <section className="mb-6 rounded-lg border border-orange-800 bg-gray-900 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-orange-300">{t("exportLeads")}</h3>
-        <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300">
-          {tc("cancel")}
-        </button>
+    <div className="space-y-4">
+      <div>
+        <label className="mb-1 block text-xs text-gray-400">{t("audienceSegments")}</label>
+        <select
+          value={audienceId}
+          onChange={(e) => setAudienceId(e.target.value)}
+          className="w-full rounded-lg border border-gray-700/50 bg-gray-950/50 px-3 py-2 text-sm text-gray-100 focus:border-gray-600 focus:outline-none"
+        >
+          <option value="">All leads</option>
+          {audiences.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
       </div>
 
-      <div className="mb-4 space-y-3">
-        <div>
-          <label className="mb-1 block text-xs text-gray-400">{t("audienceSegments")}</label>
-          <select
-            value={audienceId}
-            onChange={(e) => setAudienceId(e.target.value)}
-            className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-          >
-            <option value="">All leads</option>
-            {audiences.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs text-gray-400">{t("exportType")}</label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setExportType("CSV")}
-              className={`rounded-lg px-3 py-1.5 text-xs ${exportType === "CSV" ? "bg-orange-800 text-orange-200" : "bg-gray-800 text-gray-500"}`}
-            >
-              {t("csvPlain")}
-            </button>
-            <button
-              onClick={() => setExportType("HASHED_CSV")}
-              className={`rounded-lg px-3 py-1.5 text-xs ${exportType === "HASHED_CSV" ? "bg-orange-800 text-orange-200" : "bg-gray-800 text-gray-500"}`}
-            >
-              {t("csvHashed")}
-            </button>
-          </div>
-        </div>
-
-        {requested ? (
-          <span className="text-xs text-emerald-400">{t("exportRequested")}</span>
-        ) : (
+      <div>
+        <label className="mb-1 block text-xs text-gray-400">{t("exportType")}</label>
+        <div className="flex gap-2">
           <button
-            onClick={handleRequest}
-            disabled={requesting}
-            className="rounded-lg bg-orange-800 px-4 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 disabled:opacity-50"
+            onClick={() => setExportType("CSV")}
+            className={[
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+              exportType === "CSV"
+                ? "bg-gray-700 text-gray-200"
+                : "bg-gray-800/50 text-gray-500 hover:text-gray-300",
+            ].join(" ")}
           >
-            {requesting ? t("requestingExport") : t("requestExport")}
+            {t("csvPlain")}
           </button>
-        )}
+          <button
+            onClick={() => setExportType("HASHED_CSV")}
+            className={[
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+              exportType === "HASHED_CSV"
+                ? "bg-gray-700 text-gray-200"
+                : "bg-gray-800/50 text-gray-500 hover:text-gray-300",
+            ].join(" ")}
+          >
+            {t("csvHashed")}
+          </button>
+        </div>
       </div>
+
+      {requested ? (
+        <span className="text-xs text-gray-400">{t("exportRequested")}</span>
+      ) : (
+        <Button
+          size="sm"
+          onClick={handleRequest}
+          loading={requesting}
+        >
+          {requesting ? t("requestingExport") : t("requestExport")}
+        </Button>
+      )}
 
       {/* Export history */}
-      <div>
-        <h4 className="mb-2 text-xs font-semibold text-gray-400">{t("exportHistory")}</h4>
+      <div className="border-t border-gray-800/50 pt-4">
+        <h4 className="mb-2 text-xs font-medium text-gray-400">{t("exportHistory")}</h4>
         {exportList.length === 0 ? (
           <p className="text-xs text-gray-600">{t("noExports")}</p>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {exportList.map((exp) => (
               <div
                 key={exp.id}
-                className="flex items-center justify-between rounded border border-gray-800 bg-gray-950 px-3 py-2"
+                className="flex items-center justify-between rounded-lg border border-gray-800/50 bg-gray-950/50 px-3 py-2"
               >
-                <div className="text-xs">
-                  <span className="text-gray-400">
+                <div className="text-xs text-gray-500">
+                  <span>
                     {exp.type === "HASHED_CSV" ? t("csvHashed") : t("csvPlain")}
                   </span>
-                  <span className={`ms-2 ${STATUS_COLORS[exp.status] || "text-gray-500"}`}>
+                  <span className="ms-2">
                     {exp.status === "READY" ? t("exportReady") : exp.status === "FAILED" ? t("exportFailed") : t("exportPending")}
                   </span>
                   <span className="ms-2 text-gray-600">
@@ -1708,7 +1706,7 @@ function ExportPanel({
                 {exp.status === "READY" && (
                   <a
                     href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/exports/${exp.id}/download`}
-                    className="rounded bg-green-900 px-2 py-0.5 text-xs text-green-300 hover:bg-green-800"
+                    className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
                   >
                     {t("download")}
                   </a>
@@ -1718,6 +1716,6 @@ function ExportPanel({
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

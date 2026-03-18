@@ -39,22 +39,62 @@ def get_feed(
     if tab == "recommended":
         items: list[FeedItemOut] = []
 
-        # Leads
+        # Leads — only show leads with meaningful score (>= 30)
         leads = (
             db.query(Lead)
-            .options(joinedload(Lead.mention).joinedload("source"))
-            .filter(Lead.business_id == biz.id, Lead.status == LeadStatus.NEW)
+            .options(joinedload(Lead.mention).joinedload(Mention.source))
+            .filter(
+                Lead.business_id == biz.id,
+                Lead.status == LeadStatus.NEW,
+                Lead.score >= 30,
+            )
             .order_by(Lead.score.desc())
-            .limit(20)
+            .limit(15)
             .all()
         )
+        # Pre-load business context for community intent
+        from app.ingestion.community_intent import analyze_community_intent, CommunitySignal
+        from app.models import Competitor
+        competitor_names = [
+            c.name for c in db.query(Competitor).filter(Competitor.business_id == biz.id).all()
+        ]
+        biz_meta = biz.client_metadata or {}
+
         for l in leads:
             mention = l.mention
+            source_name = ""
+            source_type_val = None
+            if mention and mention.source:
+                source_name = mention.source.name
+                source_type_val = mention.source.type.value if mention.source.type else None
+
+            # Run community intent for richer signal info
+            mention_text = f"{mention.title or ''} {mention.snippet or ''}" if mention else ""
+            community = analyze_community_intent(
+                text=mention_text,
+                source_type=source_type_val,
+                source_name=source_name,
+                business_category=biz.category,
+                business_location=biz.location_text,
+                business_keywords=biz_meta.get("keywords"),
+                competitor_names=competitor_names,
+                raw_json=mention.raw_json if mention else None,
+            )
+
+            # Build enriched why_it_matters
+            why = f"{l.intent.value} intent (score {l.score}, confidence {l.confidence}%)"
+            if source_name:
+                why += f" via {source_name}"
+            if community.signal != CommunitySignal.NOISE and community.matched_phrases:
+                why += f" — {community.reason}"
+
+            signal_label = community.signal.value if community.signal != CommunitySignal.NOISE else None
+
             items.append(FeedItemOut(
                 type="lead",
                 id=l.id,
                 title=mention.title if mention else l.intent.value,
-                why_it_matters=f"{l.intent.value} intent detected with score {l.score}",
+                why_it_matters=why,
                 evidence_urls=[mention.url] if mention and mention.url else [],
                 confidence=l.confidence,
                 primary_action="REPLY_DRAFT",
@@ -65,6 +105,10 @@ def get_feed(
                     "suggested_reply": l.suggested_reply,
                     "snippet": mention.snippet if mention else None,
                     "mention_id": str(l.mention_id) if l.mention_id else None,
+                    "source": source_name,
+                    "signal_class": signal_label,
+                    "signal_phrases": community.matched_phrases if community.matched_phrases else None,
+                    "urgency": community.urgency if community.urgency > 0 else None,
                 },
             ))
 

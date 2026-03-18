@@ -164,6 +164,8 @@ class ExportStatus(str, enum.Enum):
 class IntegrationType(str, enum.Enum):
     WEBHOOK = "WEBHOOK"
     META = "META"
+    FACEBOOK_PAGE = "FACEBOOK_PAGE"
+    INSTAGRAM = "INSTAGRAM"
 
 
 class IntegrationEventStatus(str, enum.Enum):

@@ -15,17 +15,22 @@ from app.health import get_latency_stats
 from app.ingestion.scan_scheduler import get_scan_stats
 from app.models import (
     Business,
+    CompetitorEvent,
     CostEvent,
     FailedJob,
     IntegrationEvent,
     IntegrationEventStatus,
+    Lead,
+    Mention,
     Org,
     PlanTier,
+    Review,
     Source,
     SourceHealth,
     SourceHealthStatus,
     Subscription,
     SubscriptionStatus,
+    Trend,
     UsageCounter,
     User,
     UserRole,
@@ -287,4 +292,90 @@ def quota_status(
         "resources": resources,
         "warnings": warnings,
         "upgrade_url": "/billing",
+    }
+
+
+@router.get("/source-diagnostics/{business_id}")
+def source_diagnostics(
+    business_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Source contribution diagnostics for a business — shows each source's
+    mention count, lead conversion, signal type breakdown, and usefulness score."""
+    biz = db.get(Business, business_id)
+    if not biz or biz.org_id != user.org_id:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    # Mentions per source
+    mention_by_source = (
+        db.query(Source.name, Source.type, func.count(Mention.id))
+        .join(Mention, Mention.source_id == Source.id)
+        .filter(Mention.business_id == business_id)
+        .group_by(Source.name, Source.type)
+        .all()
+    )
+
+    # Leads per source (via mention → source)
+    lead_by_source = (
+        db.query(Source.name, func.count(Lead.id))
+        .join(Mention, Mention.source_id == Source.id)
+        .join(Lead, Lead.mention_id == Mention.id)
+        .filter(Mention.business_id == business_id)
+        .group_by(Source.name)
+        .all()
+    )
+    lead_map = dict(lead_by_source)
+
+    # High-intent leads per source (score >= 50)
+    hi_lead_by_source = (
+        db.query(Source.name, func.count(Lead.id))
+        .join(Mention, Mention.source_id == Source.id)
+        .join(Lead, Lead.mention_id == Mention.id)
+        .filter(Mention.business_id == business_id, Lead.score >= 50)
+        .group_by(Source.name)
+        .all()
+    )
+    hi_lead_map = dict(hi_lead_by_source)
+
+    # Totals
+    total_mentions = db.query(func.count(Mention.id)).filter(Mention.business_id == business_id).scalar() or 0
+    total_leads = db.query(func.count(Lead.id)).filter(Lead.business_id == business_id).scalar() or 0
+    total_trends = db.query(func.count(Trend.id)).filter(Trend.business_id == business_id).scalar() or 0
+    total_comp_events = db.query(func.count(CompetitorEvent.id)).filter(CompetitorEvent.business_id == business_id).scalar() or 0
+    total_reviews = db.query(func.count(Review.id)).filter(Review.business_id == business_id).scalar() or 0
+
+    sources = []
+    for src_name, src_type, mention_count in mention_by_source:
+        leads_from = lead_map.get(src_name, 0)
+        hi_leads_from = hi_lead_map.get(src_name, 0)
+        conversion_rate = round(leads_from / mention_count * 100, 1) if mention_count else 0
+        hi_rate = round(hi_leads_from / mention_count * 100, 1) if mention_count else 0
+
+        # Usefulness score: weighted by high-intent lead yield
+        usefulness = min(100, int(hi_rate * 2 + conversion_rate))
+
+        sources.append({
+            "source_name": src_name,
+            "source_type": src_type.value if src_type else "UNKNOWN",
+            "mention_count": mention_count,
+            "leads_generated": leads_from,
+            "high_intent_leads": hi_leads_from,
+            "conversion_rate_pct": conversion_rate,
+            "high_intent_rate_pct": hi_rate,
+            "usefulness_score": usefulness,
+        })
+
+    sources.sort(key=lambda x: -x["usefulness_score"])
+
+    return {
+        "business_id": str(business_id),
+        "totals": {
+            "mentions": total_mentions,
+            "leads": total_leads,
+            "trends": total_trends,
+            "competitor_events": total_comp_events,
+            "reviews": total_reviews,
+        },
+        "sources": sources,
     }

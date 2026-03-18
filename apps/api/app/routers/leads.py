@@ -15,6 +15,7 @@ from app.models import (
     Business,
     Lead,
     LeadStatus,
+    Mention,
     RiskLevel,
     User,
 )
@@ -41,7 +42,7 @@ def list_leads(
 ):
     query = (
         db.query(Lead)
-        .options(joinedload(Lead.mention).joinedload("source"))
+        .options(joinedload(Lead.mention).joinedload(Mention.source))
         .filter(Lead.business_id == biz.id)
     )
     if status:

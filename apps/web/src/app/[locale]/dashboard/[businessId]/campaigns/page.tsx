@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { useRouter } from "@/i18n/navigation";
-import Topbar from "@/components/Topbar";
+import { PageHeader, Card, Badge, Button, Tabs, Modal, Input, Textarea } from "@/components/ui";
 
 /* ── Types ── */
 
@@ -68,14 +68,14 @@ interface ApprovalItem {
 const OBJECTIVES = ["LEADS", "SALES", "TRAFFIC"] as const;
 const PLATFORMS = ["meta", "google", "tiktok"] as const;
 
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-yellow-900 text-yellow-300",
-  APPROVED: "bg-blue-900 text-blue-300",
-  EXECUTED: "bg-green-900 text-green-300",
-  READY_TO_PUBLISH: "bg-purple-900 text-purple-300",
-  PUBLISH_PENDING: "bg-orange-900 text-orange-300",
-  PUBLISHED: "bg-emerald-900 text-emerald-300",
-  PUBLISH_FAILED: "bg-red-900 text-red-300",
+const STATUS_BADGE_VARIANT: Record<string, "default" | "success" | "warning" | "error" | "info"> = {
+  DRAFT: "warning",
+  APPROVED: "info",
+  EXECUTED: "success",
+  READY_TO_PUBLISH: "info",
+  PUBLISH_PENDING: "warning",
+  PUBLISHED: "success",
+  PUBLISH_FAILED: "error",
 };
 
 function statusLabel(status: string, t: (key: string) => string): string {
@@ -143,89 +143,79 @@ export default function CampaignsPage() {
   if (!token) return null;
 
   return (
-    <div className="flex h-screen flex-col">
-      <Topbar />
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push(`/dashboard/${businessId}`)}
-              className="rounded border border-gray-700 px-2 py-1 text-xs text-gray-400 hover:bg-gray-800"
-            >
-              {tc("back")}
-            </button>
-            <h1 className="text-lg font-semibold">{t("campaignsPage")}</h1>
-          </div>
-          <button
+    <div className="space-y-6">
+      <PageHeader
+        title={t("campaignsPage")}
+        actions={
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => { setShowCreateForm(!showCreateForm); setSelectedCampaign(null); }}
-            className="rounded-lg bg-indigo-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-600"
           >
             {t("createCampaignDraft")}
-          </button>
-        </div>
+          </Button>
+        }
+      />
 
-        {showCreateForm && (
-          <CampaignCreateForm
-            businessId={businessId}
-            token={token!}
-            audiences={audiences}
-            onCreated={() => { loadCampaigns(); setShowCreateForm(false); }}
-            onClose={() => setShowCreateForm(false)}
-          />
-        )}
+      {showCreateForm && (
+        <CampaignCreateForm
+          businessId={businessId}
+          token={token!}
+          audiences={audiences}
+          onCreated={() => { loadCampaigns(); setShowCreateForm(false); }}
+          onClose={() => setShowCreateForm(false)}
+        />
+      )}
 
-        {selectedCampaign && (
-          <CampaignReview
-            campaign={selectedCampaign}
-            businessId={businessId}
-            token={token!}
-            onUpdated={() => { loadCampaigns(); setSelectedCampaign(null); }}
-            onClose={() => setSelectedCampaign(null)}
-          />
-        )}
+      {selectedCampaign && (
+        <CampaignReview
+          campaign={selectedCampaign}
+          businessId={businessId}
+          token={token!}
+          onUpdated={() => { loadCampaigns(); setSelectedCampaign(null); }}
+          onClose={() => setSelectedCampaign(null)}
+        />
+      )}
 
-        {loading ? (
-          <p className="py-8 text-center text-sm text-gray-500">{tc("loading")}</p>
-        ) : campaigns.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-500">{t("noCampaigns")}</p>
-        ) : (
-          <div className="space-y-3">
-            {campaigns.map((c) => (
-              <div
-                key={c.id}
-                onClick={() => { setSelectedCampaign(c); setShowCreateForm(false); }}
-                className="cursor-pointer rounded-lg border border-gray-800 bg-gray-900 p-4 hover:border-gray-700"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[c.status] || "bg-gray-800 text-gray-400"}`}>
-                        {statusLabel(c.status, t)}
-                      </span>
-                      {c.draft && (
-                        <span className="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-400">
-                          {c.draft.platform}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm font-medium">{c.name}</p>
+      {loading ? (
+        <p className="py-8 text-center text-sm text-gray-500">{tc("loading")}</p>
+      ) : campaigns.length === 0 ? (
+        <p className="py-8 text-center text-sm text-gray-500">{t("noCampaigns")}</p>
+      ) : (
+        <div className="space-y-3">
+          {campaigns.map((c) => (
+            <Card
+              key={c.id}
+              hover
+              onClick={() => { setSelectedCampaign(c); setShowCreateForm(false); }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="mb-1 flex items-center gap-2">
+                    <Badge variant={STATUS_BADGE_VARIANT[c.status] || "default"}>
+                      {statusLabel(c.status, t)}
+                    </Badge>
                     {c.draft && (
-                      <div className="mt-1 flex gap-3 text-xs text-gray-500">
-                        <span>{t("objective")}: {c.draft.objective}</span>
-                        <span>{t("budgetSuggestion")}: ${c.draft.budget_suggestion}/day</span>
-                        <span>{t("creatives")}: {c.draft.creatives.length}</span>
-                      </div>
+                      <Badge variant="default">{c.draft.platform}</Badge>
                     )}
                   </div>
-                  <span className="text-xs text-gray-600">
-                    {new Date(c.created_at).toLocaleDateString()}
-                  </span>
+                  <p className="text-sm font-medium text-gray-100">{c.name}</p>
+                  {c.draft && (
+                    <div className="mt-1 flex gap-3 text-xs text-gray-500">
+                      <span>{t("objective")}: {c.draft.objective}</span>
+                      <span>{t("budgetSuggestion")}: ${c.draft.budget_suggestion}/day</span>
+                      <span>{t("creatives")}: {c.draft.creatives.length}</span>
+                    </div>
+                  )}
                 </div>
+                <span className="text-xs text-gray-500">
+                  {new Date(c.created_at).toLocaleDateString()}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -278,34 +268,16 @@ function CampaignCreateForm({
     }
   }
 
-  return (
-    <section className="mb-6 rounded-lg border border-indigo-800 bg-gray-900 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-indigo-300">{t("createCampaignDraft")}</h3>
-        <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300">
-          {tc("cancel")}
-        </button>
-      </div>
+  const sourceTabs = [
+    { key: "audience", label: t("sourceAudience") },
+    { key: "manual", label: t("sourceManual") },
+  ];
 
-      <div className="space-y-3">
+  return (
+    <Modal open title={t("createCampaignDraft")} onClose={onClose}>
+      <div className="space-y-4">
         {/* Source type */}
-        <div>
-          <label className="mb-1 block text-xs text-gray-400">{t("campaignSource")}</label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSourceType("audience")}
-              className={`rounded-lg px-3 py-1.5 text-xs ${sourceType === "audience" ? "bg-indigo-800 text-indigo-200" : "bg-gray-800 text-gray-500"}`}
-            >
-              {t("sourceAudience")}
-            </button>
-            <button
-              onClick={() => setSourceType("manual")}
-              className={`rounded-lg px-3 py-1.5 text-xs ${sourceType === "manual" ? "bg-indigo-800 text-indigo-200" : "bg-gray-800 text-gray-500"}`}
-            >
-              {t("sourceManual")}
-            </button>
-          </div>
-        </div>
+        <Tabs tabs={sourceTabs} active={sourceType} onChange={(k) => setSourceType(k as "audience" | "manual")} />
 
         {sourceType === "audience" && (
           <div>
@@ -313,7 +285,7 @@ function CampaignCreateForm({
             <select
               value={audienceId}
               onChange={(e) => setAudienceId(e.target.value)}
-              className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-700/50 bg-gray-900 px-3 py-2.5 text-sm text-gray-100 focus:border-gray-500 focus:ring-1 focus:ring-gray-500/30 focus:outline-none"
             >
               <option value="">Select audience...</option>
               {audiences.map((a) => (
@@ -324,16 +296,13 @@ function CampaignCreateForm({
         )}
 
         {sourceType === "manual" && (
-          <div>
-            <label className="mb-1 block text-xs text-gray-400">{t("sourceManual")}</label>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={t("manualPromptPlaceholder")}
-              rows={2}
-              className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-            />
-          </div>
+          <Textarea
+            label={t("sourceManual")}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder={t("manualPromptPlaceholder")}
+            rows={2}
+          />
         )}
 
         {/* Platform */}
@@ -341,13 +310,15 @@ function CampaignCreateForm({
           <label className="mb-1 block text-xs text-gray-400">{t("platform")}</label>
           <div className="flex gap-2">
             {PLATFORMS.map((p) => (
-              <button
+              <Button
                 key={p}
+                variant={platform === p ? "primary" : "secondary"}
+                size="sm"
                 onClick={() => setPlatform(p)}
-                className={`rounded-lg px-3 py-1.5 text-xs capitalize ${platform === p ? "bg-indigo-800 text-indigo-200" : "bg-gray-800 text-gray-500"}`}
+                className="capitalize"
               >
                 {p}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -357,13 +328,14 @@ function CampaignCreateForm({
           <label className="mb-1 block text-xs text-gray-400">{t("objective")}</label>
           <div className="flex gap-2">
             {OBJECTIVES.map((o) => (
-              <button
+              <Button
                 key={o}
+                variant={objective === o ? "primary" : "secondary"}
+                size="sm"
                 onClick={() => setObjective(o)}
-                className={`rounded-lg px-3 py-1.5 text-xs ${objective === o ? "bg-indigo-800 text-indigo-200" : "bg-gray-800 text-gray-500"}`}
               >
                 {o === "LEADS" ? t("objectiveLeads") : o === "SALES" ? t("objectiveSales") : t("objectiveTraffic")}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -385,16 +357,12 @@ function CampaignCreateForm({
         {created ? (
           <span className="text-xs text-emerald-400">{t("campaignDraftCreated")}</span>
         ) : (
-          <button
-            onClick={handleCreate}
-            disabled={creating}
-            className="rounded-lg bg-indigo-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-600 disabled:opacity-50"
-          >
+          <Button onClick={handleCreate} loading={creating}>
             {creating ? t("creatingCampaign") : t("createCampaignDraft")}
-          </button>
+          </Button>
         )}
       </div>
-    </section>
+    </Modal>
   );
 }
 
@@ -483,7 +451,6 @@ function CampaignReview({
   async function handleApprove() {
     setApproving(true);
     try {
-      // Find the pending approval for this campaign
       const approvals = await apiFetch<ApprovalItem[]>(
         `/businesses/${businessId}/approvals?status=PENDING`,
         { token },
@@ -507,50 +474,33 @@ function CampaignReview({
   }
 
   return (
-    <section className="mb-6 rounded-lg border border-indigo-800 bg-gray-900 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-indigo-300">{t("campaignDetail")}</h3>
-        <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300">
-          {tc("cancel")}
-        </button>
-      </div>
-
+    <Modal open title={t("campaignDetail")} onClose={onClose}>
       {editing ? (
         <div className="space-y-3">
+          <Input
+            label={t("campaignName")}
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+          />
           <div>
-            <label className="mb-1 block text-xs text-gray-400">{t("campaignName")}</label>
-            <input
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-gray-400">Draft JSON</label>
+            <label className="mb-1 block text-sm font-medium text-gray-300">Draft JSON</label>
             <textarea
               value={editDraft}
               onChange={(e) => setEditDraft(e.target.value)}
               rows={12}
-              className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 font-mono text-xs focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-700/50 bg-gray-900 px-3 py-2.5 font-mono text-xs text-gray-100 focus:border-gray-500 focus:ring-1 focus:ring-gray-500/30 focus:outline-none"
             />
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => setEditing(false)}
-              className="rounded-lg border border-gray-700 px-4 py-1.5 text-xs text-gray-400 hover:bg-gray-800"
-            >
+            <Button variant="secondary" size="sm" onClick={() => setEditing(false)}>
               {tc("cancel")}
-            </button>
+            </Button>
             {saved ? (
               <span className="py-1.5 text-xs text-emerald-400">{t("draftSaved")}</span>
             ) : (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-lg bg-indigo-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-600 disabled:opacity-50"
-              >
+              <Button size="sm" onClick={handleSave} loading={saving}>
                 {saving ? t("saving") : t("saveDraft")}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -558,88 +508,80 @@ function CampaignReview({
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center gap-2">
-            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[campaign.status] || "bg-gray-800 text-gray-400"}`}>
+            <Badge variant={STATUS_BADGE_VARIANT[campaign.status] || "default"}>
               {statusLabel(campaign.status, t)}
-            </span>
-            <p className="text-sm font-medium">{campaign.name}</p>
+            </Badge>
+            <p className="text-sm font-medium text-gray-100">{campaign.name}</p>
           </div>
 
           {draft && (
             <>
               {/* Objective & Budget */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded border border-gray-800 bg-gray-950 px-3 py-2">
+                <Card className="!p-3">
                   <p className="text-[10px] uppercase text-gray-500">{t("objective")}</p>
-                  <p className="text-sm font-medium">{draft.objective}</p>
-                </div>
-                <div className="rounded border border-gray-800 bg-gray-950 px-3 py-2">
+                  <p className="text-sm font-medium text-gray-100">{draft.objective}</p>
+                </Card>
+                <Card className="!p-3">
                   <p className="text-[10px] uppercase text-gray-500">{t("platform")}</p>
-                  <p className="text-sm font-medium capitalize">{draft.platform}</p>
-                </div>
-                <div className="rounded border border-gray-800 bg-gray-950 px-3 py-2">
+                  <p className="text-sm font-medium capitalize text-gray-100">{draft.platform}</p>
+                </Card>
+                <Card className="!p-3">
                   <p className="text-[10px] uppercase text-gray-500">{t("budgetSuggestion")}</p>
-                  <p className="text-sm font-medium">${draft.budget_suggestion}/day</p>
-                </div>
+                  <p className="text-sm font-medium text-gray-100">${draft.budget_suggestion}/day</p>
+                </Card>
               </div>
 
               {/* Audience */}
-              <div className="rounded border border-gray-800 bg-gray-950 px-3 py-2">
+              <Card className="!p-3">
                 <p className="text-[10px] uppercase text-gray-500">{t("audienceSummary")}</p>
                 <p className="text-xs text-gray-400">{draft.audience_summary}</p>
-              </div>
+              </Card>
 
               {/* Targeting */}
-              <div className="rounded border border-gray-800 bg-gray-950 px-3 py-2">
+              <Card className="!p-3">
                 <p className="mb-1 text-[10px] uppercase text-gray-500">{t("targeting")}</p>
                 <div className="flex flex-wrap gap-1">
                   {draft.targeting_suggestions.map((s, i) => (
-                    <span key={i} className="rounded bg-gray-800 px-2 py-0.5 text-[10px] text-gray-400">
-                      {s}
-                    </span>
+                    <Badge key={i} variant="default">{s}</Badge>
                   ))}
                 </div>
-              </div>
+              </Card>
 
               {/* Creatives */}
               <div>
                 <p className="mb-2 text-[10px] uppercase text-gray-500">{t("creatives")}</p>
                 <div className="space-y-2">
                   {draft.creatives.map((c) => (
-                    <div key={c.variant} className="rounded border border-gray-800 bg-gray-950 px-3 py-2">
+                    <Card key={c.variant} className="!p-3">
                       <div className="mb-1 flex items-center gap-2">
-                        <span className="rounded bg-indigo-900 px-1.5 py-0.5 text-[10px] text-indigo-300">
-                          {t("variant")} {c.variant}
-                        </span>
-                        <span className="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-400">
-                          {t("cta")}: {c.cta}
-                        </span>
+                        <Badge variant="info">{t("variant")} {c.variant}</Badge>
+                        <Badge variant="default">{t("cta")}: {c.cta}</Badge>
                       </div>
-                      <p className="text-sm font-medium">{c.headline}</p>
+                      <p className="text-sm font-medium text-gray-100">{c.headline}</p>
                       <p className="mt-0.5 text-xs text-gray-400">{c.primary_text}</p>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               </div>
 
               {/* UTM */}
-              <div className="rounded border border-gray-800 bg-gray-950 px-3 py-2">
+              <Card className="!p-3">
                 <p className="mb-1 text-[10px] uppercase text-gray-500">{t("utmPlan")}</p>
                 <div className="flex flex-wrap gap-2 text-xs text-gray-400">
                   {Object.entries(draft.utm).map(([k, v]) => (
-                    <span key={k} className="rounded bg-gray-800 px-2 py-0.5">
-                      {k}={v}
-                    </span>
+                    <Badge key={k} variant="default">{k}={v}</Badge>
                   ))}
                 </div>
-              </div>
+              </Card>
 
               {/* Schedule */}
-              <div className="rounded border border-gray-800 bg-gray-950 px-3 py-2">
+              <Card className="!p-3">
                 <p className="mb-1 text-[10px] uppercase text-gray-500">{t("schedule")}</p>
                 <p className="text-xs text-gray-400">
                   Start: {draft.schedule_suggestion.start} | Duration: {draft.schedule_suggestion.duration_days} days | Budget: ${draft.schedule_suggestion.daily_budget}/day
                 </p>
-              </div>
+              </Card>
             </>
           )}
 
@@ -647,48 +589,31 @@ function CampaignReview({
           <div className="flex gap-2">
             {campaign.status === "DRAFT" && (
               <>
-                <button
-                  onClick={() => setEditing(true)}
-                  className="rounded-lg border border-gray-700 px-4 py-1.5 text-xs text-gray-400 hover:bg-gray-800"
-                >
+                <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
                   {t("editDraft")}
-                </button>
+                </Button>
                 {approved ? (
                   <span className="py-1.5 text-xs text-emerald-400">{t("statusExecuted")}</span>
                 ) : (
-                  <button
-                    onClick={handleApprove}
-                    disabled={approving}
-                    className="rounded-lg bg-green-800 px-4 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-                  >
+                  <Button size="sm" onClick={handleApprove} loading={approving} className="bg-green-800 text-white hover:bg-green-700">
                     {approving ? tc("loading") : t("approve")}
-                  </button>
+                  </Button>
                 )}
               </>
             )}
             {(campaign.status === "EXECUTED" || campaign.status === "APPROVED" || campaign.status === "PUBLISH_FAILED") && (
-              <button
-                onClick={handlePreparePublish}
-                disabled={publishing}
-                className="rounded-lg bg-purple-800 px-4 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
-              >
+              <Button size="sm" onClick={handlePreparePublish} loading={publishing} className="bg-purple-800 text-white hover:bg-purple-700">
                 {publishing ? tc("loading") : t("prepareForMeta")}
-              </button>
+              </Button>
             )}
             {campaign.status === "READY_TO_PUBLISH" && (
-              <span className="rounded bg-purple-900 px-3 py-1.5 text-xs text-purple-300">
-                {t("statusReadyToPublish")}
-              </span>
+              <Badge variant="info">{t("statusReadyToPublish")}</Badge>
             )}
             {campaign.status === "PUBLISH_PENDING" && (
-              <span className="rounded bg-orange-900 px-3 py-1.5 text-xs text-orange-300">
-                {t("statusPublishPending")}
-              </span>
+              <Badge variant="warning">{t("statusPublishPending")}</Badge>
             )}
             {campaign.status === "PUBLISHED" && (
-              <span className="rounded bg-emerald-900 px-3 py-1.5 text-xs text-emerald-300">
-                {t("statusPublished")}
-              </span>
+              <Badge variant="success">{t("statusPublished")}</Badge>
             )}
           </div>
 
@@ -698,39 +623,38 @@ function CampaignReview({
               <p className="mb-2 text-[10px] uppercase text-gray-500">{t("publishLogs")}</p>
               <div className="space-y-2">
                 {publishLogs.map((log) => (
-                  <div key={log.id} className="flex items-center justify-between rounded border border-gray-800 bg-gray-950 px-3 py-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium capitalize">{log.platform}</span>
-                        <span className={`text-[10px] ${log.status === "PUBLISHED" ? "text-emerald-400" : log.status === "FAILED" ? "text-red-400" : "text-yellow-400"}`}>
-                          {log.status}
-                        </span>
+                  <Card key={log.id} className="!p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium capitalize text-gray-100">{log.platform}</span>
+                          <Badge variant={log.status === "PUBLISHED" ? "success" : log.status === "FAILED" ? "error" : "warning"}>
+                            {log.status}
+                          </Badge>
+                        </div>
+                        {log.external_id && (
+                          <p className="mt-0.5 text-[10px] text-gray-500">ID: {log.external_id}</p>
+                        )}
+                        {log.error_message && (
+                          <p className="mt-0.5 text-[10px] text-red-400">{log.error_message}</p>
+                        )}
+                        <p className="mt-0.5 text-[10px] text-gray-500">
+                          {new Date(log.created_at).toLocaleString()}
+                        </p>
                       </div>
-                      {log.external_id && (
-                        <p className="mt-0.5 text-[10px] text-gray-500">ID: {log.external_id}</p>
+                      {log.status === "FAILED" && (
+                        <Button variant="secondary" size="sm" onClick={() => handleRetryPublish(log.id)}>
+                          {t("retryPublish")}
+                        </Button>
                       )}
-                      {log.error_message && (
-                        <p className="mt-0.5 text-[10px] text-red-400">{log.error_message}</p>
-                      )}
-                      <p className="mt-0.5 text-[10px] text-gray-600">
-                        {new Date(log.created_at).toLocaleString()}
-                      </p>
                     </div>
-                    {log.status === "FAILED" && (
-                      <button
-                        onClick={() => handleRetryPublish(log.id)}
-                        className="rounded border border-gray-700 px-2 py-1 text-[10px] text-gray-400 hover:bg-gray-800"
-                      >
-                        {t("retryPublish")}
-                      </button>
-                    )}
-                  </div>
+                  </Card>
                 ))}
               </div>
             </div>
           )}
         </div>
       )}
-    </section>
+    </Modal>
   );
 }

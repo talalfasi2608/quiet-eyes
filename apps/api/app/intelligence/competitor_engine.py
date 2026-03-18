@@ -74,9 +74,35 @@ def _build_summary(competitor_name: str, event_type: CompetitorEventType, text: 
     return f"New activity detected from {competitor_name}: \"{snippet}\""
 
 
+def _fetch_serpapi_results(query: str) -> list[dict]:
+    """Fetch search results from SerpAPI for competitor intelligence."""
+    from app.config import settings
+
+    if not settings.SERPAPI_API_KEY:
+        return []
+    try:
+        import httpx
+        resp = httpx.get(
+            "https://serpapi.com/search",
+            params={
+                "q": query,
+                "api_key": settings.SERPAPI_API_KEY,
+                "num": 10,
+                "engine": "google",
+            },
+            timeout=15,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get("organic_results", [])
+    except Exception as e:
+        logger.warning("SerpAPI fetch failed for '%s': %s", query, e)
+    return []
+
+
 def run_competitor_engine(db: Session, business_id: uuid.UUID) -> int:
     """
-    Detect competitor activity changes from recent mentions.
+    Detect competitor activity changes from recent mentions and SerpAPI.
     Returns count of new events created.
     """
     business = db.get(Business, business_id)
@@ -93,6 +119,38 @@ def run_competitor_engine(db: Session, business_id: uuid.UUID) -> int:
 
     now = datetime.now(timezone.utc)
     lookback = now - timedelta(days=7)
+
+    # Ensure SerpAPI source exists for proper tracking
+    from app.models import AccessMethod, Source, SourceType
+    serp_source = db.query(Source).filter(Source.name == "SerpAPI", Source.type == SourceType.SEARCH).first()
+    if not serp_source:
+        serp_source = Source(name="SerpAPI", type=SourceType.SEARCH, access_method=AccessMethod.API, reliability_score=75)
+        db.add(serp_source)
+        db.flush()
+
+    # Enrich with SerpAPI results for each competitor
+    for competitor in competitors:
+        serp_results = _fetch_serpapi_results(f"{competitor.name} {business.category or ''} news offers")
+        for result in serp_results:
+            title = result.get("title", "")
+            snippet = result.get("snippet", "")
+            url = result.get("link", "")
+            if not url:
+                continue
+            existing = db.query(Mention).filter(Mention.url == url, Mention.business_id == business_id).first()
+            if existing:
+                continue
+            mention = Mention(
+                business_id=business_id,
+                source_id=serp_source.id,
+                title=title[:500],
+                snippet=snippet[:2000],
+                url=url,
+                fetched_at=now,
+            )
+            db.add(mention)
+        if serp_results:
+            db.flush()
 
     # Get recent mentions
     recent_mentions = (

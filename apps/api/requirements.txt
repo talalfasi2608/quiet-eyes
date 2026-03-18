@@ -8,10 +8,13 @@ pydantic[email]==2.10.4
 pydantic-settings==2.7.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 python-multipart==0.0.20
 celery[redis]==5.4.0
 httpx==0.28.1
 stripe==8.4.0
+twilio==9.4.0
+openai==1.82.0
 feedparser==6.0.11
 ruff==0.8.6
 black==24.10.0

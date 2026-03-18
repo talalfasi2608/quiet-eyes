@@ -23,22 +23,172 @@
     "orgName": "Organization name",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Invalid email or password",
+    "fullName": "Full name",
+    "role": "Your role",
+    "selectRole": "Select your role",
+    "roleBizOwner": "Business Owner",
+    "roleMarketer": "Marketer",
+    "roleAgency": "Agency",
+    "roleOther": "Other"
   },
   "onboarding": {
     "title": "Set up your business",
     "subtitle": "Tell us about your business so we can start finding opportunities",
     "businessName": "Business name",
+    "businessNamePlaceholder": "e.g. Acme Marketing",
     "category": "Category",
+    "selectCategory": "Select a category",
     "location": "Location",
+    "locationPlaceholder": "e.g. Tel Aviv, Israel",
     "website": "Website URL",
     "language": "Preferred language",
     "competitors": "Competitors",
-    "competitorName": "Competitor name",
+    "competitorName": "Competitor",
     "competitorUrl": "Competitor website",
     "addCompetitor": "Add competitor",
     "competitorHint": "Add up to 3 competitors to track",
-    "finish": "Launch Dashboard"
+    "competitorHintV2": "Add your main competitors so we can track them (up to 10)",
+    "finish": "Launch Dashboard",
+    "stepOf": "{current}% complete",
+
+    "step1Label": "Business",
+    "step2Label": "Customers",
+    "step3Label": "Marketing",
+    "step4Label": "Intel",
+    "step5Label": "Setup",
+
+    "step1Title": "Tell us about your business",
+    "step1Subtitle": "Basic info helps us tailor everything to your needs",
+    "step2Title": "Your target customer & value",
+    "step2Subtitle": "Help us understand who you serve and what you offer",
+    "step3Title": "Marketing & growth",
+    "step3Subtitle": "How you reach customers today and your growth goals",
+    "step4Title": "Intelligence & competitors",
+    "step4Subtitle": "Who to watch and what to track in your market",
+
+    "descriptionLabel": "Short description",
+    "descriptionPlaceholder": "Briefly describe what your business does",
+    "serviceArea": "Service area",
+    "selectServiceArea": "Select service area",
+
+    "idealCustomer": "Who is your ideal customer?",
+    "idealCustomerPlaceholder": "e.g. Small business owners looking for marketing automation",
+    "painPoints": "What problems do you solve?",
+    "painPointsPlaceholder": "e.g. They waste time on manual outreach",
+    "mainServices": "Main services/products",
+    "mainServicesPlaceholder": "e.g. SEO, PPC, Social Media Management",
+    "differentiation": "What makes you different?",
+    "differentiationPlaceholder": "e.g. AI-powered insights with human touch",
+    "targetLocations": "Target locations",
+    "targetLocationsPlaceholder": "e.g. Tel Aviv, Jerusalem, Haifa",
+    "avoidCustomers": "Customers to avoid",
+    "avoidCustomersPlaceholder": "e.g. Enterprise companies with 500+ employees",
+    "avoidCustomersHint": "Optional — helps us filter out irrelevant leads",
+
+    "acquisitionChannels": "How do you get customers today?",
+    "paidAds": "Do you run paid ads?",
+    "crmLabel": "Do you use a CRM?",
+    "contactChannels": "Preferred contact channels",
+    "leadTarget": "Monthly lead target",
+    "leadTargetPlaceholder": "e.g. 50",
+    "adBudget": "Monthly ad budget",
+    "adBudgetHint": "Optional — helps us calibrate recommendations",
+    "selectOption": "Select an option",
+
+    "keywords": "Important keywords",
+    "keywordsPlaceholder": "e.g. marketing automation, AI leads, growth tool",
+    "opportunityTypes": "What opportunities matter most?",
+    "communicationTone": "Communication tone",
+    "reportFrequency": "Report frequency",
+
+    "setupComplete": "Your AI workspace is ready!",
+    "setupCompleteSubtitle": "We've analyzed your business and prepared your personalized dashboard",
+    "goToDashboard": "Go to Dashboard",
+
+    "categories": {
+      "restaurant": "Restaurant",
+      "retail": "Retail",
+      "saas": "SaaS",
+      "real_estate": "Real Estate",
+      "health_wellness": "Health & Wellness",
+      "beauty_spa": "Beauty & Spa",
+      "professional_services": "Professional Services",
+      "ecommerce": "E-commerce",
+      "education": "Education",
+      "automotive": "Automotive",
+      "travel_tourism": "Travel & Tourism",
+      "construction": "Construction",
+      "legal": "Legal",
+      "financial_services": "Financial Services",
+      "marketing_agency": "Marketing Agency",
+      "other": "Other"
+    },
+    "serviceAreas": {
+      "local": "Local",
+      "national": "National",
+      "international": "International",
+      "online": "Online only"
+    },
+    "channels": {
+      "word_of_mouth": "Word of mouth",
+      "social_media": "Social media",
+      "google_ads": "Google Ads",
+      "seo": "SEO",
+      "referrals": "Referrals",
+      "cold_outreach": "Cold outreach",
+      "content_marketing": "Content marketing",
+      "events": "Events",
+      "partnerships": "Partnerships",
+      "other": "Other"
+    },
+    "paidAdsOptions": {
+      "no": "No",
+      "yes_small": "Yes — small budget",
+      "yes_medium": "Yes — medium budget",
+      "yes_large": "Yes — large budget"
+    },
+    "crmOptions": {
+      "no": "No",
+      "hubspot": "HubSpot",
+      "salesforce": "Salesforce",
+      "pipedrive": "Pipedrive",
+      "monday": "Monday",
+      "other": "Other"
+    },
+    "contactOptions": {
+      "whatsapp": "WhatsApp",
+      "email": "Email",
+      "phone": "Phone",
+      "linkedin": "LinkedIn",
+      "sms": "SMS"
+    },
+    "opportunities": {
+      "new_leads": "New leads",
+      "market_trends": "Market trends",
+      "competitor_moves": "Competitor moves",
+      "customer_reviews": "Customer reviews",
+      "campaign_ideas": "Campaign ideas"
+    },
+    "tones": {
+      "professional": "Professional",
+      "friendly": "Friendly",
+      "short_direct": "Short & direct",
+      "aggressive": "Aggressive",
+      "premium": "Premium"
+    },
+    "frequencies": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    },
+    "setup": {
+      "analyzingBusiness": "Analyzing your business...",
+      "scanningWeb": "Scanning the web for mentions...",
+      "identifyingCompetitors": "Identifying competitors...",
+      "buildingProfile": "Building your AI profile...",
+      "preparingOpportunities": "Preparing your first opportunities..."
+    }
   },
   "dashboard": {
     "chatPlaceholder": "Ask QuietEyes anything about your market...",
@@ -565,6 +715,30 @@
     "complianceSection": "Compliance",
     "dataRetention": "Data Retention",
     "retentionPolicy": "Audit logs are retained according to your region's compliance requirements"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "campaigns": "Campaigns",
+    "outbound": "Outbound",
+    "competitors": "Competitors",
+    "trends": "Trends",
+    "reputation": "Reputation",
+    "predictions": "Predictions",
+    "autopilot": "Autopilot",
+    "playbooks": "Playbooks",
+    "library": "Library",
+    "optimizations": "Optimizations",
+    "integrations": "Integrations",
+    "billing": "Billing",
+    "governance": "Governance",
+    "security": "Security",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
+  },
+  "topbar": {
+    "askAi": "Ask AI anything...",
+    "search": "Search"
   },
   "landing": {
     "hero": "Your AI-powered market intelligence assistant",
